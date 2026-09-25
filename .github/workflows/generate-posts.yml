@@ -13,6 +13,10 @@ on:
         description: "How many drafts to write into posts/drafts (1-5)"
         required: false
         default: "1"
+      mode:
+        description: "draft (into posts/drafts) or fallback (top up posts/ready to 5)"
+        required: false
+        default: "draft"
 
 concurrency:
   group: generate
@@ -38,7 +42,7 @@ jobs:
       - name: Write posts
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          MODE: ${{ github.event_name == 'schedule' && 'fallback' || 'draft' }}
+          MODE: ${{ (github.event_name == 'schedule' || inputs.mode == 'fallback') && 'fallback' || 'draft' }}
           DRAFT_COUNT: ${{ inputs.count }}
         run: node scripts/generate-posts.mjs
 

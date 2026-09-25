@@ -25,3 +25,6 @@ const isSlot = wait <= CAP;
 if (!isSlot) wait = CAP;
 console.log(`seconds=${wait}`);
 console.log(`is_slot=${isSlot}`);
+// The first slot of the day also tops up the queue if the content team's
+// daily run didn't land (generate-posts fallback).
+console.log(`first_slot=${isSlot && (next % 86400) === SLOT_HOURS[0] * 3600 + 180}`);

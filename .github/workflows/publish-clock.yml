@@ -39,11 +39,24 @@ jobs:
       - name: Sleep until then
         run: sleep ${{ steps.wait.outputs.seconds }}
 
-      - name: Dispatch publish
+      # Before the first slot of the day: top up posts/ready/ if it's short.
+      # generate-posts commits and pushes before publish reads main, and
+      # publish holds any post whose AI images aren't there yet.
+      - name: Top up the queue (first slot only)
+        if: steps.wait.outputs.first_slot == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run generate-posts.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=fallback
+          sleep 420
+
+      - name: Dispatch publish and Threads catch-up
         if: steps.wait.outputs.is_slot == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run publish.yml --repo "$GITHUB_REPOSITORY" --ref main
+        run: |
+          gh workflow run publish.yml --repo "$GITHUB_REPOSITORY" --ref main
+          gh workflow run threads-backfill.yml --repo "$GITHUB_REPOSITORY" --ref main
 
       - name: Re-arm the clock
         if: always()

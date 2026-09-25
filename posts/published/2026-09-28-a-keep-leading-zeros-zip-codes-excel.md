@@ -1,4 +1,5 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DdtwtpYm3gC
 blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-keep-leading-zeros-in-excel-zip.html
 title: How to Keep Leading Zeros in Excel ZIP Codes
 labels: excel-basics, data-entry

@@ -9,3 +9,4 @@
 ## 게시 기록
 
 - 2026-09-25 07:00 PT — published "How to Keep Leading Zeros in Excel ZIP Codes" (2026-09-28-a-keep-leading-zeros-zip-codes-excel.md, 2 AI images) -> https://tidytabs.blogspot.com/2026/09/how-to-keep-leading-zeros-in-excel-zip.html
+- Threads backfill for "How to Keep Leading Zeros in Excel ZIP Codes" (2026-09-28-a-keep-leading-zeros-zip-codes-excel.md) -> https://www.threads.com/@tin_ylab/post/DdtwtpYm3gC

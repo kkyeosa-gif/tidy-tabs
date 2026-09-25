@@ -260,10 +260,51 @@ def print_one_page():
     wb.save(OUT / "tidy-tabs-print-one-page-us-letter.xlsx")
 
 
+ADDRESSES = [
+    ("Boston, MA 02108", "Harbor Dental"),
+    ("Hoboken, NJ 07030", "Pine & Co. Realty"),
+    ("Holtsville, NY 00501", "Main St. Gift Shop"),
+    ("Burlington, VT 05401", "Lakeside Yoga"),
+    ("Chicago, IL 60601", "Northside Print Co."),
+    ("Las Vegas, NV 89101", "Desert Bloom Candles"),
+    ("Salt Lake City, UT 84101", "Wasatch Bike Repair"),
+    ("St. Louis, MO 63101", "Gateway Bakery"),
+]
+
+
+def split_city_state_zip():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Split"
+    header(ws, ["Customer", "City, ST ZIP", "City", "State", "ZIP"], [22, 28, 18, 8, 9])
+    for r, (addr, name) in enumerate(ADDRESSES, start=2):
+        ws.append([name, addr,
+                   f'=LEFT(B{r},FIND(",",B{r})-1)',
+                   f'=MID(B{r},FIND(",",B{r})+2,2)',
+                   f'=RIGHT(B{r},5)'])
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    notes_sheet(wb, [
+        "Tidy Tabs: Split City, ST ZIP into three columns",
+        "",
+        'Type or paste addresses like "Boston, MA 02108" in column B.',
+        "City, State, and ZIP (gray) fill in by formula. Copy a gray row down for more addresses.",
+        'City = LEFT(B2,FIND(",",B2)-1): everything before the comma.',
+        'State = MID(B2,FIND(",",B2)+2,2): the 2 letters after the comma and space.',
+        "ZIP = RIGHT(B2,5): the last 5 characters, returned as text, so 02108 keeps its 0.",
+        "Works for 5-digit ZIPs. For ZIP+4 (02108-1522), use RIGHT(B2,10).",
+        "To keep only the results, copy C:E and Paste Special > Values.",
+        "",
+        "Customer names are fictional; the city/state/ZIP combinations are real.",
+    ])
+    wb.save(OUT / "tidy-tabs-split-city-state-zip.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
     projects()
     zip_codes()
     print_one_page()
+    split_city_state_zip()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

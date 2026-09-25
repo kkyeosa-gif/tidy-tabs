@@ -22,3 +22,10 @@
   Payment 상태, Summary 합계).
 - Excel·Google Sheets 에서는 아직 직접 확인 안 함 → 글에서는 Microsoft/Google 도움말
   링크로 근거를 댄다. 사용자가 실제 화면을 찍으면 tasks/screenshots-needed.md 참고.
+
+## 2026-09-25 — City, ST ZIP 나누기 (LibreOffice Calc 24.2.7)
+- LEFT/FIND, MID/FIND+2, RIGHT(,5) 로 8개 주소 모두 정확히 분리 (Salt Lake City, St. Louis 포함).
+  ZIP 은 텍스트로 반환되어 00501 유지.
+- 예외: 쉼표 없음 → City/State #VALUE!, ZIP 정상. "Boston,MA" → State "A ".
+  끝 공백 → ZIP "2108 ", RIGHT(TRIM()) 로 "02108". ZIP+4 → RIGHT(,5)="-1522",
+  RIGHT(,10)="02108-1522", LEFT(RIGHT(,10),5)="02108".

@@ -77,8 +77,8 @@ Search Console 은 docs/search-console-setup.md.
 
 ## 동작 방식
 
-- `publish.yml`: 30분마다 돌고, 각 슬롯 이후 첫 실행에서 한 번만 게시. Claude 루틴
-  "게시 시계"도 슬롯 직후 이 워크플로를 한 번 더 실행한다 (GitHub 예약 누락 대비).
+- `publish.yml`: 15분마다 돌고, 각 슬롯 이후 첫 실행에서 한 번만 게시 (GitHub 예약
+  실행이 가끔 빠져도 다음 실행이 채운다).
   게시 전에 빠진 AI 이미지를 먼저 그려서 push 한다.
 - 글이 가리키는 `images/`·`templates/` 파일이나 AI 이미지가 없으면 그 글은
   **건너뛰고**(로그에 "Holding") 다음 글을 올린다. 사진 없는 글·죽은 다운로드

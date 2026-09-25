@@ -4,7 +4,7 @@
 // scene, saved to images/<post-slug>/ai-<n>.jpg. Existing files are never
 // regenerated, so each image is paid for once and stays the same after the
 // team has reviewed it. Delete a file to re-roll it.
-import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync, appendFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { parseFrontmatter, parseImagePrompts, aiImagePath, generateAiImage } from "./lib.mjs";
 
@@ -38,6 +38,7 @@ async function main() {
     } catch (err) {
       failed += 1;
       console.warn(`${file}: ${err.message}`);
+      if (process.env.ALERT_FILE) appendFileSync(process.env.ALERT_FILE, `- AI image failed for ${out}: ${err.message}\n`);
     }
   }
   // Images that did generate still get committed by the workflow; a post

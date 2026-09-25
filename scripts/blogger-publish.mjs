@@ -38,6 +38,14 @@ const PUBLISHED_DIR = "posts/published";
 const MARKER_DIR = "tasks/.publish-markers";
 const CALENDAR_FILE = "tasks/calendar.md";
 
+// Problems that don't fail the job (the post is live, or nothing was due to
+// fail) but that someone should hear about. The workflow turns these into a
+// GitHub issue labeled "alert" (see .github/workflows/publish.yml).
+function alert(message) {
+  console.warn(`::warning::${message}`);
+  if (process.env.ALERT_FILE) appendFileSync(process.env.ALERT_FILE, `- ${message}\n`);
+}
+
 function laNow() {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Los_Angeles",
@@ -71,7 +79,7 @@ function nextPublishable() {
     const { meta, body } = parseFrontmatter(raw);
     const missing = missingAssets(file, meta, body);
     if (missing.length) {
-      console.warn(`Holding ${file}: missing ${missing.join(", ")}`);
+      alert(`Holding ${file}: missing ${missing.join(", ")}`);
       continue;
     }
     return { file, raw, meta, body };
@@ -97,7 +105,7 @@ async function main() {
 
   const next = nextPublishable();
   if (!next) {
-    console.log("No publishable posts in posts/ready/. Nothing to publish.");
+    alert(`Slot ${date} ${slot ?? hour}:00 PT had no publishable post in posts/ready/, so nothing went out.`);
     return;
   }
   const { file, raw, meta, body } = next;
@@ -154,7 +162,7 @@ async function main() {
 // failing the job and skipping the commit.
 export async function postToThreads({ file, meta, body, url, backfill = false }) {
   if (!process.env.THREADS_ACCESS_TOKEN) {
-    console.warn("::warning::Skipping Threads: THREADS_ACCESS_TOKEN is not set.");
+    alert("Threads skipped: THREADS_ACCESS_TOKEN is not set.");
     return null;
   }
   try {
@@ -180,7 +188,7 @@ export async function postToThreads({ file, meta, body, url, backfill = false })
     console.log(`Threads post: ${post.permalink || post.id}`);
     return post;
   } catch (err) {
-    console.warn(`::warning::Threads step failed (blog post already live; threads-backfill will retry): ${err.message}`);
+    alert(`Threads post failed for ${file} (blog post is live; threads-backfill retries): ${err.message}`);
     return null;
   }
 }

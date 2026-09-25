@@ -7,7 +7,7 @@
 //   no slot goes empty. These posts link no template or screenshot, since a
 //   model can't produce tested ones, and say so nowhere else.
 // Two Claude calls per post: draft, then a technical fact-check pass.
-import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseFrontmatter, factCheckAndFix } from "./lib.mjs";
 
@@ -157,6 +157,7 @@ async function main() {
       console.log(`Wrote ${outDir}/${filename} (${meta.title})`);
     } catch (err) {
       console.warn(`Skipping post ${i + 1}/${count}: ${err.message}`);
+      if (process.env.ALERT_FILE) appendFileSync(process.env.ALERT_FILE, `- Post generation ${i + 1}/${count} failed: ${err.message}\n`);
     }
   }
 }

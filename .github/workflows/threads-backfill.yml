@@ -22,6 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
+    env:
+      ALERT_FILE: alert.md
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,3 +57,10 @@ jobs:
             git pull --rebase -q origin main && git push && break
             sleep $((i * 5))
           done
+
+      - name: Alert on problems
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
+        run: node scripts/open-alert.mjs

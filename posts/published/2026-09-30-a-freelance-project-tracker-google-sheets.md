@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DduRg0knwuj
+blogger_url: https://tidytabs.blogspot.com/2026/09/freelance-project-tracker-in-google.html
 title: Freelance Project Tracker in Google Sheets (Free Template)
 labels: google-sheets-templates, freelance
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026; Excel and Google Sheets steps from Microsoft/Google help pages.

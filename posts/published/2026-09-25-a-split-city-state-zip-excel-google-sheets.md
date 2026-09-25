@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Ddt8ap6GlDW
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-split-city-state-and-zip-into.html
 title: How to Split City, State, and ZIP Into Separate Columns in Excel and Google Sheets
 labels: excel-basics, data-cleanup
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026 (Example results and every Troubleshooting case). Excel and Google Sheets steps from Microsoft/Google help pages.

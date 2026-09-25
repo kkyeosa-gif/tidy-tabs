@@ -15,10 +15,12 @@ description: 검수 후 글을 posts/ready/ 에 최종 형식으로 넣는다. �
 - [ ] templates/ 파일은 scripts/build-templates.py 로 다시 만들었고, 수식 결과를
       LibreOffice 재계산으로 확인했다 (tasks/briefs.md 에 기록).
 - [ ] image_prompts / image_alt 가 있다 (designer).
+- [ ] threads: 한 줄, 380자 이내, URL·해시태그·이모지 없음 (threads-writer).
 - [ ] $, MM/DD/YYYY, US Letter. A4·유로·DD/MM 없음.
 - [ ] em dash, 금지어, 반복 문장, 요약형 결말 없음.
 - [ ] title 에 Excel 또는 Google Sheets, search_description 155자 이내.
 - [ ] frontmatter 모든 필드가 한 줄 (파서가 여러 줄을 못 읽는다).
 
-파일명: posts/ready/YYYY-MM-DD-a-<slug>.md. 알파벳 순서로 하루 1개, 6am PT 에 나간다.
+파일명: posts/ready/YYYY-MM-DD-team-0N-<slug>.md. 알파벳 순서로 하루 5개
+(5am·8am·10am·1pm·5pm PT = 8am·11am·1pm·4pm·8pm ET) 나가고, 곧바로 Threads 에도 올라간다.
 직접 Blogger API 를 부르지 않는다 — 큐를 채우는 데까지가 네 일이다.

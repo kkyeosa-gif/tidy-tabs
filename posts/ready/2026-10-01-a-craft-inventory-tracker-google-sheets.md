@@ -5,6 +5,7 @@ tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026 (template formulas recalc
 image_prompts: A tidy craft workbench with stacked soy candles, wrapped soap bars, and small kraft boxes beside a laptop showing an abstract blank grid, flat illustration | Shelves of handmade goods with a few empty spots and a clipboard with a blank checklist, warm flat illustration
 image_alt: Illustration of a craft workbench with candles, soap, and shipping boxes next to a laptop | Illustration of shelves of handmade goods with a blank clipboard
 search_description: Track craft inventory in Google Sheets with two tabs: Items and Stock log. On hand = Starting qty + Qty in - Qty out, with a REORDER flag.
+threads: Sold out of charcoal soap the morning of a market?\nTwo tabs fix it: Items and a Stock log.\nOn hand = starting qty + qty in - qty out, and Status flips to REORDER at your reorder point. Free Google Sheets template.
 ---
 Track craft inventory with two tabs: **Items** (one row per product or supply) and **Stock log** (one row per stock movement). On hand is `=F2+G2-H2` (Starting qty + Qty in - Qty out), and Status flips to REORDER once On hand drops to the Reorder at number.
 

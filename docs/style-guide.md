@@ -57,3 +57,7 @@ inline `` `code` `` for formulas, `**bold**`, `[link](url)`,
 and a standalone image line: `![alt text](images/<post-file-name>/shot.png) *caption*`.
 Links/images without http are repo files and are published from the repo;
 the post is held until every one of those files exists.
+
+## Threads copy
+Every post carries a `threads:` line (see .claude/agents/threads-writer.md).
+It goes to Threads with the post link the moment the post publishes.

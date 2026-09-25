@@ -420,3 +420,106 @@ export async function createNotionPage({ title, body, sourceTitle, sourceUrl }) 
   if (!res.ok) throw new Error(`notion page create failed: ${res.status} ${await res.text()}`);
   return res.json();
 }
+
+// ---- Threads ---------------------------------------------------------
+// The content team writes each post's Threads copy ahead of time in the
+// frontmatter `threads:` field (one line, "\n" for line breaks). If it's
+// missing, generateThreadsPost writes one at publish time with the same
+// rules as .claude/agents/threads-writer.md.
+export function threadsCopyFromMeta(meta) {
+  return meta.threads ? meta.threads.replace(/\\n/g, "\n").trim() : "";
+}
+
+export async function generateThreadsPost(title, body) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-5",
+      max_tokens: 512,
+      messages: [
+        {
+          role: "user",
+          content:
+            "Write one Threads post that promotes the spreadsheet how-to below to US small business owners and " +
+            "freelancers. Threads rewards posts that read like a real person talking, so: lead with the problem " +
+            "in the reader's own words or the one-line fix itself (the reader should get value even without " +
+            "clicking), then one concrete detail from the post (a formula, a setting, a before/after number). " +
+            "Casual, a little dry humor is fine. Short lines. At most one question. No hashtags, no emoji, no " +
+            "'link in bio', no 'Read more', no em dashes, no hype words. Every claim must come from the post; " +
+            "never claim hands-on testing the post doesn't mention. Under 380 characters. Do not include a URL; " +
+            "code appends it.\n\nRespond with only the post text.\n\n" +
+            `Title: ${title}\n\nPost:\n${body}`,
+        },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`Threads post generation failed: ${res.status} ${await res.text()}`);
+  const data = await res.json();
+  const text = data.content?.find((b) => b.type === "text")?.text ?? "";
+  if (!text.trim()) throw new Error("Threads post generation returned empty text");
+  return text.trim();
+}
+
+// Threads caps a post at 500 characters. Trim the copy, never the URL.
+export function buildThreadsText(copy, url) {
+  const suffix = `\n\n${url}`;
+  const max = 500 - suffix.length;
+  const trimmed = copy.length <= max ? copy : copy.slice(0, max).replace(/\s+\S*$/, "");
+  return `${trimmed}${suffix}`;
+}
+
+// THREADS_USER_ID is optional: the token already identifies the account.
+export async function threadsUserId(accessToken) {
+  if (process.env.THREADS_USER_ID) return process.env.THREADS_USER_ID;
+  const res = await fetch(`https://graph.threads.net/v1.0/me?fields=id,username&access_token=${encodeURIComponent(accessToken)}`);
+  if (!res.ok) throw new Error(`threads /me failed: ${res.status} ${await res.text()}`);
+  return (await res.json()).id;
+}
+
+// Container-then-publish, waiting for the container to finish processing
+// (publishing immediately can fail with "Media Not Found"; half-handy hit
+// this). Returns { id, permalink }.
+export async function publishToThreads({ text, accessToken, topicTag }) {
+  const userId = await threadsUserId(accessToken);
+  const params = { media_type: "TEXT", text, access_token: accessToken };
+  if (topicTag) params.topic_tag = topicTag;
+  const createRes = await fetch(`https://graph.threads.net/v1.0/${userId}/threads`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(params),
+  });
+  if (!createRes.ok) throw new Error(`threads container create failed: ${createRes.status} ${await createRes.text()}`);
+  const { id: creationId } = await createRes.json();
+
+  for (let i = 0; i < 10; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const statusRes = await fetch(
+      `https://graph.threads.net/v1.0/${creationId}?fields=status,error_message&access_token=${encodeURIComponent(accessToken)}`
+    );
+    if (!statusRes.ok) continue;
+    const { status, error_message } = await statusRes.json();
+    if (status === "FINISHED" || status === "PUBLISHED") break;
+    if (status === "ERROR" || status === "EXPIRED") throw new Error(`threads container ${status}: ${error_message ?? ""}`);
+  }
+
+  const publishRes = await fetch(`https://graph.threads.net/v1.0/${userId}/threads_publish`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ creation_id: creationId, access_token: accessToken }),
+  });
+  if (!publishRes.ok) throw new Error(`threads publish failed: ${publishRes.status} ${await publishRes.text()}`);
+  const { id } = await publishRes.json();
+  let permalink = "";
+  try {
+    const p = await fetch(`https://graph.threads.net/v1.0/${id}?fields=permalink&access_token=${encodeURIComponent(accessToken)}`);
+    if (p.ok) permalink = (await p.json()).permalink ?? "";
+  } catch {
+    // the post is live either way; the permalink is only for the calendar
+  }
+  return { id, permalink };
+}

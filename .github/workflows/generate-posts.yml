@@ -1,38 +1,59 @@
-name: Draft posts
+name: Generate posts
 
-# Manual only. Drafts land in posts/drafts/ and still need a tested template,
-# real screenshots, and a review before anyone moves them to posts/ready/.
 on:
+  # Safety net after the daily content-team routine (~10:40 UTC): if
+  # posts/ready/ is still short of a full day (5), top it up so no slot
+  # goes empty. Runs before the first 5am PT slot in both PDT and PST.
+  schedule:
+    - cron: "41 11 * * *"
+  # Manual: machine drafts into posts/drafts/ for the team to finish.
   workflow_dispatch:
     inputs:
       count:
-        description: "How many drafts to write (1-5)"
+        description: "How many drafts to write into posts/drafts (1-5)"
         required: false
         default: "1"
 
+concurrency:
+  group: generate
+  cancel-in-progress: false
+
 jobs:
-  draft:
+  generate:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Write drafts
+      - name: Write posts
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MODE: ${{ github.event_name == 'schedule' && 'fallback' || 'draft' }}
           DRAFT_COUNT: ${{ inputs.count }}
         run: node scripts/generate-posts.mjs
 
-      - name: Commit drafts
+      - name: Generate their AI images
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_IMAGE_MODEL: ${{ vars.OPENAI_IMAGE_MODEL }}
+        run: node scripts/generate-images.mjs || echo "::warning::image generation failed; publish will retry"
+
+      - name: Commit
         if: always()
         run: |
           git config user.name "content-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add posts/drafts
-          git diff --cached --quiet || git commit -m "Add machine drafts"
-          git push
+          git add posts images
+          git diff --cached --quiet && exit 0
+          git commit -m "Generate posts"
+          for i in 1 2 3 4 5; do
+            git pull --rebase -q origin main && git push && break
+            sleep $((i * 5))
+          done

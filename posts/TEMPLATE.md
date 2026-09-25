@@ -4,6 +4,7 @@ labels: excel-basics, data-entry
 tested_in: LibreOffice Calc 24.2 (Linux), 09/2026. Excel and Google Sheets steps from Microsoft/Google help pages.
 image_prompts: An abstract spreadsheet grid where a row of blank cells has one small highlighted cell, a paper envelope beside it, flat illustration
 image_alt: Illustration of a spreadsheet next to a mailing envelope
+threads: Excel ate the leading 0 in your ZIP codes again?\nFormat the column as Text before you paste, not after.
 search_description: Excel dropping the 0 from ZIP codes like 02108? Format the column as Text first, or rebuild it with =TEXT(A2,"00000").
 ---
 Answer first, in 1-2 sentences, with the exact setting or formula.

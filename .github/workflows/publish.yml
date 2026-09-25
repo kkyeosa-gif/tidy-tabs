@@ -3,14 +3,16 @@ name: Auto-publish to Blogger
 on:
   schedule:
     # Runs twice an hour, off the top of the hour (GitHub drops/delays a lot
-    # of :00 schedules). scripts/blogger-publish.mjs publishes once a day
-    # (6am America/Los_Angeles, DST-aware) on the first run at or after the
-    # slot starts, and no-ops otherwise.
+    # of :00 schedules). scripts/blogger-publish.mjs publishes once per slot
+    # (5am, 8am, 10am, 1pm, 5pm America/Los_Angeles, DST-aware) on the first
+    # run at or after the slot starts, and no-ops otherwise. A Claude routine
+    # also dispatches this right after each slot, because GitHub drops some
+    # scheduled runs (half-handy lost whole slots to that).
     - cron: "7,37 * * * *"
   workflow_dispatch:
     inputs:
       force:
-        description: "Publish now, ignoring the daily slot check (for testing)"
+        description: "Publish now, ignoring the slot check (for testing)"
         required: false
         default: false
         type: boolean
@@ -66,6 +68,9 @@ jobs:
           BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
           ASSET_BASE_URL: ${{ vars.ASSET_BASE_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_TOPIC_TAG: ${{ vars.THREADS_TOPIC_TAG }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_PARENT_PAGE_ID: ${{ secrets.NOTION_PARENT_PAGE_ID }}
           FORCE_PUBLISH: ${{ inputs.force }}

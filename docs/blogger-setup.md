@@ -1,6 +1,6 @@
 # Tidy Tabs 설정 (1회)
 
-Tidy Tabs(tidytabs.blogspot.com)에 하루 1개(6am America/Los_Angeles = 9am ET)
+Tidy Tabs(tidytabs.blogspot.com)에 하루 5개(5am·8am·10am·1pm·5pm PT = 8am·11am·1pm·4pm·8pm ET)
 자동 게시하고, 글마다 GPT로 그린 일러스트를 붙이기 위한 설정. Google·OpenAI
 로그인이 필요해서 본인이 직접 해야 한다. 기존 두 블로그와 같은 Google Cloud
 프로젝트/OAuth 클라이언트를 재사용해도 된다.
@@ -65,6 +65,7 @@ https://platform.openai.com/api-keys → **Create new secret key**. 결제 수�
 | `ANTHROPIC_API_KEY` | (선택) 한국어 번역 Notion 페이지·초안 생성용. 기존 키 재사용 |
 | `NOTION_API_KEY` | (선택) 기존 블로그와 같은 값 |
 | `NOTION_PARENT_PAGE_ID` | (선택) 기존과 같은 값. 제목 끝에 `-tidy-tabs` 가 붙는다 |
+| `THREADS_ACCESS_TOKEN` | Threads 자동 홍보용. docs/threads-setup.md |
 
 Search Console 은 docs/search-console-setup.md.
 
@@ -76,13 +77,16 @@ Search Console 은 docs/search-console-setup.md.
 
 ## 동작 방식
 
-- `publish.yml`: 30분마다 돌고, 6am PT 이후 그날 첫 실행에서 한 번만 게시.
+- `publish.yml`: 30분마다 돌고, 각 슬롯 이후 첫 실행에서 한 번만 게시. Claude 루틴
+  "게시 시계"도 슬롯 직후 이 워크플로를 한 번 더 실행한다 (GitHub 예약 누락 대비).
   게시 전에 빠진 AI 이미지를 먼저 그려서 push 한다.
 - 글이 가리키는 `images/`·`templates/` 파일이나 AI 이미지가 없으면 그 글은
   **건너뛰고**(로그에 "Holding") 다음 글을 올린다. 사진 없는 글·죽은 다운로드
   링크가 나가지 않게 하려는 것.
 - `generate-images.yml`: posts/drafts·posts/ready 에 글이 push 되면 이미지 생성.
-- `generate-posts.yml` ("Draft posts"): **수동 실행만.** posts/drafts/ 에 기계 초안을
-  쓴다. 테스트한 템플릿·실제 화면이 없으니 그대로 ready 로 옮기지 않는다.
+- 매일 콘텐츠팀 루틴(Claude)이 다음 하루치 5개를 템플릿·테스트·Threads 문구까지
+  만들어 posts/ready/ 에 넣는다. 모자라면 `generate-posts.yml` 이 11:41 UTC 에
+  채운다 (템플릿 없는 글). 수동 실행하면 posts/drafts/ 에 초안만 쓴다.
+- 검색 설명: docs/search-description.md. Threads: docs/threads-setup.md.
 - 템플릿 다시 만들기: `pip install openpyxl && python3 scripts/build-templates.py`.
 - 글 수정: posts/published/ 파일을 고치고 Actions → **Update a published Blogger post**.

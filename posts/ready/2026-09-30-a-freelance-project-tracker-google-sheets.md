@@ -5,6 +5,7 @@ tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026; Excel and Google Sheets 
 image_prompts: A freelancer's tidy desk with a laptop showing an abstract blank spreadsheet grid, a coffee mug, and a small stack of paper invoices, flat illustration, no text | A wall calendar with a few days circled next to a simple blank grid and a dollar coin, soft flat illustration, no text
 image_alt: Illustration of a freelancer's desk with a blank spreadsheet and invoices | Illustration of a calendar beside a blank grid and a coin
 search_description: Free freelance project tracker for Google Sheets: one row per project, with Amount, Days left, and Payment status calculated by formulas.
+threads: Which client still owes you money? If the answer lives in your inbox, try one row per project instead.\nThis free Google Sheets tracker works out Amount, Days left, and Payment status on its own.\nAn invoice turns Overdue 30 days after you send it. Change the 30 if your terms are net 15.
 ---
 This free tracker gives you one row per client project, and the Amount, Days left, and Payment status columns calculate themselves. Download the .xlsx below and bring it into Google Sheets with **File > Import**, or open it directly in Excel.
 

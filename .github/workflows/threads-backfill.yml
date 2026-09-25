@@ -1,0 +1,56 @@
+name: Threads backfill
+
+# Catches up Threads posts for blog posts that went live without one.
+# Runs a few times a day, 2 posts max per run, so a failed Threads step
+# heals itself without flooding a new account.
+on:
+  schedule:
+    - cron: "52 2,14,20 * * *"
+  workflow_dispatch:
+    inputs:
+      max:
+        description: "Max posts this run"
+        required: false
+        default: "2"
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Post missing Threads posts
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_TOPIC_TAG: ${{ vars.THREADS_TOPIC_TAG }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MAX_PER_RUN: ${{ inputs.max || '2' }}
+        run: |
+          if [ -z "$THREADS_ACCESS_TOKEN" ]; then echo "::warning::THREADS_ACCESS_TOKEN not set"; exit 0; fi
+          node scripts/threads-backfill.mjs
+
+      - name: Commit threads_url updates
+        if: always()
+        run: |
+          git config user.name "content-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add posts/published tasks/calendar.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Backfill Threads posts"
+          for i in 1 2 3 4 5; do
+            git pull --rebase -q origin main && git push && break
+            sleep $((i * 5))
+          done

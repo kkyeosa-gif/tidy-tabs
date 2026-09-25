@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-// Writes first drafts into posts/drafts/ (never posts/ready/). Manual-only
-// via the "Draft posts" GitHub Action: every Tidy Tabs post promises a
-// tested template and real screenshots, which a model can't produce, so a
-// person/the content team has to finish each draft before it's queued.
+// Two modes (env MODE):
+// - "draft" (manual "Draft posts" run): first drafts into posts/drafts/ that
+//   still need a template/screenshots from the content team.
+// - "fallback" (daily, after the content-team routine): only if posts/ready/
+//   is short of a full day (5), writes finished posts straight to ready so
+//   no slot goes empty. These posts link no template or screenshot, since a
+//   model can't produce tested ones, and say so nowhere else.
 // Two Claude calls per post: draft, then a technical fact-check pass.
 import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -13,7 +16,8 @@ const READY_DIR = "posts/ready";
 const PUBLISHED_DIR = "posts/published";
 const TOPICS_FILE = "tasks/topics-seed.md";
 const STYLE_FILE = "docs/style-guide.md";
-const COUNT = Math.max(1, Math.min(5, Number(process.env.DRAFT_COUNT || 1)));
+const MODE = process.env.MODE === "fallback" ? "fallback" : "draft";
+const DAILY = 5;
 
 function listPostFiles(dir) {
   if (!existsSync(dir)) return [];
@@ -53,6 +57,14 @@ function slugify(title) {
 }
 
 async function draftPost({ usedTitles, usedLabels, topicsSeed, styleGuide }) {
+  const modeRules =
+    MODE === "fallback"
+      ? `- This post publishes as-is. Do not link any file, template, or image, and write no SCREENSHOT/TEMPLATE placeholder lines.
+- Replace the "## Template" section with "## Copy-paste setup": the exact headers, formulas, or settings the reader can type in themselves.
+- tested_in must be exactly: Steps from Microsoft/Google help pages; not hands-on tested.`
+      : `- Where a real screenshot belongs, write a line exactly like: SCREENSHOT NEEDED: <what the screen should show, which app and version>
+- Where the downloadable template goes, write: TEMPLATE NEEDED: <file name and what columns/formulas it contains>
+- tested_in: NOT TESTED YET`;
   const prompt = `You are drafting one post for Tidy Tabs, an English-language blog of Google Sheets and Microsoft Excel templates and how-tos for US small business owners and freelancers.
 
 Already-published or queued post titles (do not repeat these topics):
@@ -66,8 +78,9 @@ ${styleGuide}
 
 Extra rules for a machine draft:
 - Never write "I tested", "I tried", or any claim of hands-on experience. You haven't tested anything. Write instructions in the second person.
-- Where a real screenshot belongs, write a line exactly like: SCREENSHOT NEEDED: <what the screen should show, which app and version>
-- Where the downloadable template goes, write: TEMPLATE NEEDED: <file name and what columns/formulas it contains>
+${modeRules}
+- Link 1-3 official help pages (support.microsoft.com or support.google.com/docs) that back the menu paths. Only use URLs you are sure exist.
+- Write threads: a Threads post promoting this article (under 380 characters, casual, the fix or problem first, one concrete detail, no hashtags/emoji/URL), on ONE line with \\n for line breaks.
 - Write labels: 1-3 short tags, avoiding these existing ones unless the topic genuinely overlaps: ${usedLabels.join(", ") || "(none yet)"}.
 
 Output ONLY the raw file content in exactly this format, nothing else — no code fences, no explanation:
@@ -75,10 +88,11 @@ Output ONLY the raw file content in exactly this format, nothing else — no cod
 ---
 title: <title>
 labels: <label1>, <label2>
-tested_in: NOT TESTED YET
+tested_in: <see rules>
 image_prompts: <illustration scene 1> | <illustration scene 2>
 image_alt: <alt text 1> | <alt text 2>
 search_description: <description>
+threads: <threads copy>
 ---
 <body>`;
 
@@ -107,15 +121,25 @@ search_description: <description>
 
 async function main() {
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.log("ANTHROPIC_API_KEY not set — skipping draft generation.");
+    console.log("ANTHROPIC_API_KEY not set — skipping generation.");
     return;
   }
-  mkdirSync(DRAFTS_DIR, { recursive: true });
+  const outDir = MODE === "fallback" ? READY_DIR : DRAFTS_DIR;
+  const count =
+    MODE === "fallback"
+      ? Math.max(0, DAILY - listPostFiles(READY_DIR).length)
+      : Math.max(1, Math.min(5, Number(process.env.DRAFT_COUNT || 1)));
+  if (!count) {
+    console.log(`posts/ready/ already has a full day queued. Nothing to generate.`);
+    return;
+  }
+  mkdirSync(outDir, { recursive: true });
   const topicsSeed = existsSync(TOPICS_FILE) ? readFileSync(TOPICS_FILE, "utf8") : "";
   const styleGuide = existsSync(STYLE_FILE) ? readFileSync(STYLE_FILE, "utf8") : "";
   const today = new Date().toISOString().slice(0, 10);
+  const tag = MODE === "fallback" ? "zauto" : "draft"; // "zauto" sorts after the team's posts for the same day
 
-  for (let i = 0; i < COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     try {
       const { titles: usedTitles, labels: usedLabels } = usedTitlesAndLabels();
       const draft = await draftPost({ usedTitles, usedLabels, topicsSeed, styleGuide });
@@ -123,15 +147,16 @@ async function main() {
       try {
         fixed = await factCheckAndFix(draft);
       } catch (err) {
-        console.warn(`Fact-check pass failed, keeping the unchecked draft (it's only a draft): ${err.message}`);
+        console.warn(`Fact-check pass failed, keeping the unchecked text: ${err.message}`);
       }
-      const titleMatch = fixed.match(/^title:\s*(.+)$/m);
-      const title = titleMatch ? titleMatch[1].trim() : `post-${Date.now()}`;
-      const filename = `${today}-draft-${String(i + 1).padStart(2, "0")}-${slugify(title)}.md`;
-      writeFileSync(join(DRAFTS_DIR, filename), fixed + "\n");
-      console.log(`Drafted: ${filename} (${title})`);
+      const { meta, body } = parseFrontmatter(fixed);
+      if (!meta.title || !body) throw new Error("generated file has no title or body");
+      if (MODE === "fallback" && /\]\((?!https?:)/.test(body)) throw new Error("fallback post links a repo file");
+      const filename = `${today}-${tag}-${String(i + 1).padStart(2, "0")}-${slugify(meta.title)}.md`;
+      writeFileSync(join(outDir, filename), fixed + "\n");
+      console.log(`Wrote ${outDir}/${filename} (${meta.title})`);
     } catch (err) {
-      console.warn(`Skipping draft ${i + 1}/${COUNT}: ${err.message}`);
+      console.warn(`Skipping post ${i + 1}/${count}: ${err.message}`);
     }
   }
 }

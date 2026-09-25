@@ -19,13 +19,20 @@ import {
   deriveSearchDescription,
   translateToKorean,
   createNotionPage,
+  threadsCopyFromMeta,
+  generateThreadsPost,
+  buildThreadsText,
+  publishToThreads,
 } from "./lib.mjs";
 
-// One post a day, 6am Pacific (9am Eastern). A brand-new blogspot that posts
-// five AI-assisted articles a day looks like scaled content to Google (see
-// half-handy's 2026-09-24 analysis), and every post here needs a tested
-// template and real screenshots, so volume isn't the goal.
-const SLOT_HOURS = [6];
+// Five slots a day in Pacific time, picked for a US small-business audience
+// that mostly lives on Eastern/Central time:
+//   5am PT = 8am ET   (morning inbox / "how do I" searches before work)
+//   8am PT = 11am ET  (mid-morning desk work, West Coast starting the day)
+//  10am PT = 1pm ET   (lunch-break scrolling on Threads)
+//   1pm PT = 4pm ET   (end-of-day admin: invoices, inventory, printing)
+//   5pm PT = 8pm ET   (evening side-business / freelancer hours)
+const SLOT_HOURS = [5, 8, 10, 13, 17];
 const READY_DIR = "posts/ready";
 const PUBLISHED_DIR = "posts/published";
 const MARKER_DIR = "tasks/.publish-markers";
@@ -118,6 +125,8 @@ async function main() {
 
   console.log(`Published: ${meta.title} -> ${result.url ?? result.id}`);
 
+  await postToThreads({ file, meta, body, url: result.url ?? "" });
+
   // Korean translation goes under the same Notion parent page as the other
   // blogs, so the title gets a "-tidy-tabs" suffix to tell them apart.
   // Best-effort: never fail the job after the post is live (that would skip
@@ -140,7 +149,44 @@ async function main() {
   }
 }
 
-main().catch((err) => {
+// Best-effort, like the Notion step: the blog post is already live, so a
+// Threads failure is logged (and picked up by threads-backfill) instead of
+// failing the job and skipping the commit.
+export async function postToThreads({ file, meta, body, url, backfill = false }) {
+  if (!process.env.THREADS_ACCESS_TOKEN) {
+    console.warn("::warning::Skipping Threads: THREADS_ACCESS_TOKEN is not set.");
+    return null;
+  }
+  try {
+    let copy = threadsCopyFromMeta(meta);
+    if (!copy) {
+      if (!process.env.ANTHROPIC_API_KEY) throw new Error("no threads: copy in frontmatter and no ANTHROPIC_API_KEY");
+      copy = await generateThreadsPost(meta.title, body);
+    }
+    const post = await publishToThreads({
+      text: buildThreadsText(copy, url),
+      accessToken: process.env.THREADS_ACCESS_TOKEN,
+      topicTag: process.env.THREADS_TOPIC_TAG || "Excel",
+    });
+    const publishedPath = join(PUBLISHED_DIR, file);
+    const raw = readFileSync(publishedPath, "utf8");
+    writeFileSync(publishedPath, raw.replace(/^---\n/, `---\nthreads_url: ${post.permalink || post.id}\n`));
+    appendFileSync(
+      CALENDAR_FILE,
+      backfill
+        ? `\n- Threads backfill for "${meta.title}" (${file}) -> ${post.permalink || post.id}`
+        : ` | Threads -> ${post.permalink || post.id}`
+    );
+    console.log(`Threads post: ${post.permalink || post.id}`);
+    return post;
+  } catch (err) {
+    console.warn(`::warning::Threads step failed (blog post already live; threads-backfill will retry): ${err.message}`);
+    return null;
+  }
+}
+
+const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop());
+if (isMain) main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

@@ -5,6 +5,7 @@ tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026; Excel and Google Sheets 
 image_prompts: A single sheet of paper resting on a desk with a neat blank grid printed edge to edge, a pencil and a small stack of loose pages pushed aside, flat illustration | A desktop printer feeding out one wide page with an abstract blank grid, soft pastel colors, flat illustration
 image_alt: Illustration of one printed page with a blank grid beside a pile of loose pages | Illustration of a printer printing one wide page with a blank grid
 search_description: To print an Excel sheet on one page, set Paper Size to Letter and pick Fit Sheet on One Page under File > Print. Google Sheets steps too.
+threads: A 48-row price list printed on 6 pages with default settings. Same file, 1 page after three changes.\nLetter paper, Landscape, fit to 1 page wide by 1 tall.\nFor long lists, pick Fit All Columns on One Page instead so the text stays readable.
 ---
 To print an Excel sheet on one page, go to **File > Print**, check that the paper size is Letter, and change the scaling setting to **Fit Sheet on One Page**. The ribbon route is **Page Layout > Scale to Fit**: set **Width** to 1 page and **Height** to 1 page.
 

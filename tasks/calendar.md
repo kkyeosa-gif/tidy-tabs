@@ -7,3 +7,5 @@
 게시 기록은 scripts/blogger-publish.mjs 가 아래에 자동으로 추가한다.
 
 ## 게시 기록
+
+- 2026-09-25 07:00 PT — published "How to Keep Leading Zeros in Excel ZIP Codes" (2026-09-28-a-keep-leading-zeros-zip-codes-excel.md, 2 AI images) -> https://tidytabs.blogspot.com/2026/09/how-to-keep-leading-zeros-in-excel-zip.html

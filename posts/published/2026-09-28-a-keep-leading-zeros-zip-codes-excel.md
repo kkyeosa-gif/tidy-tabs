@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-keep-leading-zeros-in-excel-zip.html
 title: How to Keep Leading Zeros in Excel ZIP Codes
 labels: excel-basics, data-entry
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026; Excel and Google Sheets steps from Microsoft/Google help pages

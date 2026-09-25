@@ -77,8 +77,10 @@ Search Console 은 docs/search-console-setup.md.
 
 ## 동작 방식
 
-- `publish.yml`: 15분마다 돌고, 각 슬롯 이후 첫 실행에서 한 번만 게시 (GitHub 예약
-  실행이 가끔 빠져도 다음 실행이 채운다).
+- `publish-clock.yml` (게시 시계): 다음 슬롯까지 기다렸다가 `publish.yml` 을 실행하고
+  자기 자신을 다시 예약한다. GitHub 예약(cron)이 이 저장소에서 처음 3시간 동안 한 번도
+  안 돌아서 만든 것. cron 은 시계가 끊겼을 때 다시 켜는 용도로만 남겨 뒀다.
+- `publish.yml`: 슬롯 이후 첫 실행에서 한 번만 게시 (여러 번 실행돼도 중복 게시 없음).
   게시 전에 빠진 AI 이미지를 먼저 그려서 push 한다.
 - 글이 가리키는 `images/`·`templates/` 파일이나 AI 이미지가 없으면 그 글은
   **건너뛰고**(로그에 "Holding") 다음 글을 올린다. 사진 없는 글·죽은 다운로드

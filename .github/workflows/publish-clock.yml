@@ -1,0 +1,59 @@
+name: Publish clock
+
+# GitHub's cron is best-effort: on this repo it didn't fire once in the first
+# three hours, and half-handy lost whole slots to dropped runs. This clock
+# doesn't depend on cron: each run sleeps until 3 minutes after the next
+# slot, dispatches publish.yml, then dispatches itself again. Runs dispatched
+# with GITHUB_TOKEN via workflow_dispatch are allowed to start new runs.
+# The cron below only restarts the chain if it ever breaks.
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "11 */6 * * *"
+
+concurrency:
+  group: clock
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    permissions:
+      actions: write
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Work out the next slot
+        id: wait
+        run: node scripts/next-slot-wait.mjs >> "$GITHUB_OUTPUT"
+
+      - name: Sleep until then
+        run: sleep ${{ steps.wait.outputs.seconds }}
+
+      - name: Dispatch publish
+        if: steps.wait.outputs.is_slot == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+      - name: Re-arm the clock
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish-clock.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+      - name: Alert on problems
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
+        run: node scripts/open-alert.mjs

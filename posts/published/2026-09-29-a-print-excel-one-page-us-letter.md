@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DduBYXWCco7
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-print-excel-sheet-on-one-page-us.html
 title: How to Print an Excel Sheet on One Page (US Letter)
 labels: excel-printing, page-setup
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026; Excel and Google Sheets steps from Microsoft/Google help pages

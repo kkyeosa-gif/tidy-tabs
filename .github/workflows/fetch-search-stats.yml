@@ -1,0 +1,40 @@
+name: Fetch search stats
+
+on:
+  schedule:
+    # Weekly, Monday, off the hour.
+    - cron: "26 16 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Pull last 28 days from Search Console
+        env:
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          GSC_REFRESH_TOKEN: ${{ secrets.GSC_REFRESH_TOKEN }}
+          GSC_SITE_URL: ${{ secrets.GSC_SITE_URL }}
+        run: node scripts/fetch-search-stats.mjs
+
+      - name: Commit stats snapshot
+        run: |
+          git config user.name "content-bot"
+          git config user.email "actions@users.noreply.github.com"
+          [ -e tasks/search-stats.md ] && git add tasks/search-stats.md
+          git diff --cached --quiet || git commit -m "Update search stats snapshot"
+          for i in 1 2 3 4 5; do
+            git pull --rebase -q origin main && git push && break
+            echo "push failed (main moved?), retrying in $((i * 5))s"; sleep $((i * 5))
+          done

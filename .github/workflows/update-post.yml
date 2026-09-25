@@ -1,0 +1,41 @@
+name: Update a published Blogger post
+
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "Path to the edited post file (e.g. posts/published/2025-09-22-a-raised-beds.md)"
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Update the live post
+        env:
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          ASSET_BASE_URL: ${{ vars.ASSET_BASE_URL }}
+          TARGET_FILE: ${{ inputs.file }}
+        run: node scripts/blogger-update.mjs
+
+      - name: Commit any frontmatter fix-up
+        run: |
+          git config user.name "content-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add "${{ inputs.file }}"
+          git diff --cached --quiet || git commit -m "Update published post: ${{ inputs.file }}"
+          for i in 1 2 3 4 5; do
+            git pull --rebase -q origin main && git push && break
+            echo "push failed (main moved?), retrying in $((i * 5))s"; sleep $((i * 5))
+          done

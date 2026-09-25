@@ -2,13 +2,13 @@ name: Auto-publish to Blogger
 
 on:
   schedule:
-    # Runs twice an hour, off the top of the hour (GitHub drops/delays a lot
+    # Runs four times an hour, off the top of the hour (GitHub drops/delays a lot
     # of :00 schedules). scripts/blogger-publish.mjs publishes once per slot
     # (5am, 8am, 10am, 1pm, 5pm America/Los_Angeles, DST-aware) on the first
     # run at or after the slot starts, and no-ops otherwise. A Claude routine
     # also dispatches this right after each slot, because GitHub drops some
     # scheduled runs (half-handy lost whole slots to that).
-    - cron: "7,37 * * * *"
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
     inputs:
       force:

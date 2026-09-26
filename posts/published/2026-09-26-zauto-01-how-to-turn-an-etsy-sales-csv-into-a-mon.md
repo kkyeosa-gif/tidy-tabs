@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DdwhtNZFLcJ
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-turn-etsy-sales-csv-into-monthly.html
 title: How to Turn an Etsy Sales CSV Into a Monthly Summary With SUMIFS in Excel and Google Sheets
 labels: excel-formulas, etsy-sellers, sales-reports
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

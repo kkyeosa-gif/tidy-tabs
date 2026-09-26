@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DdwQ59kmx29
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-stop-excel-and-google-sheets.html
 title: How to Stop Excel and Google Sheets From Turning Phone Numbers Into Scientific Notation
 labels: data-entry, data-cleanup
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

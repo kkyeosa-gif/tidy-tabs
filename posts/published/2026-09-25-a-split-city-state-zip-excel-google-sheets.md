@@ -4,8 +4,8 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-split-city-state-and-z
 title: How to Split City, State, and ZIP Into Separate Columns in Excel and Google Sheets
 labels: excel-basics, data-cleanup
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026 (Example results and every Troubleshooting case). Excel and Google Sheets steps from Microsoft/Google help pages.
-image_prompts: A single long paper mailing label being cut cleanly into three neat pieces by small scissors next to an abstract blank grid, flat illustration | Three tidy stacks of blank index cards in sage, navy and cream beside a laptop showing an abstract blank grid, flat illustration
-image_alt: Illustration of a mailing label cut into three pieces next to a blank grid | Illustration of three stacks of blank cards beside a laptop
+image_prompts: A small business owner's wooden desk with a stack of printed mailing labels and addressed envelopes next to an open laptop; the laptop shows a spreadsheet with three narrow columns, slightly out of focus | Close-up of hands sorting addressed envelopes into three neat piles on a desk, the address text blurred
+image_alt: Desk with mailing labels, envelopes, and a laptop showing a spreadsheet | Hands sorting addressed envelopes into three piles
 search_description: Split "Boston, MA 02108" into City, State, and ZIP with three formulas that work in Excel and Google Sheets and keep the ZIP's leading zero.
 threads: Got a column of "Boston, MA 02108" and need City, State, ZIP in separate columns?\nThree formulas, same in Excel and Google Sheets:\nCity =LEFT(B2,FIND(",",B2)-1)\nState =MID(B2,FIND(",",B2)+2,2)\nZIP =RIGHT(B2,5)\nRIGHT returns text, so 02108 keeps its 0.
 ---

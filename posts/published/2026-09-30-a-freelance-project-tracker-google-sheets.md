@@ -4,8 +4,8 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/freelance-project-tracker-in-
 title: Freelance Project Tracker in Google Sheets (Free Template)
 labels: google-sheets-templates, freelance
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026; Excel and Google Sheets steps from Microsoft/Google help pages.
-image_prompts: A freelancer's tidy desk with a laptop showing an abstract blank spreadsheet grid, a coffee mug, and a small stack of paper invoices, flat illustration, no text | A wall calendar with a few days circled next to a simple blank grid and a dollar coin, soft flat illustration, no text
-image_alt: Illustration of a freelancer's desk with a blank spreadsheet and invoices | Illustration of a calendar beside a blank grid and a coin
+image_prompts: A freelancer working at a home desk with a laptop showing a project tracker spreadsheet with green and red status cells, screen slightly blurred, coffee mug and notebook beside it | A paper wall calendar with a few deadlines circled in red marker above a desk with a laptop and a small stack of printed invoices, no readable text
+image_alt: Freelancer at a home desk with a project tracker spreadsheet open | Wall calendar with circled deadlines above a desk with invoices
 search_description: Free freelance project tracker for Google Sheets: one row per project, with Amount, Days left, and Payment status calculated by formulas.
 threads: Which client still owes you money? If the answer lives in your inbox, try one row per project instead.\nThis free Google Sheets tracker works out Amount, Days left, and Payment status on its own.\nAn invoice turns Overdue 30 days after you send it. Change the 30 if your terms are net 15.
 ---

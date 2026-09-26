@@ -1,14 +1,15 @@
 #!/usr/bin/env node
-// Generates the AI illustrations for every queued post (posts/drafts/ and
-// posts/ready/) that doesn't have them yet: one image per `image_prompts`
-// scene, saved to images/<post-slug>/ai-<n>.jpg. Existing files are never
+// Generates the AI photos for every post that doesn't have them yet: one image per `image_prompts`
+// scene, saved to images/<post-slug>/photo-<n>.jpg. Existing files are never
 // regenerated, so each image is paid for once and stays the same after the
 // team has reviewed it. Delete a file to re-roll it.
 import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync, appendFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { parseFrontmatter, parseImagePrompts, aiImagePath, generateAiImage } from "./lib.mjs";
 
-const DIRS = ["posts/drafts", "posts/ready"];
+// published too: a restyle (new file names) regenerates images for live
+// posts, which scripts/blogger-update.mjs then swaps in.
+const DIRS = ["posts/drafts", "posts/ready", "posts/published"];
 
 async function main() {
   const todo = [];

@@ -2,8 +2,8 @@
 title: How to Keep Leading Zeros in Excel ZIP Codes
 labels: excel-basics, data-entry
 tested_in: LibreOffice Calc 24.2 (Linux), 09/2026. Excel and Google Sheets steps from Microsoft/Google help pages.
-image_prompts: An abstract spreadsheet grid where a row of blank cells has one small highlighted cell, a paper envelope beside it, flat illustration
-image_alt: Illustration of a spreadsheet next to a mailing envelope
+image_prompts: A stack of addressed US mail envelopes beside a laptop with a spreadsheet open, labels and screen out of focus | A person typing addresses into a spreadsheet at a home-office desk, screen not readable
+image_alt: Addressed envelopes next to a laptop with a spreadsheet | Person entering addresses at a home office
 threads: Excel ate the leading 0 in your ZIP codes again?\nFormat the column as Text before you paste, not after.
 search_description: Excel dropping the 0 from ZIP codes like 02108? Format the column as Text first, or rebuild it with =TEXT(A2,"00000").
 ---

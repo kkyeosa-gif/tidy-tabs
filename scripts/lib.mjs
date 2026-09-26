@@ -156,19 +156,22 @@ export function escapeAttr(s) {
   return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-// ---- AI illustrations (OpenAI image API) --------------------------------
+// ---- AI photos (OpenAI image API) --------------------------------------
 // frontmatter:
 //   image_prompts: <scene 1> | <scene 2>      (1-2 scenes, " | " separated)
 //   image_alt: <alt 1> | <alt 2>
-// Each scene becomes images/<post-slug>/ai-<n>.jpg, generated once by
+// Each scene becomes images/<post-slug>/photo-<n>.jpg, generated once by
 // scripts/generate-images.mjs and committed, so publishing never re-pays for
-// or re-rolls an image. These are illustrations only: STYLE forbids text and
-// software UI so a generated picture can never pass for a real screenshot.
+// or re-rolls an image. They're realistic photos of the situation the post
+// describes (the desk, the printout, the shelf), but STYLE keeps every screen
+// and label unreadable so a generated picture never passes for a real
+// screenshot of Excel or Google Sheets. Real screenshots live next to them
+// under their own names.
 export const IMAGE_STYLE =
-  "Clean flat editorial illustration, soft muted colors (sage green, navy, warm off-white), simple shapes, " +
-  "generous white space, landscape composition. Absolutely no readable text, letters, numbers, logos, " +
-  "brand marks, or realistic software screenshots; any spreadsheet or screen should be an abstract grid of " +
-  "blank colored cells.";
+  "Realistic photograph, natural window light, shot on a DSLR with shallow depth of field, an authentic " +
+  "small-business or home-office setting in the United States, true-to-life colors, no filters. Any text on " +
+  "screens, paper, labels, or packaging must be blurred or too small to read. No logos, brand names, or " +
+  "watermarks, and no readable close-up of a software interface.";
 
 export function postSlug(file) {
   return file.replace(/\.md$/, "");
@@ -182,7 +185,7 @@ export function parseImagePrompts(meta) {
 }
 
 export function aiImagePath(file, n) {
-  return `images/${postSlug(file)}/ai-${n}.jpg`;
+  return `images/${postSlug(file)}/photo-${n}.jpg`;
 }
 
 export async function generateAiImage(prompt) {
@@ -209,7 +212,7 @@ export async function generateAiImage(prompt) {
   return Buffer.from(b64, "base64");
 }
 
-// First AI image goes right after the answer-first intro; a second one (if
+// First photo goes right after the answer-first intro; a second one (if
 // any) lands about two thirds of the way down, never inside the first blocks.
 export function embedImages(htmlBlocks, images) {
   const out = [...htmlBlocks];

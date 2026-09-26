@@ -1,7 +1,7 @@
 # Tidy Tabs 설정 (1회)
 
 Tidy Tabs(tidytabs.blogspot.com)에 하루 5개(5am·8am·10am·1pm·5pm PT = 8am·11am·1pm·4pm·8pm ET)
-자동 게시하고, 글마다 GPT로 그린 일러스트를 붙이기 위한 설정. Google·OpenAI
+자동 게시하고, 글마다 GPT로 만든 사실적인 사진을 붙이기 위한 설정. Google·OpenAI
 로그인이 필요해서 본인이 직접 해야 한다. 기존 두 블로그와 같은 Google Cloud
 프로젝트/OAuth 클라이언트를 재사용해도 된다.
 
@@ -71,7 +71,7 @@ Search Console 은 docs/search-console-setup.md.
 
 ## 5. 동작 확인
 
-1. Actions → **Generate AI images** → Run workflow → `images/<글>/ai-1.jpg` 가 커밋되는지.
+1. Actions → **Generate AI images** → Run workflow → `images/<글>/photo-1.jpg` 가 커밋되는지.
 2. Actions → **Auto-publish to Blogger** → Run workflow (force 체크) → posts/ready 의
    첫 글이 올라가고 posts/published 로 옮겨지는지, 이미지·다운로드 링크가 열리는지.
 

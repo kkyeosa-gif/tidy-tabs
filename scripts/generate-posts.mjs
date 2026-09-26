@@ -89,7 +89,7 @@ Output ONLY the raw file content in exactly this format, nothing else — no cod
 title: <title>
 labels: <label1>, <label2>
 tested_in: <see rules>
-image_prompts: <illustration scene 1> | <illustration scene 2>
+image_prompts: <realistic photo scene 1> | <realistic photo scene 2>
 image_alt: <alt text 1> | <alt text 2>
 search_description: <description>
 threads: <threads copy>

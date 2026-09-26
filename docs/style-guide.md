@@ -22,7 +22,9 @@ how-tos for US small business owners and freelancers. Written in English.
   exactly that. Excel/Sheets steps that come from Microsoft or Google help
   pages link to that page.
 - Every screenshot is real and captioned with the app and version it came
-  from. AI images (image_prompts) are illustrations only: never presented as a
+  from. AI photos (image_prompts) are realistic scenes of the post's situation
+  (the desk, the printout, the shelf) with every screen and label unreadable:
+  never presented as a
   screenshot, never show UI text.
 - Sample data is fictional and the post says so once.
 

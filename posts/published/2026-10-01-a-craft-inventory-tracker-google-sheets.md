@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Ddus_HxmbA2
+blogger_url: https://tidytabs.blogspot.com/2026/09/google-sheets-inventory-tracker-for.html
 title: Google Sheets Inventory Tracker for a Small Craft Business
 labels: google-sheets-templates, inventory
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026 (template formulas recalculated with the sample data). Google Sheets steps from Google Docs Editors Help pages.

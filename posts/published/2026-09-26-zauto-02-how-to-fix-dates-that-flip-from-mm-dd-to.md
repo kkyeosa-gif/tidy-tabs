@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Ddw2UHpoCBW
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-fix-dates-that-flip-from-mmdd-to.html
 title: How to Fix Dates That Flip From MM/DD to DD/MM After a CSV Import
 labels: data-cleanup, data-entry
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

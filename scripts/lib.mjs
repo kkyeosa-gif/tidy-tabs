@@ -156,17 +156,18 @@ export function escapeAttr(s) {
   return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-// ---- AI photos (OpenAI image API) --------------------------------------
+// ---- AI photo (OpenAI image API) ---------------------------------------
 // frontmatter:
-//   image_prompts: <scene 1> | <scene 2>      (1-2 scenes, " | " separated)
-//   image_alt: <alt 1> | <alt 2>
-// Each scene becomes images/<post-slug>/photo-<n>.jpg, generated once by
-// scripts/generate-images.mjs and committed, so publishing never re-pays for
-// or re-rolls an image. They're realistic photos of the situation the post
-// describes (the desk, the printout, the shelf), but STYLE keeps every screen
-// and label unreadable so a generated picture never passes for a real
-// screenshot of Excel or Google Sheets. Real screenshots live next to them
-// under their own names.
+//   image_prompts: <one realistic scene>
+//   image_alt: <what the photo shows, 8-15 words>
+// One photo per post, generated once by scripts/generate-images.mjs and
+// committed as images/<post-file>/<title-slug>-photo.jpg (a descriptive file
+// name is a small Google Images signal). It's decoration placed lower in the
+// post with an "AI-generated photo" caption; the first image of every post is
+// a real, informative hero (the template or the real result), which Blogger
+// uses as og:image. See docs/style-guide.md "Images".
+// STYLE keeps every screen and label unreadable so the photo never passes for
+// a real Excel/Sheets screenshot.
 export const IMAGE_STYLE =
   "Realistic photograph, natural window light, shot on a DSLR with shallow depth of field, an authentic " +
   "small-business or home-office setting in the United States, true-to-life colors, no filters. Any text on " +
@@ -177,15 +178,18 @@ export function postSlug(file) {
   return file.replace(/\.md$/, "");
 }
 
-export function parseImagePrompts(meta) {
-  const split = (v) => (v ? v.split("|").map((s) => s.trim()).filter(Boolean) : []);
-  const prompts = split(meta.image_prompts).slice(0, 2);
-  const alts = split(meta.image_alt);
-  return prompts.map((prompt, i) => ({ prompt, alt: alts[i] ?? prompt, n: i + 1 }));
+export function slugify(text, max = 60) {
+  return String(text).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, max).replace(/-+$/, "");
 }
 
-export function aiImagePath(file, n) {
-  return `images/${postSlug(file)}/photo-${n}.jpg`;
+export function parseImagePrompts(meta) {
+  const first = (v) => (v ? v.split("|")[0].trim() : "");
+  const prompt = first(meta.image_prompts);
+  return prompt ? [{ prompt, alt: first(meta.image_alt) || prompt, n: 1, title: meta.title ?? "" }] : [];
+}
+
+export function aiImagePath(file, meta) {
+  return `images/${postSlug(file)}/${slugify(meta.title || postSlug(file))}-photo.jpg`;
 }
 
 export async function generateAiImage(prompt) {
@@ -212,13 +216,13 @@ export async function generateAiImage(prompt) {
   return Buffer.from(b64, "base64");
 }
 
-// First photo goes right after the answer-first intro; a second one (if
-// any) lands about two thirds of the way down, never inside the first blocks.
+// The AI photo goes about two thirds of the way down (never in the first
+// blocks: the hero screenshot/render leads), captioned as AI-generated.
 export function embedImages(htmlBlocks, images) {
   const out = [...htmlBlocks];
-  images.forEach((img, i) => {
-    const idx = i === 0 ? Math.min(out.length, 2) : Math.min(out.length, Math.max(4, Math.round(out.length * 0.66)));
-    out.splice(idx, 0, imageHtml(img.url, img.alt));
+  images.forEach((img) => {
+    const idx = Math.min(out.length, Math.max(6, Math.round(out.length * 0.66)));
+    out.splice(idx, 0, imageHtml(img.url, img.alt, "AI-generated photo"));
   });
   return out;
 }
@@ -487,9 +491,12 @@ export async function threadsUserId(accessToken) {
 // Container-then-publish, waiting for the container to finish processing
 // (publishing immediately can fail with "Media Not Found"; half-handy hit
 // this). Returns { id, permalink }.
-export async function publishToThreads({ text, accessToken, topicTag }) {
+export async function publishToThreads({ text, accessToken, topicTag, linkUrl }) {
   const userId = await threadsUserId(accessToken);
   const params = { media_type: "TEXT", text, access_token: accessToken };
+  // Link preview card (text-only posts only, per the Threads API docs): shows
+  // the post's og:image, i.e. the hero, under the copy.
+  if (linkUrl) params.link_attachment = linkUrl;
   if (topicTag) params.topic_tag = topicTag;
   const createRes = await fetch(`https://graph.threads.net/v1.0/${userId}/threads`, {
     method: "POST",

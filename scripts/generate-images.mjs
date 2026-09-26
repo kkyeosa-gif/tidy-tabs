@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Generates the AI photos for every post that doesn't have them yet: one image per `image_prompts`
-// scene, saved to images/<post-slug>/photo-<n>.jpg. Existing files are never
+// scene, saved to images/<post-file>/<title-slug>-photo.jpg. Existing files are never
 // regenerated, so each image is paid for once and stays the same after the
 // team has reviewed it. Delete a file to re-roll it.
 import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync, appendFileSync } from "node:fs";
@@ -17,8 +17,8 @@ async function main() {
     if (!existsSync(dir)) continue;
     for (const file of readdirSync(dir).filter((f) => f.endsWith(".md")).sort()) {
       const { meta } = parseFrontmatter(readFileSync(join(dir, file), "utf8"));
-      for (const { n, prompt } of parseImagePrompts(meta)) {
-        const out = aiImagePath(file, n);
+      for (const { prompt } of parseImagePrompts(meta)) {
+        const out = aiImagePath(file, meta);
         if (!existsSync(out)) todo.push({ file, out, prompt });
       }
     }

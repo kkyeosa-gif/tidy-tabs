@@ -37,7 +37,7 @@ async function main() {
   const existing = await getBloggerPostByUrl(meta.blogger_url, accessToken);
 
   const file = basename(targetFile);
-  const images = parseImagePrompts(meta).map(({ n, alt }) => ({ url: assetUrl(aiImagePath(file, n)), alt }));
+  const images = parseImagePrompts(meta).map(({ alt }) => ({ url: assetUrl(aiImagePath(file, meta)), alt }));
   const html = embedImages(paragraphsToHtml(body), images).join("\n");
   const searchDescription = deriveSearchDescription(meta, body);
 

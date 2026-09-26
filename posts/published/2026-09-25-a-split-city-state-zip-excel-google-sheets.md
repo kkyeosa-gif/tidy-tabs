@@ -4,14 +4,16 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-split-city-state-and-z
 title: How to Split City, State, and ZIP Into Separate Columns in Excel and Google Sheets
 labels: excel-basics, data-cleanup
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026 (Example results and every Troubleshooting case). Excel and Google Sheets steps from Microsoft/Google help pages.
-image_prompts: A small business owner's wooden desk with a stack of printed mailing labels and addressed envelopes next to an open laptop; the laptop shows a spreadsheet with three narrow columns, slightly out of focus | Close-up of hands sorting addressed envelopes into three neat piles on a desk, the address text blurred
-image_alt: Desk with mailing labels, envelopes, and a laptop showing a spreadsheet | Hands sorting addressed envelopes into three piles
+image_prompts: A small business owner's wooden desk with a stack of printed mailing labels and addressed envelopes next to an open laptop; the laptop shows a spreadsheet with three narrow columns, slightly out of focus
+image_alt: Desk with mailing labels, envelopes, and a laptop showing a spreadsheet
 search_description: Split "Boston, MA 02108" into City, State, and ZIP with three formulas that work in Excel and Google Sheets and keep the ZIP's leading zero.
 threads: Got a column of "Boston, MA 02108" and need City, State, ZIP in separate columns?\nThree formulas, same in Excel and Google Sheets:\nCity =LEFT(B2,FIND(",",B2)-1)\nState =MID(B2,FIND(",",B2)+2,2)\nZIP =RIGHT(B2,5)\nRIGHT returns text, so 02108 keeps its 0.
 ---
 To split "Boston, MA 02108" into three columns, use `=LEFT(B2,FIND(",",B2)-1)` for the city, `=MID(B2,FIND(",",B2)+2,2)` for the state, and `=RIGHT(B2,5)` for the ZIP. These formulas work the same in Excel and Google Sheets, and the ZIP comes back as text, so 02108 keeps its leading zero.
 
 > Works in: Excel for Microsoft 365 and Google Sheets (standard LEFT, MID, RIGHT, FIND functions). Tested in: LibreOffice Calc 24.2.7 only, with the eight addresses in the Example below.
+
+![Spreadsheet splitting eight US addresses into separate City, State, and ZIP columns](images/2026-09-25-a-split-city-state-zip-excel-google-sheets/split-city-state-zip-template.png) *The template in this post with sample addresses split by formula. PDF export from LibreOffice Calc 24.2.*
 
 ## Steps
 

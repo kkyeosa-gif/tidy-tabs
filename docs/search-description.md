@@ -17,12 +17,16 @@ Tidy Tabs 글은 첫 문단이 "답"(1~2문장)이라 그대로 좋은 검색 �
 3. `</head>` **바로 윗줄**에 아래를 붙여넣기 → 오른쪽 위 **저장**(디스크 아이콘)
 
 ```xml
+<meta content='max-image-preview:large' name='robots'/>
 <b:if cond='data:view.isPost and !data:blog.metaDescription'>
   <b:with value='data:widgets.Blog.first.posts.first' var='tidyPost'>
     <meta expr:content='snippet(data:tidyPost.body, {length: 155, links: false, linebreaks: false})' name='description'/>
   </b:with>
 </b:if>
 ```
+
+첫 줄(`max-image-preview:large`)은 구글 검색·디스커버에서 대표 이미지를 크게 보여줘도
+된다는 표시다 (Google 권장, developers.google.com/search/docs/appearance/google-discover).
 
 저장할 때 오류가 나면 테마는 바뀌지 않는다 (Blogger 가 저장을 거부할 뿐). 그 오류
 문구를 알려주면 고친다.

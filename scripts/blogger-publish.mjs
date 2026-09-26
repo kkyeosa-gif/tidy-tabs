@@ -63,7 +63,7 @@ function laNow() {
 // be committed, or readers get broken images and dead download links.
 function missingAssets(file, meta, body) {
   const needed = [
-    ...parseImagePrompts(meta).map(({ n }) => aiImagePath(file, n)),
+    ...parseImagePrompts(meta).map(() => aiImagePath(file, meta)),
     ...localAssetRefs(body),
   ];
   return needed.filter((p) => !existsSync(p));
@@ -112,7 +112,7 @@ async function main() {
   if (!meta.title) throw new Error(`${file}: frontmatter is missing 'title'`);
   const labels = meta.labels ? meta.labels.split(",").map((s) => s.trim()).filter(Boolean) : [];
 
-  const images = parseImagePrompts(meta).map(({ n, alt }) => ({ url: assetUrl(aiImagePath(file, n)), alt }));
+  const images = parseImagePrompts(meta).map(({ alt }) => ({ url: assetUrl(aiImagePath(file, meta)), alt }));
   const html = embedImages(paragraphsToHtml(body), images).join("\n");
   const searchDescription = deriveSearchDescription(meta, body);
 
@@ -175,6 +175,7 @@ export async function postToThreads({ file, meta, body, url, backfill = false })
       text: buildThreadsText(copy, url),
       accessToken: process.env.THREADS_ACCESS_TOKEN,
       topicTag: process.env.THREADS_TOPIC_TAG || "Excel",
+      linkUrl: url,
     });
     const publishedPath = join(PUBLISHED_DIR, file);
     const raw = readFileSync(publishedPath, "utf8");

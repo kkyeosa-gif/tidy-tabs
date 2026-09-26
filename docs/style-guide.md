@@ -63,3 +63,20 @@ the post is held until every one of those files exists.
 ## Threads copy
 Every post carries a `threads:` line (see .claude/agents/threads-writer.md).
 It goes to Threads with the post link the moment the post publishes.
+
+## Images (researched 2026-09-26, sources in tasks/briefs.md)
+Order and rules for every post. Goal: Google Images / Discover traffic without
+tripping spam or misleading-image policies.
+1. **Hero first**, right after the `> Works in` callout: a real, informative
+   image of the result (the template with sample data, or a real before/after).
+   1600x900 PNG made by `scripts/make-heroes.py` (add an entry for the post).
+   It becomes og:image, so it must be representative, not a logo, not clickbait.
+   Caption says where it came from ("PDF export from LibreOffice Calc 24.2").
+2. **Step screenshots/renders** under the step or example they show.
+3. **One AI photo** (`image_prompts`, one scene), placed automatically lower in
+   the post with the caption "AI-generated photo". Decoration only; it must not
+   look like a real customer, testimonial, or product result.
+4. **File names** describe the image (`craft-inventory-tracker-template.png`),
+   never `photo-1.jpg` / `IMG_001.png`.
+5. **Alt text**: unique per image, 8-15 words, says what is actually shown. The
+   main keyword at most once. Never stuff keywords or reuse the title as alt.

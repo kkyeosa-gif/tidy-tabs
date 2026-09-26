@@ -4,14 +4,16 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/freelance-project-tracker-in-
 title: Freelance Project Tracker in Google Sheets (Free Template)
 labels: google-sheets-templates, freelance
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026; Excel and Google Sheets steps from Microsoft/Google help pages.
-image_prompts: A freelancer working at a home desk with a laptop showing a project tracker spreadsheet with green and red status cells, screen slightly blurred, coffee mug and notebook beside it | A paper wall calendar with a few deadlines circled in red marker above a desk with a laptop and a small stack of printed invoices, no readable text
-image_alt: Freelancer at a home desk with a project tracker spreadsheet open | Wall calendar with circled deadlines above a desk with invoices
+image_prompts: A freelancer working at a home desk with a laptop showing a project tracker spreadsheet with green and red status cells, screen slightly blurred, coffee mug and notebook beside it
+image_alt: Freelancer at a home desk with a project tracker spreadsheet open
 search_description: Free freelance project tracker for Google Sheets: one row per project, with Amount, Days left, and Payment status calculated by formulas.
 threads: Which client still owes you money? If the answer lives in your inbox, try one row per project instead.\nThis free Google Sheets tracker works out Amount, Days left, and Payment status on its own.\nAn invoice turns Overdue 30 days after you send it. Change the 30 if your terms are net 15.
 ---
 This free tracker gives you one row per client project, and the Amount, Days left, and Payment status columns calculate themselves. Download the .xlsx below and bring it into Google Sheets with **File > Import**, or open it directly in Excel.
 
 > Works in: Google Sheets (import steps from Google Docs Editors Help) and Excel for Microsoft 365 (open the .xlsx). Tested in: LibreOffice Calc 24.2.7 on Linux, 09/25/2026. We have not checked it in Excel or Google Sheets ourselves.
+
+![Freelance project tracker with due dates, status, amounts, and payment status for five clients](images/2026-09-30-a-freelance-project-tracker-google-sheets/freelance-project-tracker-template.png) *The tracker in this post with sample projects (some columns hidden). PDF export from LibreOffice Calc 24.2.*
 
 ## Steps
 

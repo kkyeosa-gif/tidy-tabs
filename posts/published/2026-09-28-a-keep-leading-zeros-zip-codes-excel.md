@@ -4,14 +4,16 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-keep-leading-zeros-in-
 title: How to Keep Leading Zeros in Excel ZIP Codes
 labels: excel-basics, data-entry
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026; Excel and Google Sheets steps from Microsoft/Google help pages
-image_prompts: A stack of outgoing US mail envelopes with printed address labels on a home-office desk beside a laptop with a spreadsheet open, labels and screen out of focus | A person at a home-office desk typing into a spreadsheet on a laptop, a box of mailing envelopes and a label printer nearby, screen not readable
-image_alt: Addressed envelopes next to a laptop with a spreadsheet | Person entering addresses into a spreadsheet at a home office
+image_prompts: A stack of outgoing US mail envelopes with printed address labels on a home-office desk beside a laptop with a spreadsheet open, labels and screen out of focus
+image_alt: Addressed envelopes next to a laptop with a spreadsheet
 search_description: Excel dropping the 0 from ZIP codes like 02108? Format the column as Text before typing, or rebuild it with =TEXT(A2,"00000").
 threads: Excel turned 02108 into 2108 again?\nFormat the column as Text before you type or paste, not after.\nAlready broken? =TEXT(A2,"00000") brings the zero back.
 ---
 Keep ZIP codes intact by formatting the cells as text before you type or paste them: **Text** in Excel, **Plain text** in Google Sheets. This preserves leading zeros in codes such as 02108.
 
 > Works in: Excel for Microsoft 365 on Windows, Google Sheets in a desktop browser. Tested in: LibreOffice Calc 24.2.7 only. The Excel and Google Sheets steps come from Microsoft and Google help pages.
+
+![ZIP codes stored as numbers next to the same codes repaired with the TEXT formula](images/2026-09-28-a-keep-leading-zeros-zip-codes-excel/zip-codes-leading-zeros-fixed.png) *ZIPs typed as numbers (column C) and repaired with =TEXT() (columns D and E). PDF export from LibreOffice Calc 24.2.*
 
 ## Steps
 

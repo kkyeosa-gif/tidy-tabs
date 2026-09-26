@@ -4,14 +4,16 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-print-excel-sheet-on-o
 title: How to Print an Excel Sheet on One Page (US Letter)
 labels: excel-printing, page-setup
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026; Excel and Google Sheets steps from Microsoft/Google help pages
-image_prompts: A single landscape-oriented printed spreadsheet page on US Letter paper coming out of a small home-office laser printer, the table too small to read | On a desk, a messy spread of six loosely printed pages next to one neat single printed page, both showing tables too small to read
-image_alt: One printed spreadsheet page coming out of a home-office printer | Six loose printed pages next to one neat single page
+image_prompts: A single landscape-oriented printed spreadsheet page on US Letter paper coming out of a small home-office laser printer, the table too small to read
+image_alt: One printed spreadsheet page coming out of a home-office printer
 search_description: To print an Excel sheet on one page, set Paper Size to Letter and pick Fit Sheet on One Page under File > Print. Google Sheets steps too.
 threads: A 48-row price list printed on 6 pages with default settings. Same file, 1 page after three changes.\nLetter paper, Landscape, fit to 1 page wide by 1 tall.\nFor long lists, pick Fit All Columns on One Page instead so the text stays readable.
 ---
 To print an Excel sheet on one page, go to **File > Print**, check that the paper size is Letter, and change the scaling setting to **Fit Sheet on One Page**. The ribbon route is **Page Layout > Scale to Fit**: set **Width** to 1 page and **Height** to 1 page.
 
 > Works in: Excel for Microsoft 365 on Windows (Excel 2016 and later use the same Page Setup dialog), Google Sheets in a desktop browser. Tested in: LibreOffice Calc 24.2.7 only. The Excel and Google Sheets steps come from Microsoft and Google help pages.
+
+![Price list printed on six pages with default settings next to the same list fitted on one page](images/2026-09-29-a-print-excel-one-page-us-letter/print-excel-one-page-before-after.png) *Left: default settings, 6 pages. Right: the same file on one US Letter page. PDF exports from LibreOffice Calc 24.2.*
 
 ## Steps
 

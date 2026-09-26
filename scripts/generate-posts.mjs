@@ -89,8 +89,8 @@ Output ONLY the raw file content in exactly this format, nothing else — no cod
 title: <title>
 labels: <label1>, <label2>
 tested_in: <see rules>
-image_prompts: <realistic photo scene 1> | <realistic photo scene 2>
-image_alt: <alt text 1> | <alt text 2>
+image_prompts: <one realistic photo scene of the post's situation, screens and labels unreadable>
+image_alt: <what the photo shows, 8-15 words>
 search_description: <description>
 threads: <threads copy>
 ---

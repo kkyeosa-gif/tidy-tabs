@@ -4,14 +4,16 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/google-sheets-inventory-track
 title: Google Sheets Inventory Tracker for a Small Craft Business
 labels: google-sheets-templates, inventory
 tested_in: LibreOffice Calc 24.2.7 (Linux), 09/25/2026 (template formulas recalculated with the sample data). Google Sheets steps from Google Docs Editors Help pages.
-image_prompts: A small craft business workspace with wooden shelves of handmade soy candles in glass jars and paper-wrapped soap bars, kraft shipping boxes, and a laptop on the table showing an inventory spreadsheet out of focus | Close-up of hands counting handmade soap bars on a wooden table next to a clipboard checklist, warm natural light, text not readable
-image_alt: Craft studio shelves of candles and soap with a laptop showing an inventory spreadsheet | Hands counting handmade soap bars next to a clipboard
+image_prompts: A small craft business workspace with wooden shelves of handmade soy candles in glass jars and paper-wrapped soap bars, kraft shipping boxes, and a laptop on the table showing an inventory spreadsheet out of focus
+image_alt: Craft studio shelves of candles and soap with a laptop showing an inventory spreadsheet
 search_description: Track craft inventory in Google Sheets with two tabs: Items and Stock log. On hand = Starting qty + Qty in - Qty out, with a REORDER flag.
 threads: Sold out of charcoal soap the morning of a market?\nTwo tabs fix it: Items and a Stock log.\nOn hand = starting qty + qty in - qty out, and Status flips to REORDER at your reorder point. Free Google Sheets template.
 ---
 Track craft inventory with two tabs: **Items** (one row per product or supply) and **Stock log** (one row per stock movement). On hand is `=F2+G2-H2` (Starting qty + Qty in - Qty out), and Status flips to REORDER once On hand drops to the Reorder at number.
 
 > Works in: Google Sheets (steps from Google Docs Editors Help). Tested in: LibreOffice Calc 24.2.7 only, where the template's formulas recalculated to the results shown below.
+
+![Craft inventory tracker with on-hand counts and REORDER flags on three low-stock items](images/2026-10-01-a-craft-inventory-tracker-google-sheets/craft-inventory-tracker-template.png) *The tracker in this post with sample stock (some columns hidden). PDF export from LibreOffice Calc 24.2.*
 
 ## Steps
 1. Download the template from the Template section below.

@@ -227,6 +227,18 @@ export function embedImages(htmlBlocks, images) {
   return out;
 }
 
+// Blogger sometimes answers 503 "backendError" (seen 2026-09-26 when five
+// updates ran at once). Retry 5xx and 429 with backoff before giving up.
+async function bloggerFetch(url, init) {
+  let res;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    res = await fetch(url, init);
+    if (res.ok || (res.status < 500 && res.status !== 429)) return res;
+    await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt));
+  }
+  return res;
+}
+
 export async function getAccessToken() {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -245,7 +257,7 @@ export async function getAccessToken() {
 
 export async function publishToBlogger({ title, html, labels, searchDescription, accessToken }) {
   const blogId = process.env.BLOGGER_BLOG_ID;
-  const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
+  const res = await bloggerFetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -270,7 +282,7 @@ export function deriveSearchDescription(meta, body) {
 export async function getBloggerPostByUrl(url, accessToken) {
   const blogId = process.env.BLOGGER_BLOG_ID;
   const path = new URL(url).pathname;
-  const res = await fetch(
+  const res = await bloggerFetch(
     `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/bypath?path=${encodeURIComponent(path)}`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
@@ -280,7 +292,7 @@ export async function getBloggerPostByUrl(url, accessToken) {
 
 export async function updateBloggerPost({ postId, title, html, labels, searchDescription, accessToken }) {
   const blogId = process.env.BLOGGER_BLOG_ID;
-  const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${postId}`, {
+  const res = await bloggerFetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${postId}`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${accessToken}`,

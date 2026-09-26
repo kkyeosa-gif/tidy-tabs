@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DdwT-bSlGUh
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-highlight-overdue-invoices.html
 title: How to Highlight Overdue Invoices Automatically in Excel and Google Sheets
 labels: conditional-formatting, invoicing
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

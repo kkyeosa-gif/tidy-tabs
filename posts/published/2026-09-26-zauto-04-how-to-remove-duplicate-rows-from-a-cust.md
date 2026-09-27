@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Ddyk_A-G02_
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-remove-duplicate-rows-from.html
 title: How to Remove Duplicate Rows From a Customer Email List in Excel and Google Sheets
 labels: data-cleanup, spreadsheet-basics
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

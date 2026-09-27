@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Ddy4xdzoKwj
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-freeze-header-row-and-print-it.html
 title: How to Freeze the Header Row and Print It on Every Page in Excel and Google Sheets
 labels: page-setup, excel-printing
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

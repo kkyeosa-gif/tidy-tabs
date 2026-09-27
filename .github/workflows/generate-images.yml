@@ -32,9 +32,12 @@ jobs:
         with:
           node-version: "20"
 
+      # Never blocks image generation or the commit below.
       - name: Real example image for posts that have none
+        continue-on-error: true
         run: |
-          sudo apt-get install -y -qq libreoffice-calc >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libreoffice-calc >/dev/null
           pip install -q openpyxl pymupdf pillow
           python3 scripts/auto-hero.py || echo "::warning::auto-hero failed"
 

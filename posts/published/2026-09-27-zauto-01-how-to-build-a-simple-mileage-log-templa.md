@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DdzGgfQG_nz
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-build-simple-mileage-log.html
 title: How to Build a Simple Mileage Log Template in Excel and Google Sheets
 labels: mileage-log, freelance
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

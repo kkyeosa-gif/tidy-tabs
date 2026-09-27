@@ -4,14 +4,16 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-turn-etsy-sales-csv-in
 title: How to Turn an Etsy Sales CSV Into a Monthly Summary With SUMIFS in Excel and Google Sheets
 labels: excel-formulas, etsy-sellers, sales-reports
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.
-image_prompts: A small home craft workspace with a laptop open to a blurred spreadsheet, a stack of printed order slips, and handmade product samples nearby, all screen text and labels unreadable.
-image_alt: Craft seller's desk with laptop, printed orders, and handmade products near a spreadsheet
+image_prompts: A craft seller's packing table with kraft mailer boxes, tissue-wrapped handmade items, and a small stack of printed order slips clipped together by month
+image_alt: Craft seller packing table with mailer boxes and printed order slips
 search_description: Turn your Etsy order export into a monthly sales summary using SUMIFS in Excel or Google Sheets, with copy-paste formulas and a troubleshooting guide.
 threads: Etsy's CSV export dumps every order into one long list, no monthly totals anywhere.\nFix: add a summary tab and use SUMIFS with a date range, like =SUMIFS(Orders!D:D, Orders!A:A, ">="&DATE(2026,9,1), Orders!A:A, "<"&DATE(2026,10,1)).\nWorks the same in Excel and Google Sheets once the date column is real dates, not text.
 ---
 Add a summary sheet next to your Etsy order export and use `SUMIFS` with a date range for each month, like `=SUMIFS(Orders!D:D, Orders!A:A, ">="&DATE(2026,9,1), Orders!A:A, "<"&DATE(2026,10,1))`. This adds up the "Item Total" column for every order dated in September 2026.
 
 > Works in: Excel (Microsoft 365, Excel 2019+) and Google Sheets. Menu names for importing and formatting may vary slightly across Excel for Windows, Mac, and the web. Steps come from Microsoft and Google support pages, not hands-on tested.
+
+![Spreadsheet example with columns Sale Date, Order Number, Buyer, Item Total](images/2026-09-26-zauto-01-how-to-turn-an-etsy-sales-csv-into-a-mon/how-to-turn-an-etsy-sales-csv-into-a-monthly-summa-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
 
 ## Steps
 

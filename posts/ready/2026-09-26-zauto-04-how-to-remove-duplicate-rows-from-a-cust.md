@@ -2,14 +2,16 @@
 title: How to Remove Duplicate Rows From a Customer Email List in Excel and Google Sheets
 labels: data-cleanup, spreadsheet-basics
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.
-image_prompts: A small business desk with a laptop showing a blurred spreadsheet of customer contacts, a coffee cup, and a notepad with scribbled email addresses, all text unreadable
-image_alt: Desk scene with laptop open to a blurred customer contact spreadsheet
+image_prompts: A pile of customer business cards and signup cards on a wooden counter where two identical cards sit side by side, a hand pulling the duplicate out
+image_alt: Hand pulling a duplicate customer card out of a pile
 search_description: Remove duplicate customer emails in Excel or Google Sheets using the built-in Remove Duplicates tool, plus a formula way to flag duplicates before you delete anything.
 threads: Sending the same newsletter twice to one customer? Check your list for duplicate emails first.\nExcel and Sheets both have a built-in Remove Duplicates tool, no formulas needed. Just watch out for trailing spaces and mismatched capitalization, those slip past it.
 ---
 Select your customer list, then use **Data > Remove Duplicates** in Excel or **Data > Data cleanup > Remove duplicates** in Google Sheets. Both tools compare entire rows or just the columns you pick, and remove every repeat after the first match.
 
 > Works in: Excel (Microsoft 365 and Excel 2016+) and Google Sheets, current version. Steps confirmed against Microsoft and Google help pages, not hands-on tested.
+
+![Spreadsheet example with columns Name, Email, Phone, Signup Date](images/2026-09-26-zauto-04-how-to-remove-duplicate-rows-from-a-cust/how-to-remove-duplicate-rows-from-a-customer-email-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
 
 ## Steps
 

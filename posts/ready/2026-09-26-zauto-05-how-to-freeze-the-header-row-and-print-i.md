@@ -2,14 +2,16 @@
 title: How to Freeze the Header Row and Print It on Every Page in Excel and Google Sheets
 labels: page-setup, excel-printing
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.
-image_prompts: A home office desk with a printed multi-page spreadsheet report fanned out, header row visible on each page but text unreadable, coffee cup nearby
-image_alt: Printed spreadsheet pages fanned across a desk showing repeated header row
+image_prompts: A multi-page printed report fanned out on a desk next to a home-office printer, every page topped with the same dark green header band, table text too small to read
+image_alt: Multi-page printed report with the same header band on every page
 search_description: Freeze the header row on screen and force it to repeat on every printed page in Excel and Google Sheets, with exact menu paths for both apps.
 threads: Your spreadsheet header row disappears after page 1 when you print it\nFreezing a row only fixes the on-screen view, not the printout\nExcel needs Page Layout > Print Titles, Sheets needs a checkbox in the print settings sidebar\nHere's exactly where to click
 ---
 Freeze the header row so it stays visible while you scroll, and separately set it to repeat on every printed page. In Excel, use **Page Layout > Print Titles > Rows to repeat at top**. In Google Sheets, freeze the row from **View > Freeze**, then check **Repeat frozen rows** in the print settings.
 
 > Works in: Excel for Windows and Excel for Mac (Microsoft 365 and other recent desktop versions), and in Google Sheets. Print Titles is a desktop feature; it isn't available in Excel for the web, so use the desktop app for that step. Steps come from Microsoft and Google support pages, not hands-on testing.
+
+![Spreadsheet example with columns Date, Customer, Amount](images/2026-09-26-zauto-05-how-to-freeze-the-header-row-and-print-i/how-to-freeze-the-header-row-and-print-it-on-every-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
 
 ## Steps
 

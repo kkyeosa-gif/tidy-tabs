@@ -72,8 +72,13 @@ tripping spam or misleading-image policies.
    1600x900 PNG made by `scripts/make-heroes.py` (add an entry for the post).
    It becomes og:image, so it must be representative, not a logo, not clickbait.
    Caption says where it came from ("PDF export from LibreOffice Calc 24.2").
+   A post without a custom hero gets one automatically: `scripts/auto-hero.py`
+   renders its "## Example" table as a spreadsheet (runs in generate-posts and
+   generate-images), so every post opens with an image that explains it.
 2. **Step screenshots/renders** under the step or example they show.
-3. **One AI photo** (`image_prompts`, one scene), placed automatically lower in
+3. **One AI photo** (`image_prompts`, one scene of the post's physical situation
+   built from 2-3 objects specific to it; never a generic laptop-and-coffee desk),
+   placed automatically lower in
    the post with the caption "AI-generated photo". Decoration only; it must not
    look like a real customer, testimonial, or product result.
 4. **File names** describe the image (`craft-inventory-tracker-template.png`),

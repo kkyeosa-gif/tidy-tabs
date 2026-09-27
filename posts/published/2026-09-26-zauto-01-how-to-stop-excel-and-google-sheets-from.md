@@ -4,14 +4,16 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-stop-excel-and-google-
 title: How to Stop Excel and Google Sheets From Turning Phone Numbers Into Scientific Notation
 labels: data-entry, data-cleanup
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.
-image_prompts: A small business desk with a printed client contact sheet and a laptop showing a spreadsheet, all screen text and labels unreadable, warm natural light
-image_alt: Desk with laptop and printed client list showing rows of contact phone numbers
+image_prompts: A stack of printed customer phone lists and a spread of business cards on a small shop's front counter beside a desk phone and a cordless phone handset, warm natural light
+image_alt: Printed customer phone lists and business cards next to a desk phone
 search_description: Fix phone numbers that turn into 1.23E+11 or lose the leading +1 in Excel and Google Sheets, with the exact cell format to use before you type or paste.
 threads: Typed a client's phone number and got 1.23457E+11 instead? Excel and Sheets treat long digit strings as numbers unless you tell them not to.\nFormat the column as Plain text (or Text) before you type or paste, then re-enter the numbers. Fixing it after the fact won't bring back a lost +1 or leading 0.
 ---
 Format the column as **Text** (Excel) or **Plain text** (Google Sheets) before you type or paste phone numbers. Once a phone number has already turned into scientific notation like 1.23457E+11, changing the format back won't restore the missing digits, so you have to re-enter or re-import the data after fixing the format.
 
 > Works in: Excel (Microsoft 365, Excel 2019+) and Google Sheets, current version. Steps come from Microsoft and Google help pages, not hands-on testing. Menu paths and the Ctrl+1 shortcut below match Excel for Windows; Excel for Mac uses Cmd+1 and some menu wording may differ slightly.
+
+![Spreadsheet example with columns Client, Entered as, Shows as (default number format), Shows as (Text/Plain text](images/2026-09-26-zauto-01-how-to-stop-excel-and-google-sheets-from/how-to-stop-excel-and-google-sheets-from-turning-p-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
 
 ## Steps
 

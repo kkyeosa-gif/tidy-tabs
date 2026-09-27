@@ -89,7 +89,7 @@ Output ONLY the raw file content in exactly this format, nothing else — no cod
 title: <title>
 labels: <label1>, <label2>
 tested_in: <see rules>
-image_prompts: <one realistic photo scene of the post's situation, screens and labels unreadable>
+image_prompts: <one realistic photo of the physical situation behind this post's problem, built from 2-3 concrete objects specific to it (e.g. a box of mailing envelopes, a printed price list fanned out of a printer, jars of handmade candles on a shelf). Never a generic laptop-on-desk or coffee-mug scene. No text in the image.>
 image_alt: <what the photo shows, 8-15 words>
 search_description: <description>
 threads: <threads copy>

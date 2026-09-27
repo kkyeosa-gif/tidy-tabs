@@ -170,9 +170,10 @@ export function escapeAttr(s) {
 // a real Excel/Sheets screenshot.
 export const IMAGE_STYLE =
   "Realistic photograph, natural window light, shot on a DSLR with shallow depth of field, an authentic " +
-  "small-business or home-office setting in the United States, true-to-life colors, no filters. Any text on " +
-  "screens, paper, labels, or packaging must be blurred or too small to read. No logos, brand names, or " +
-  "watermarks, and no readable close-up of a software interface.";
+  "small-business or home-office setting in the United States, true-to-life colors, no filters. Show the " +
+  "specific objects named in the scene; do not fall back to a generic laptop-and-coffee desk. Absolutely no " +
+  "words, letters, or numbers anywhere in the image: paper, labels, and screens show only soft blurred lines " +
+  "or plain colored cells. No logos, brand names, or watermarks, and no close-up of a software interface.";
 
 export function postSlug(file) {
   return file.replace(/\.md$/, "");

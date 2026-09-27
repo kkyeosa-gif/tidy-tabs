@@ -4,14 +4,16 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-add-dropdown-list-for-
 title: How to Add a Dropdown List for Status Columns in Excel and Google Sheets
 labels: data-validation, spreadsheet-basics
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.
-image_prompts: A small business desk with a laptop showing a spreadsheet open next to a coffee cup, screen glare hides all text and labels
-image_alt: Laptop on a desk displaying a spreadsheet with an unreadable status column
+image_prompts: A whiteboard in a small studio with three columns of colored sticky notes sorting jobs into to-do, in-progress, and done, a marker on the ledge
+image_alt: Whiteboard with sticky notes sorted into three status columns
 search_description: Add a dropdown list to a status column in Excel or Google Sheets using data validation, with steps, sample data, and common fixes.
 threads: Typing "Paid," "paid," and "PD" into the same column? Add a dropdown so every entry matches exactly.\nExcel: Data > Data Validation > List.\nSheets: Data > Data validation > Dropdown.\nTakes two minutes and stops the typos for good.
 ---
 Add a dropdown list by selecting the column, then setting data validation to a list of allowed values such as Paid, Unpaid, Overdue. This stops typos like "paid" vs "Paid" and keeps every entry consistent.
 
 > Works in: Excel (Microsoft 365 and Excel 2021), Google Sheets. Steps below follow the official Microsoft and Google help pages; not hands-on tested.
+
+![Spreadsheet example with columns Client, Invoice #, Status](images/2026-09-26-zauto-03-how-to-add-a-dropdown-list-for-status-co/how-to-add-a-dropdown-list-for-status-columns-in-e-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
 
 ## Steps
 

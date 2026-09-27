@@ -32,6 +32,12 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Real example image for posts that have none
+        run: |
+          sudo apt-get install -y -qq libreoffice-calc >/dev/null
+          pip install -q openpyxl pymupdf pillow
+          python3 scripts/auto-hero.py || echo "::warning::auto-hero failed"
+
       - name: Generate missing images
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -43,7 +49,7 @@ jobs:
         run: |
           git config user.name "content-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add images
+          git add posts images
           git diff --cached --quiet || git commit -m "Add generated images"
           for i in 1 2 3 4 5; do
             git pull --rebase -q origin main && git push && break

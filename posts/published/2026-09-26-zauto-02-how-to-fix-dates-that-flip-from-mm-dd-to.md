@@ -4,14 +4,16 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-fix-dates-that-flip-fr
 title: How to Fix Dates That Flip From MM/DD to DD/MM After a CSV Import
 labels: data-cleanup, data-entry
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.
-image_prompts: A small business desk with a laptop showing a spreadsheet full of date columns, a printed invoice with a date circled in pen, screens and labels unreadable
-image_alt: Desk with laptop spreadsheet and printed invoice showing a circled date
+image_prompts: A paper wall calendar and a stack of printed invoices with dates circled in red pen, next to a desk calendar flipped to a new month, in a small office
+image_alt: Wall calendar and printed invoices with dates circled in red
 search_description: Fix dates that switch between MM/DD and DD/MM after importing a CSV into Excel or Google Sheets, with the exact import settings to lock the format.
 threads: CSV import turning 03/04/2026 into April 3rd instead of March 4th?\nIt's not random. Excel and Sheets guess the date order from your system settings, not the file.\nFix it by importing the date column as Text first, then converting it with DATEVALUE once you know the real order.
 ---
 Dates flip between MM/DD and DD/MM after a CSV import because Excel and Google Sheets guess the date format from your locale settings instead of reading it from the file. Stop the guessing by importing the date column as **Text** first, then converting it on purpose with a formula once you know which order the file actually uses.
 
 > Works in: Excel for Microsoft 365 (Windows) and Google Sheets, based on Microsoft and Google help pages; not hands-on tested.
+
+![Spreadsheet example with columns Raw text from CSV, Actual meaning, Wrong auto-import result, Correct after DATEVALUE/DATE](images/2026-09-26-zauto-02-how-to-fix-dates-that-flip-from-mm-dd-to/how-to-fix-dates-that-flip-from-mm-dd-to-dd-mm-aft-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
 
 ## Steps
 

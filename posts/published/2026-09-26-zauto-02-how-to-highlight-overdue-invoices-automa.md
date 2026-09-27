@@ -4,14 +4,16 @@ blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-highlight-overdue-invo
 title: How to Highlight Overdue Invoices Automatically in Excel and Google Sheets
 labels: conditional-formatting, invoicing
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.
-image_prompts: A small desk with a laptop showing a spreadsheet with colored rows, a stack of paper invoices, and a wall calendar nearby, all screens and text unreadable
-image_alt: Desk with laptop, printed invoices, and calendar showing overdue billing tracking
+image_prompts: A small business owner's inbox tray holding a stack of paper invoices, a few flagged with red sticky tabs, next to a wall calendar with due dates circled
+image_alt: Paper invoices with red sticky tabs flagging overdue ones
 search_description: Set up one conditional formatting rule in Excel or Google Sheets that turns invoice rows red automatically when they pass their due date and are still unpaid.
 threads: Stop scrolling your invoice tracker looking for who owes you money.\nOne conditional formatting rule turns a row red the day it's overdue and still marked unpaid: =AND($D2<>"Paid",$C2<TODAY())\nWorks the same in Excel and Google Sheets.
 ---
 Highlight overdue invoices by adding a conditional formatting rule with the formula `=AND($D2<>"Paid", $C2<TODAY())`, pointed at your Due Date and Status columns. Rows turn red automatically the day they pass due, and turn back to normal the moment you mark them Paid.
 
 > Works in: Excel (Microsoft 365 and Excel 2019+) and Google Sheets. Menu paths below come from Microsoft and Google's own help pages.
+
+![Spreadsheet example with columns Invoice #, Client, Due Date, Status](images/2026-09-26-zauto-02-how-to-highlight-overdue-invoices-automa/how-to-highlight-overdue-invoices-automatically-in-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
 
 ## Steps
 

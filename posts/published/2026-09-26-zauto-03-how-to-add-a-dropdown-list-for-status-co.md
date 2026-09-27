@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DdxRxx1D_GY
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-add-dropdown-list-for-status.html
 title: How to Add a Dropdown List for Status Columns in Excel and Google Sheets
 labels: data-validation, spreadsheet-basics
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

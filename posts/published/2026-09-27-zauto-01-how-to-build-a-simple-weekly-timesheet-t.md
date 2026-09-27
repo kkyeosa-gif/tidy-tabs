@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DdzbGrqCREA
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-build-simple-weekly-timesheet.html
 title: How to Build a Simple Weekly Timesheet Template in Excel and Google Sheets (with Overtime Calculation)
 labels: timesheets, payroll-basics
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

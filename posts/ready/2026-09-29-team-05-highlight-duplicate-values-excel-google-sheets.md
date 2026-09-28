@@ -2,15 +2,15 @@
 title: How to Highlight Duplicate Values in Excel and Google Sheets
 labels: conditional-formatting, data-cleanup
 tested_in: LibreOffice Calc 24.2.7 (Linux). Google Sheets/Excel conditional-formatting steps from Google Docs Editors Help / Microsoft Support (not tested here).
-image_prompts: 
-image_alt: 
+image_prompts: A small office counter with a stack of printed order slips fanned out, two identical slips pulled to the side next to each other, slip text blurred and unreadable, no visible logos.
+image_alt: Two identical order slips pulled aside from a fanned out stack
 search_description: Highlight duplicate values in Excel or Google Sheets with a COUNTIF conditional formatting rule, without deleting or moving any rows.
 ---
 Select the column, open conditional formatting, and use the custom formula `=COUNTIF($B$2:$B$16,B2)>1` to highlight every value that repeats, without deleting or moving any rows.
 
 > Works in: LibreOffice Calc 24.2.7 (Linux). Google Sheets/Excel conditional-formatting steps from Google Docs Editors Help / Microsoft Support (not tested here).
 
-![Spreadsheet example with columns Order #, Customer email, Duplicate?](images/2026-09-29-team-05-highlight-duplicate-values-excel-google-sheets/how-to-highlight-duplicate-values-in-excel-and-goo-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
+![Order list with repeated customer email addresses highlighted in pink across several rows](images/2026-09-29-team-05-highlight-duplicate-values-excel-google-sheets/highlight-duplicate-emails-template.png) *LibreOffice Calc 24.2 PDF export of the Orders tab with conditional formatting applied.*
 
 This is different from deleting duplicate rows outright. If you want to remove repeat rows from a list entirely, that's a separate job for a Remove Duplicates tool. This post is for when a repeat might be legitimate, like a customer placing a second order, and you just want to see which rows share a value before deciding what to do with them. Every row stays put. Nothing gets deleted.
 

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dd1JxcxloLg
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-lock-cells-in-excel-and-google.html
 title: How to Lock Cells in Excel and Google Sheets So Formulas Don't Get Overwritten
 labels: sheet-protection, spreadsheet-basics
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

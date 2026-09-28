@@ -10,6 +10,8 @@ Track when you last talked to each client and flag who's due for a follow-up wit
 
 > Works in: Google Sheets (import steps from Google Docs Editors Help, not tested here). Tested in: LibreOffice Calc 24.2.7 (Linux), recalculated 09/28/2026.
 
+![Spreadsheet example with columns Client, Last contact, Follow up every (days), Next follow-up](images/2026-09-29-team-02-client-contact-list-template-google-sheets/how-to-build-a-client-contact-list-template-in-goo-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
+
 ## Steps
 
 ### In Google Sheets

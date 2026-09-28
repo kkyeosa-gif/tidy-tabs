@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dd1_52dD0_x
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-count-unique-values-in-column-in.html
 title: How to Count Unique Values in a Column in Excel and Google Sheets
 labels: excel-formulas, data-cleanup
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

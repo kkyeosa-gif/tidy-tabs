@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dd1dkvhmy6l
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-split-full-name-into-first-and.html
 title: How to Split a Full Name Into First and Last Name Columns in Excel and Google Sheets
 labels: data-cleanup, excel-formulas
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

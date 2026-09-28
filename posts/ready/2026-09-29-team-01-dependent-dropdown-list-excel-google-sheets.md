@@ -10,6 +10,8 @@ Make a second dropdown follow the first by naming each list after its category, 
 
 > Works in: Excel and Google Sheets (standard named ranges, data validation, and the INDIRECT function). Checked in: LibreOffice Calc 24.2.7 (Linux) only, and only the INDIRECT/named-range mechanism, not the dropdown click itself (see Example).
 
+![Spreadsheet example with columns Category, Subcategory options, COUNTA(INDIRECT())](images/2026-09-29-team-01-dependent-dropdown-list-excel-google-sheets/how-to-create-a-dependent-drop-down-list-in-excel-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
+
 ## Steps
 
 Build the source lists once, then set up two linked dropdowns. The named-range step is the same idea in both apps; the dropdown menus look different.

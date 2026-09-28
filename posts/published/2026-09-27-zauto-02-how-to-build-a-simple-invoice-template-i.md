@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Ddz2krZFvPg
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-build-simple-invoice-template-in.html
 title: How to Build a Simple Invoice Template in Google Sheets and Excel (US Letter, Net 30)
 labels: invoicing, freelance
 tested_in: Steps from Microsoft/Google help pages; not hands-on tested.

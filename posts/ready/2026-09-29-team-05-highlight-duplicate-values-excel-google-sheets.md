@@ -10,6 +10,8 @@ Select the column, open conditional formatting, and use the custom formula `=COU
 
 > Works in: LibreOffice Calc 24.2.7 (Linux). Google Sheets/Excel conditional-formatting steps from Google Docs Editors Help / Microsoft Support (not tested here).
 
+![Spreadsheet example with columns Order #, Customer email, Duplicate?](images/2026-09-29-team-05-highlight-duplicate-values-excel-google-sheets/how-to-highlight-duplicate-values-in-excel-and-goo-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
+
 This is different from deleting duplicate rows outright. If you want to remove repeat rows from a list entirely, that's a separate job for a Remove Duplicates tool. This post is for when a repeat might be legitimate, like a customer placing a second order, and you just want to see which rows share a value before deciding what to do with them. Every row stays put. Nothing gets deleted.
 
 Sample data in this post is fictional, made up for illustration.

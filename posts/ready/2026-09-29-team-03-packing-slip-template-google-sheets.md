@@ -10,6 +10,8 @@ Build a one-page packing slip with an Order #, a Ship to address, and an items t
 
 > Works in: LibreOffice Calc 24.2.7 (Linux), where this template was built and the Total packed formula and one-page print were verified. Excel and Google Sheets print steps below come from Microsoft Support and Google Docs Editors Help. Neither was hands-on tested here.
 
+![Spreadsheet example with columns Field, Value](images/2026-09-29-team-03-packing-slip-template-google-sheets/how-to-build-a-packing-slip-template-in-google-she-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
+
 ## Steps
 
 1. In row 1, type your business name, then add a **PACKING SLIP** label a row or two below it.

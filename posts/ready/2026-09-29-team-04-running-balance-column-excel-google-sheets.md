@@ -10,6 +10,8 @@ Keep a running balance by adding each row's money in and subtracting its money o
 
 > Works in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps below come from Microsoft Support and Google Docs Editors Help, not tested here.
 
+![Spreadsheet example with columns Date, Description, Money in, Money out](images/2026-09-29-team-04-running-balance-column-excel-google-sheets/how-to-add-a-running-balance-column-in-excel-and-g-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
+
 ## Steps
 
 1. Set up five columns: Date, Description, Money in, Money out, Balance.

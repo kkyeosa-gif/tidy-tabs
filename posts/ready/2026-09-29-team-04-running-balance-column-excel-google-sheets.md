@@ -5,6 +5,7 @@ tested_in: LibreOffice Calc 24.2.7 (Linux). Excel/Google Sheets steps from Micro
 image_prompts: A farmers market vendor's metal cash box open on a folding table with cash and coins inside, next to a small paper receipt notepad with blurred handwritten entries, no visible logos.
 image_alt: Open cash box with bills and coins beside a handwritten receipt notepad
 search_description: Add a running balance column to a cash log in Excel or Google Sheets with one formula, plus a troubleshooting guide and free template.
+threads: Redoing cash box math by hand every time money moves gets old fast.\nOne formula carries the balance down for you: =E2+C3-D3, adds money in, subtracts money out.\nStart at $250, run four transactions, land on $445.70 without touching a calculator.
 ---
 Keep a running balance by adding each row's money in and subtracting its money out from the balance directly above it. Starting from an opening balance you type into the first row, the formula for every row after that is `=E2+C3-D3`, copied straight down the column.
 

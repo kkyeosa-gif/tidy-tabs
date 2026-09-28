@@ -5,6 +5,7 @@ tested_in: LibreOffice Calc 24.2.7 (Linux), INDIRECT/named-range mechanism only.
 image_prompts: A craft fair vendor's table with a paper order pad and a small tray divided into sections holding a candle, a bar of soap, and a pair of earrings, order pad text blurred and unreadable, no visible logos.
 image_alt: Order pad on a craft fair table beside bins sorting candles, soap, and jewelry samples
 search_description: Make a Subcategory dropdown follow Category by naming each list after its category and setting the second cell's validation to =INDIRECT(A2).
+threads: Ever set up a subcategory dropdown that still shows candles, soap, and jewelry mixed together?\nName each category's list after itself, then point the second dropdown's Source at =INDIRECT(A2).\nPick Candles in column A and column B only offers candle subcategories.
 ---
 Make a second dropdown follow the first by naming each list after its category, then pointing the second cell's data validation at `=INDIRECT(A2)`. Pick "Candles" in column A and column B's dropdown limits itself to candle subcategories only.
 

@@ -5,6 +5,7 @@ tested_in: LibreOffice Calc 24.2.7 (Linux). Google Sheets print steps from Googl
 image_prompts: A small craft business packing table with an open shipping box, a roll of packing tape, and a printed shipping label being applied to the box, label text blurred and unreadable, no visible logos.
 image_alt: Shipping box on a packing table with tape and a blurred address label
 search_description: Build a one-page packing slip template with an Order #, Ship to address, and a self-totaling items table sized to print on US Letter paper.
+threads: 9 items packed, one formula: =SUM(D11:D14) totals the Qty packed column on a one-page packing slip.\nSet the page to Letter, fit to one page, and Excel or Sheets keeps it there.\nOrdered 4 birthday cards but only packed 3? The total still adds up, it just counts what shipped.
 ---
 Build a one-page packing slip with an Order #, a Ship to address, and an items table that totals itself with `=SUM(D11:D14)` under Qty packed, then set the page to US Letter, portrait, fit to one page.
 

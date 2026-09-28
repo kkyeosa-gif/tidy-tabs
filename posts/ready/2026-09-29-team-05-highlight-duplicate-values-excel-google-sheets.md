@@ -5,6 +5,7 @@ tested_in: LibreOffice Calc 24.2.7 (Linux). Google Sheets/Excel conditional-form
 image_prompts: A small office counter with a stack of printed order slips fanned out, two identical slips pulled to the side next to each other, slip text blurred and unreadable, no visible logos.
 image_alt: Two identical order slips pulled aside from a fanned out stack
 search_description: Highlight duplicate values in Excel or Google Sheets with a COUNTIF conditional formatting rule, without deleting or moving any rows.
+threads: Why does the same customer email keep showing up on your order list?\nOne conditional formatting formula flags every repeat: =COUNTIF($B$2:$B$16,B2)>1.\nEvery row stays put, nothing gets deleted, you just see what repeats.
 ---
 Select the column, open conditional formatting, and use the custom formula `=COUNTIF($B$2:$B$16,B2)>1` to highlight every value that repeats, without deleting or moving any rows.
 

@@ -5,6 +5,7 @@ tested_in: LibreOffice Calc 24.2.7 (Linux), recalculated 09/28/2026. Google Shee
 image_prompts: A freelancer's desk with a wooden index card box holding client contact cards, several tabbed with colored sticky flags, beside a phone and a desk calendar with a date circled in pen, card text blurred and unreadable.
 image_alt: Index card box of client contacts with colored tabs flagging follow-up calls
 search_description: Free Google Sheets template that flags clients due for a follow-up, using Last contact plus a follow-up interval and TODAY().
+threads: One formula flags every client who's overdue: =IF(TODAY()>=E2,"Follow up now","OK").\nE2 is just Last contact plus your follow-up interval in days.\nNo more scanning a client list by eye to remember who you owe a call.
 ---
 Track when you last talked to each client and flag who's due for a follow-up with one formula: `=IF(TODAY()>=E2,"Follow up now","OK")`, where E2 is Last contact plus your follow-up interval in days. Download the template below, or add the same three formula columns to a sheet you already use.
 

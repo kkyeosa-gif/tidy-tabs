@@ -2,15 +2,15 @@
 title: How to Build a Packing Slip Template in Google Sheets
 labels: page-setup, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Google Sheets print steps from Google Docs Editors Help (not tested here).
-image_prompts: 
-image_alt: 
+image_prompts: A small craft business packing table with an open shipping box, a roll of packing tape, and a printed shipping label being applied to the box, label text blurred and unreadable, no visible logos.
+image_alt: Shipping box on a packing table with tape and a blurred address label
 search_description: Build a one-page packing slip template with an Order #, Ship to address, and a self-totaling items table sized to print on US Letter paper.
 ---
 Build a one-page packing slip with an Order #, a Ship to address, and an items table that totals itself with `=SUM(D11:D14)` under Qty packed, then set the page to US Letter, portrait, fit to one page.
 
 > Works in: LibreOffice Calc 24.2.7 (Linux), where this template was built and the Total packed formula and one-page print were verified. Excel and Google Sheets print steps below come from Microsoft Support and Google Docs Editors Help. Neither was hands-on tested here.
 
-![Spreadsheet example with columns Field, Value](images/2026-09-29-team-03-packing-slip-template-google-sheets/how-to-build-a-packing-slip-template-in-google-she-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
+![Packing slip with order details, a shipping address, and an itemized quantity table](images/2026-09-29-team-03-packing-slip-template-google-sheets/packing-slip-template.png) *LibreOffice Calc 24.2 PDF export of the Packing slip tab with sample order data.*
 
 ## Steps
 

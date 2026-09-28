@@ -2,8 +2,8 @@
 title: How to Add a Running Balance Column in Excel and Google Sheets
 labels: excel-formulas, cash-flow, small-business-bookkeeping
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel/Google Sheets steps from Microsoft Support / Google Docs Editors Help (not tested here).
-image_prompts: 
-image_alt: 
+image_prompts: A farmers market vendor's metal cash box open on a folding table with cash and coins inside, next to a small paper receipt notepad with blurred handwritten entries, no visible logos.
+image_alt: Open cash box with bills and coins beside a handwritten receipt notepad
 search_description: Add a running balance column to a cash log in Excel or Google Sheets with one formula, plus a troubleshooting guide and free template.
 ---
 Keep a running balance by adding each row's money in and subtracting its money out from the balance directly above it. Starting from an opening balance you type into the first row, the formula for every row after that is `=E2+C3-D3`, copied straight down the column.

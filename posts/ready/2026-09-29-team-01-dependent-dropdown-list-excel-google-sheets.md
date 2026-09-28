@@ -2,15 +2,15 @@
 title: How to Create a Dependent Drop-Down List in Excel and Google Sheets
 labels: data-validation, excel-formulas, google-sheets
 tested_in: LibreOffice Calc 24.2.7 (Linux), INDIRECT/named-range mechanism only. Excel steps from Microsoft Support, Google Sheets steps from Google Docs Editors Help (not tested here).
-image_prompts: 
-image_alt: 
+image_prompts: A craft fair vendor's table with a paper order pad and a small tray divided into sections holding a candle, a bar of soap, and a pair of earrings, order pad text blurred and unreadable, no visible logos.
+image_alt: Order pad on a craft fair table beside bins sorting candles, soap, and jewelry samples
 search_description: Make a Subcategory dropdown follow Category by naming each list after its category and setting the second cell's validation to =INDIRECT(A2).
 ---
 Make a second dropdown follow the first by naming each list after its category, then pointing the second cell's data validation at `=INDIRECT(A2)`. Pick "Candles" in column A and column B's dropdown limits itself to candle subcategories only.
 
 > Works in: Excel and Google Sheets (standard named ranges, data validation, and the INDIRECT function). Checked in: LibreOffice Calc 24.2.7 (Linux) only, and only the INDIRECT/named-range mechanism, not the dropdown click itself (see Example).
 
-![Spreadsheet example with columns Category, Subcategory options, COUNTA(INDIRECT())](images/2026-09-29-team-01-dependent-dropdown-list-excel-google-sheets/how-to-create-a-dependent-drop-down-list-in-excel-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
+![Four category columns, Candles, Soap, Jewelry, and Cards, each listing matching subcategory items underneath](images/2026-09-29-team-01-dependent-dropdown-list-excel-google-sheets/dependent-dropdown-lists-tab.png) *LibreOffice Calc 24.2 PDF export of the Lists tab, the named-range source lists behind the dependent dropdown.*
 
 ## Steps
 

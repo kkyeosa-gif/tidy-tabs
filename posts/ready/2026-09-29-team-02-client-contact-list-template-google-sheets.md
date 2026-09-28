@@ -2,15 +2,15 @@
 title: How to Build a Client Contact List Template in Google Sheets
 labels: google-sheets-templates, crm
 tested_in: LibreOffice Calc 24.2.7 (Linux), recalculated 09/28/2026. Google Sheets steps from Google Docs Editors Help (not tested here).
-image_prompts: 
-image_alt: 
+image_prompts: A freelancer's desk with a wooden index card box holding client contact cards, several tabbed with colored sticky flags, beside a phone and a desk calendar with a date circled in pen, card text blurred and unreadable.
+image_alt: Index card box of client contacts with colored tabs flagging follow-up calls
 search_description: Free Google Sheets template that flags clients due for a follow-up, using Last contact plus a follow-up interval and TODAY().
 ---
 Track when you last talked to each client and flag who's due for a follow-up with one formula: `=IF(TODAY()>=E2,"Follow up now","OK")`, where E2 is Last contact plus your follow-up interval in days. Download the template below, or add the same three formula columns to a sheet you already use.
 
 > Works in: Google Sheets (import steps from Google Docs Editors Help, not tested here). Tested in: LibreOffice Calc 24.2.7 (Linux), recalculated 09/28/2026.
 
-![Spreadsheet example with columns Client, Last contact, Follow up every (days), Next follow-up](images/2026-09-29-team-02-client-contact-list-template-google-sheets/how-to-build-a-client-contact-list-template-in-goo-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
+![Client rows showing last contact dates, follow-up intervals, and a highlighted overdue status](images/2026-09-29-team-02-client-contact-list-template-google-sheets/client-contact-list-template.png) *LibreOffice Calc 24.2 PDF export of the Clients tab with sample data.*
 
 ## Steps
 

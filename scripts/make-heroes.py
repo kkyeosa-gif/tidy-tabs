@@ -81,6 +81,16 @@ def main():
          render(t + "tidy-tabs-freelance-project-tracker.xlsx", "Projects", hide_cols="CFGHIKLM", name="proj"))
     save("images/2026-10-01-a-craft-inventory-tracker-google-sheets/craft-inventory-tracker-template.png",
          render(t + "tidy-tabs-craft-inventory-tracker.xlsx", "Items", hide_cols="CDEFGHLNO", name="items"))
+    save("images/2026-09-29-team-01-dependent-dropdown-list-excel-google-sheets/dependent-dropdown-lists-tab.png",
+         render(t + "tidy-tabs-dependent-dropdown-list.xlsx", "Lists", name="dropdown"))
+    save("images/2026-09-29-team-02-client-contact-list-template-google-sheets/client-contact-list-template.png",
+         render(t + "tidy-tabs-client-contact-list.xlsx", "Clients", hide_cols="G", name="clients"))
+    save("images/2026-09-29-team-03-packing-slip-template-google-sheets/packing-slip-template.png",
+         render(t + "tidy-tabs-packing-slip-template.xlsx", "Packing slip", name="packing"))
+    save("images/2026-09-29-team-04-running-balance-column-excel-google-sheets/running-balance-cash-log-template.png",
+         render(t + "tidy-tabs-running-balance-cash-log.xlsx", "Cash log", name="cashlog"))
+    save("images/2026-09-29-team-05-highlight-duplicate-values-excel-google-sheets/highlight-duplicate-emails-template.png",
+         render(t + "tidy-tabs-highlight-duplicates-sample.xlsx", "Orders", name="dupes"))
     # Print post: the real 6-page default printout next to the real 1-page result.
     d = "images/2026-09-29-a-print-excel-one-page-us-letter/"
     save(d + "print-excel-one-page-before-after.png",

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dd1rTeLmsPj
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-create-dependent-drop-down-list.html
 title: How to Create a Dependent Drop-Down List in Excel and Google Sheets
 labels: data-validation, excel-formulas, google-sheets
 tested_in: LibreOffice Calc 24.2.7 (Linux), INDIRECT/named-range mechanism only. Excel steps from Microsoft Support, Google Sheets steps from Google Docs Editors Help (not tested here).

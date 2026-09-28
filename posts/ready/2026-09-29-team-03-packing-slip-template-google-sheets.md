@@ -82,4 +82,4 @@ The template doesn't color or warn on a shortfall by default; it only totals wha
 
 The file has two tabs: **Packing slip**, the printable one-page slip with the Order #, Ship to block, items table, and Total packed formula, and **How to use**, a notes tab with fill-in instructions that isn't meant to print. To open it in Google Sheets, go to **File > Import > Upload** and select the file.
 
-For the page setup and print-range steps above, see Google's help on [printing from Google Sheets](https://support.google.com/docs/answer/91062) and Microsoft's [print help search results](https://support.microsoft.com/en-us/search?query=fit%20worksheet%20to%20one%20page) for Excel's scale-to-fit options.
+For the page setup and print-range steps above, see Google's help on [printing from Google Sheets](https://support.google.com/docs/answer/7663148) and Microsoft's [print help search results](https://support.microsoft.com/en-us/search?query=fit%20worksheet%20to%20one%20page) for Excel's scale-to-fit options.

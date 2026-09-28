@@ -77,4 +77,4 @@ To use it in Google Sheets, go to **File > Import > Upload** and select the down
 
 Official references:
 - [Add, edit, or delete conditional formatting rules - Google Docs Editors Help](https://support.google.com/docs/answer/78413)
-- [Add conditional formatting - Microsoft Support](https://support.microsoft.com/en-us/office/add-conditional-formatting-1948134f-28d3-4bb3-ac93-a2a1c33cb50e)
+- [Conditional formatting help search - Microsoft Support](https://support.microsoft.com/en-us/search?query=conditional%20formatting)

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dd2bXx8D2ut
+blogger_url: https://tidytabs.blogspot.com/2026/09/how-to-build-client-contact-list.html
 title: How to Build a Client Contact List Template in Google Sheets
 labels: google-sheets-templates, crm
 tested_in: LibreOffice Calc 24.2.7 (Linux), recalculated 09/28/2026. Google Sheets steps from Google Docs Editors Help (not tested here).

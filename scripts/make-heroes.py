@@ -91,6 +91,18 @@ def main():
          render(t + "tidy-tabs-running-balance-cash-log.xlsx", "Cash log", name="cashlog"))
     save("images/2026-09-29-team-05-highlight-duplicate-values-excel-google-sheets/highlight-duplicate-emails-template.png",
          render(t + "tidy-tabs-highlight-duplicates-sample.xlsx", "Orders", name="dupes"))
+    # 2026-09-30 team posts
+    d = "images/2026-09-30-team-0%d-%s/"
+    save(d % (1, "receivables-aging-report-excel-google-sheets") + "receivables-aging-report-template.png",
+         render(t + "tidy-tabs-receivables-aging-report.xlsx", "Aging", name="aging"))
+    save(d % (2, "time-to-decimal-hours-excel-google-sheets") + "time-to-decimal-hours-template.png",
+         render(t + "tidy-tabs-time-to-decimal-hours.xlsx", "Shifts", hide_cols="AGI", name="shifts"))
+    save(d % (3, "markup-vs-margin-calculator-excel-google-sheets") + "markup-vs-margin-calculator-template.png",
+         render(t + "tidy-tabs-markup-vs-margin-calculator.xlsx", "Pricing", hide_cols="EI", name="pricing"))
+    save(d % (4, "business-days-ship-by-date-excel-google-sheets") + "business-days-ship-by-date-template.png",
+         render(t + "tidy-tabs-business-days-ship-by-date.xlsx", "Orders", hide_cols="BF", name="orders"))
+    save(d % (5, "vlookup-price-list-excel-google-sheets") + "vlookup-price-list-template.png",
+         render(t + "tidy-tabs-vlookup-price-list.xlsx", "Order lines", hide_cols="FG", name="orderlines"))
     # Print post: the real 6-page default printout next to the real 1-page result.
     d = "images/2026-09-29-a-print-excel-one-page-us-letter/"
     save(d + "print-excel-one-page-before-after.png",

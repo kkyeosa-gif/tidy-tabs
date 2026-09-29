@@ -539,6 +539,259 @@ def highlight_duplicates():
     wb.save(OUT / "tidy-tabs-highlight-duplicates-sample.xlsx")
 
 
+def business_days_ship_by():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order #", "Customer", "Order date", "Business days to ship", "Ship by",
+                "Calendar days", "Business days check"], [10, 22, 12, 14, 12, 12, 16])
+    rows = [
+        ("2001", "Harbor Dental", date(2026, 9, 28), 5),
+        ("2002", "Lakeside Yoga", date(2026, 10, 6), 10),
+        ("2003", "Main St. Gift Shop", date(2026, 11, 9), 3),
+        ("2004", "Gateway Bakery", date(2026, 11, 20), 5),
+    ]
+    for r, (num, cust, d, n) in enumerate(rows, start=2):
+        ws.append([num, cust, d, n,
+                   f"=WORKDAY(C{r},D{r},Holidays!$A$2:$A$20)",
+                   f"=E{r}-C{r}",
+                   f"=NETWORKDAYS(C{r},E{r},Holidays!$A$2:$A$20)-1"])
+        for col in "CE":
+            ws[f"{col}{r}"].number_format = US_DATE
+        for col in "EFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    hol = wb.create_sheet("Holidays")
+    header(hol, ["Date", "Day off"], [12, 28])
+    for d, name in [(date(2026, 9, 7), "Labor Day"), (date(2026, 10, 12), "Columbus / Indigenous Peoples' Day"),
+                    (date(2026, 11, 11), "Veterans Day"), (date(2026, 11, 26), "Thanksgiving Day"),
+                    (date(2026, 12, 25), "Christmas Day")]:
+        hol.append([d, name])
+        hol.cell(row=hol.max_row, column=1).number_format = US_DATE
+    hol.column_dimensions["B"].width = 34
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Business Days and Ship-By Dates",
+        "",
+        "1. Orders tab: type the Order date and how many business days you need to ship.",
+        "2. Ship by = WORKDAY(C2,D2,Holidays!$A$2:$A$20). It skips Saturdays, Sundays, and every date on the Holidays tab.",
+        "3. Calendar days shows how many real days that is. Business days check = NETWORKDAYS(C2,E2,Holidays!$A$2:$A$20)-1 counts back and should equal column D.",
+        "4. Holidays tab: add or remove your own days off (market days, vacation). Ranges run to row 20.",
+        "5. WORKDAY and NETWORKDAYS treat Saturday and Sunday as the weekend. For other weekends use WORKDAY.INTL.",
+        "",
+        "Customers and orders are fictional. Holiday dates are the 2026 US federal holidays that fall in the sample range; check your own calendar.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-business-days-ship-by-date.xlsx")
+
+
+def time_to_decimal_hours():
+    from datetime import time
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Shifts"
+    header(ws, ["Date", "Clock in", "Clock out", "Unpaid break (min)", "Time worked (h:mm)",
+                "Decimal hours", "Nearest 15 min", "Pay"], [12, 11, 11, 13, 14, 12, 13, 11])
+    rows = [
+        (date(2026, 9, 21), time(8, 30), time(17, 0), 30),
+        (date(2026, 9, 22), time(9, 0), time(17, 45), 30),
+        (date(2026, 9, 23), time(7, 15), time(15, 40), 30),
+        (date(2026, 9, 24), time(22, 0), time(6, 30), 30),
+        (date(2026, 9, 25), time(9, 5), time(13, 20), 0),
+    ]
+    for r, (d, tin, tout, brk) in enumerate(rows, start=2):
+        ws.append([d, tin, tout, brk,
+                   f"=MOD(C{r}-B{r},1)-D{r}/1440",
+                   f"=ROUND(E{r}*24,2)",
+                   f"=MROUND(E{r}*24,0.25)",
+                   f"=ROUND(F{r}*$K$1,2)"])
+        ws[f"A{r}"].number_format = US_DATE
+        for col in "BC":
+            ws[f"{col}{r}"].number_format = "h:mm AM/PM"
+        ws[f"E{r}"].number_format = "h:mm"
+        ws[f"F{r}"].number_format = "0.00"
+        ws[f"G{r}"].number_format = "0.00"
+        ws[f"H{r}"].number_format = USD
+        for col in "EFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws["J1"], ws["K1"] = "Hourly rate", 22.5
+    ws["J2"], ws["K2"] = "Total decimal hours", "=SUM(F2:F200)"
+    ws["J3"], ws["K3"] = "Total pay", "=SUM(H2:H200)"
+    ws["K1"].number_format = USD
+    ws["K3"].number_format = USD
+    for c in ("J1", "J2", "J3"):
+        ws[c].font = Font(bold=True)
+    for col, w in (("J", 20), ("K", 12)):
+        ws.column_dimensions[col].width = w
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Convert Clock Times to Decimal Hours",
+        "",
+        "1. Type Clock in, Clock out, and Unpaid break in minutes. Format the time cells as Time.",
+        "2. Time worked = MOD(C2-B2,1)-D2/1440. MOD makes overnight shifts (10:00 PM to 6:30 AM) come out positive; 1440 is minutes in a day.",
+        "3. Decimal hours = ROUND(E2*24,2). Excel and Sheets store time as a fraction of a day, so multiply by 24 to get hours.",
+        "4. Nearest 15 min = MROUND(E2*24,0.25), for payroll that rounds to quarter hours.",
+        "5. Pay = ROUND(Decimal hours x the hourly rate in K1,2). Change the rate there.",
+        "",
+        "Sample shifts and the $22.50 rate are fictional. Rounding rules are set by your own payroll policy; this file only does the arithmetic.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-time-to-decimal-hours.xlsx")
+
+
+def receivables_aging():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Invoices"
+    header(ws, ["Invoice #", "Client", "Invoice date", "Terms (days)", "Due date", "Amount",
+                "Paid on", "Balance", "Days past due", "Bucket"],
+           [10, 22, 12, 11, 12, 12, 12, 12, 11, 11])
+    rows = [
+        ("1001", "Harbor Dental", date(2026, 7, 1), 30, 650, date(2026, 8, 5)),
+        ("1002", "Pine & Co. Realty", date(2026, 7, 15), 30, 1200, None),
+        ("1003", "Lakeside Yoga", date(2026, 8, 10), 30, 380, None),
+        ("1004", "Main St. Gift Shop", date(2026, 8, 25), 15, 300, None),
+        ("1005", "Northside Print Co.", date(2026, 9, 5), 30, 875, None),
+        ("1006", "Desert Bloom Candles", date(2026, 5, 20), 30, 450, None),
+        ("1007", "Wasatch Bike Repair", date(2026, 6, 30), 30, 220, None),
+        ("1008", "Gateway Bakery", date(2026, 9, 20), 30, 540, None),
+        ("1009", "Harbor Dental", date(2026, 9, 15), 30, 650, None),
+    ]
+    for r, (num, client, d, terms, amt, paid) in enumerate(rows, start=2):
+        ws.append([num, client, d, terms, f"=C{r}+D{r}", amt, paid,
+                   f'=IF(OR(F{r}="",G{r}<>""),0,F{r})',
+                   f'=IF(H{r}=0,"",MAX(0,Aging!$B$1-E{r}))',
+                   f'=IF(H{r}=0,"Paid",IF(I{r}=0,"Current",IF(I{r}<=30,"1-30",IF(I{r}<=60,"31-60",IF(I{r}<=90,"61-90","90+")))))'])
+        for col in "CEG":
+            ws[f"{col}{r}"].number_format = US_DATE
+        for col in "FH":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "EHIJ":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    ag = wb.create_sheet("Aging")
+    ag.column_dimensions["A"].width = 22
+    ag.column_dimensions["B"].width = 14
+    ag.column_dimensions["C"].width = 12
+    ag["A1"], ag["B1"] = "As of date", date(2026, 9, 30)
+    ag["B1"].number_format = US_DATE
+    ag["A1"].font = Font(bold=True)
+    ag.append([])
+    ag.append(["Bucket (days past due)", "Balance", "Invoices"])
+    for c in ag[3]:
+        c.fill, c.font = HEADER_FILL, HEADER_FONT
+    for r, b in enumerate(["Current", "1-30", "31-60", "61-90", "90+"], start=4):
+        ag.append([b, f"=SUMIFS(Invoices!$H$2:$H$500,Invoices!$J$2:$J$500,A{r})",
+                   f"=COUNTIFS(Invoices!$J$2:$J$500,A{r})"])
+        ag[f"B{r}"].number_format = USD
+    ag.append(["Total outstanding", "=SUM(B4:B8)", "=SUM(C4:C8)"])
+    ag["B9"].number_format = USD
+    ag["A9"].font = ag["B9"].font = Font(bold=True)
+    ws.conditional_formatting.add("J2:J500", FormulaRule(formula=['OR($J2="61-90",$J2="90+")'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Accounts Receivable Aging Report",
+        "",
+        "1. Invoices tab: one row per invoice. Fill Invoice #, Client, Invoice date, Terms (days), Amount. Type Paid on when the money arrives.",
+        "2. Due date = Invoice date + Terms. Balance is the Amount until you enter a Paid on date, then 0.",
+        "3. Days past due = As of date minus Due date (0 if not late yet). The As of date is cell B1 on the Aging tab.",
+        "4. Bucket sorts each unpaid invoice into Current, 1-30, 31-60, 61-90, or 90+ days past due.",
+        "5. Aging tab adds up Balance by bucket with SUMIFS. Type =TODAY() in B1 to always age as of today; the sample uses 09/30/2026 so the numbers stay put.",
+        "",
+        "Clients and amounts are fictional. This only groups invoices by how late they are; it makes no decision about collection or write-offs.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-receivables-aging-report.xlsx")
+
+
+def markup_vs_margin():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Pricing"
+    header(ws, ["Item", "Unit cost", "Markup %", "Price from markup", "Profit per unit", "Actual margin %",
+                "Target margin %", "Price for target margin", "Margin check"],
+           [26, 11, 11, 14, 13, 13, 13, 16, 13])
+    rows = [
+        ("Lavender soy candle, 8 oz", 4.10, 1.00, 0.50),
+        ("Oatmeal goat milk soap bar", 1.80, 1.50, 0.60),
+        ("Brass hoop earrings", 3.40, 2.00, 0.70),
+        ("Letterpress birthday card", 0.95, 3.00, 0.75),
+    ]
+    for r, (item, cost, mk, tgt) in enumerate(rows, start=2):
+        ws.append([item, cost, mk, f"=ROUND(B{r}*(1+C{r}),2)", f"=D{r}-B{r}", f"=E{r}/D{r}",
+                   tgt, f"=ROUND(B{r}/(1-G{r}),2)", f"=(H{r}-B{r})/H{r}"])
+        for col in "BDEH":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "CFGI":
+            ws[f"{col}{r}"].number_format = "0.0%"
+        for col in "DEFHI":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Markup vs Profit Margin Calculator",
+        "",
+        "1. Type Unit cost and the Markup % you use (100% means price is double the cost).",
+        "2. Price from markup = ROUND(B2*(1+C2),2). Profit per unit = price minus cost.",
+        "3. Actual margin % = Profit / Price. A 100% markup is only a 50% margin, because margin is measured against the price, not the cost.",
+        "4. Going the other way: type a Target margin %. Price for target margin = ROUND(B2/(1-G2),2). Do not use B2*(1+G2); that mixes up markup and margin.",
+        "5. Margin check divides the profit at the rounded price by that price; it can differ from the target by a fraction of a percent.",
+        "",
+        "Items and costs are fictional. Prices are arithmetic only; they do not include shipping, fees, or taxes.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-markup-vs-margin-calculator.xlsx")
+
+
+def vlookup_price_list():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Order lines"
+    header(ws, ["SKU", "Qty", "Item", "Unit price", "Line total", "Price via INDEX/MATCH"],
+           [12, 7, 30, 11, 12, 20])
+    rows = [("CND-LAV8", 2), ("SOP-OAT", 3), ("EAR-HOOP", 1), ("SOP-OAT ", 1),
+            ("CRD-BDAY", 5), ("CND-CED8", 1)]
+    for r, (sku, qty) in enumerate(rows, start=2):
+        ws.append([sku, qty,
+                   f'=IFERROR(VLOOKUP(A{r},\'Price list\'!$A$2:$C$500,2,FALSE),"SKU not found")',
+                   f'=IFERROR(VLOOKUP(A{r},\'Price list\'!$A$2:$C$500,3,FALSE),"")',
+                   f'=IF(D{r}="","",B{r}*D{r})',
+                   f'=IFERROR(INDEX(\'Price list\'!$C$2:$C$500,MATCH(A{r},\'Price list\'!$A$2:$A$500,0)),"")'])
+        for col in "DEF":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "CDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws["H1"], ws["I1"] = "Order total", "=SUM(E2:E500)"
+    ws["H1"].font = Font(bold=True)
+    ws["I1"].number_format = USD
+    ws.column_dimensions["H"].width = 14
+    ws.column_dimensions["I"].width = 12
+
+    pl = wb.create_sheet("Price list")
+    header(pl, ["SKU", "Item", "Price"], [12, 30, 11])
+    for sku, item, price in [
+        ("CND-LAV8", "Lavender soy candle, 8 oz", 18.00), ("CND-CED8", "Cedar soy candle, 8 oz", 18.00),
+        ("SOP-OAT", "Oatmeal goat milk soap bar", 8.00), ("SOP-CHR", "Charcoal soap bar", 8.50),
+        ("EAR-HOOP", "Brass hoop earrings", 24.00), ("CRD-BDAY", "Letterpress birthday card", 6.00),
+    ]:
+        pl.append([sku, item, price])
+        pl.cell(row=pl.max_row, column=3).number_format = USD
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Look Up a Price with VLOOKUP",
+        "",
+        "1. Price list tab: SKU must be the first column, then Item, then Price.",
+        "2. Order lines tab: type a SKU and Qty. Item = VLOOKUP(A2,'Price list'!$A$2:$C$500,2,FALSE). FALSE means exact match only.",
+        "3. Unit price uses column number 3. Line total = Qty x Unit price. Order total is in I1.",
+        "4. IFERROR turns a missing SKU into \"SKU not found\" instead of #N/A. Row 5 has a trailing space after SOP-OAT on purpose, so it is not found.",
+        "5. Column F does the same lookup with INDEX/MATCH, which also works when the lookup column is not first.",
+        "",
+        "Products and prices are fictional. XLOOKUP is not used here because it needs newer versions of Excel and LibreOffice.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-vlookup-price-list.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -551,4 +804,9 @@ if __name__ == "__main__":
     packing_slip()
     running_balance()
     highlight_duplicates()
+    business_days_ship_by()
+    time_to_decimal_hours()
+    receivables_aging()
+    markup_vs_margin()
+    vlookup_price_list()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

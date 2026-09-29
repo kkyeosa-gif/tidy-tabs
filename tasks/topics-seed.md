@@ -21,3 +21,10 @@
 - Remove duplicates from a customer email list
 - Split "City, ST ZIP" into three columns
 - Conditional formatting: highlight overdue invoices
+
+## 2026-09-29 리서처 추가 5개 (검색 데이터 없음, 3-gate 기준만 적용)
+- How to Add Business Days to a Date in Excel and Google Sheets — `business-days-ship-by-date-excel-google-sheets` (WORKDAY/NETWORKDAYS + 휴일 목록)
+- How to Convert Clock Times to Decimal Hours in Excel and Google Sheets — `time-to-decimal-hours-excel-google-sheets` (MOD 야간근무, *24, MROUND)
+- How to Build an Accounts Receivable Aging Report in Excel and Google Sheets — `receivables-aging-report-excel-google-sheets` (연체 일수 구간별 SUMIFS)
+- How to Calculate Markup and Profit Margin in Excel and Google Sheets — `markup-vs-margin-calculator-excel-google-sheets` (원가/마크업/마진 혼동 해결)
+- How to Look Up a Price With VLOOKUP in Excel and Google Sheets — `vlookup-price-list-excel-google-sheets` (정확히 일치 + IFERROR + INDEX/MATCH)

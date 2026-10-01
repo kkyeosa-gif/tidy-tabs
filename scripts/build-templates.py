@@ -792,6 +792,266 @@ def vlookup_price_list():
     wb.save(OUT / "tidy-tabs-vlookup-price-list.xlsx")
 
 
+def break_even_calculator():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Break-even"
+    header(ws, ["Product", "Price", "Variable cost per unit", "Fixed costs", "Profit per unit",
+                "Break-even units", "Break-even revenue"], [28, 10, 14, 12, 12, 13, 15])
+    rows = [
+        ("Lavender soy candle, 8 oz", 18.00, 6.50, 120.00),
+        ("Oatmeal goat milk soap bar", 8.00, 3.25, 75.00),
+        ("Brass hoop earrings", 24.00, 9.60, 150.00),
+        ("Letterpress birthday card", 6.00, 1.50, 60.00),
+    ]
+    for r, (item, price, var, fixed) in enumerate(rows, start=2):
+        ws.append([item, price, var, fixed, f"=B{r}-C{r}",
+                   f'=IF(E{r}<=0,"No break-even",ROUNDUP(D{r}/E{r},0))',
+                   f'=IF(ISNUMBER(F{r}),F{r}*B{r},"")'])
+        for col in "BCDEG":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "EFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Break-Even Calculator for a Booth or Online Shop",
+        "",
+        "1. One row per product. Type Price, Variable cost per unit (materials, packaging, fees for one sale), and Fixed costs (booth fee, table rental, a one-time setup cost).",
+        "2. Profit per unit = Price minus Variable cost per unit.",
+        "3. Break-even units = ROUNDUP(Fixed costs / Profit per unit, 0). ROUNDUP, not ROUND, because you cannot sell part of a unit and be fully covered.",
+        "4. Break-even revenue = Break-even units x Price.",
+        "5. If Price is not higher than Variable cost per unit, Break-even units shows No break-even instead of a negative number.",
+        "6. Copy the last row down to add products.",
+        "",
+        "Products, prices, and costs are fictional. This is arithmetic only; it does not include taxes or your own pay.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-break-even-calculator.xlsx")
+
+
+def subscription_renewal_tracker():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Subscriptions"
+    header(ws, ["Subscription", "Last renewed", "Months per cycle", "Cost per cycle", "Next renewal",
+                "Days left", "Status", "Monthly cost", "Annual cost"],
+           [28, 13, 11, 12, 13, 10, 14, 12, 12])
+    rows = [
+        ("Domain name", date(2026, 3, 15), 12, 18.00),
+        ("Email marketing plan", date(2026, 9, 15), 1, 20.00),
+        ("Online shop plan", date(2026, 9, 28), 1, 10.00),
+        ("Bookkeeping software", date(2025, 11, 5), 12, 180.00),
+        ("Photo storage (6 months)", date(2026, 8, 31), 6, 30.00),
+    ]
+    for r, (name, last, months, cost) in enumerate(rows, start=2):
+        ws.append([name, last, months, cost,
+                   f'=IF(B{r}="","",EDATE(B{r},C{r}))',
+                   f'=IF(E{r}="","",E{r}-$K$1)',
+                   f'=IF(F{r}="","",IF(F{r}<0,"Past due",IF(F{r}<=30,"Renews soon","OK")))',
+                   f'=IF(D{r}="","",D{r}/C{r})',
+                   f'=IF(D{r}="","",D{r}*12/C{r})'])
+        for col in "BE":
+            ws[f"{col}{r}"].number_format = US_DATE
+        for col in "DHI":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "EFGHI":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    last_row = 200
+    ws["J1"], ws["K1"] = "As of date", date(2026, 10, 2)
+    ws["J2"], ws["K2"] = "Total monthly", f"=SUM(H2:H{last_row})"
+    ws["J3"], ws["K3"] = "Total annual", f"=SUM(I2:I{last_row})"
+    ws["K1"].number_format = US_DATE
+    ws["K2"].number_format = USD
+    ws["K3"].number_format = USD
+    for c in ("J1", "J2", "J3"):
+        ws[c].font = Font(bold=True)
+    ws.column_dimensions["J"].width = 16
+    ws.column_dimensions["K"].width = 13
+    ws.conditional_formatting.add(f"G2:G{last_row}", FormulaRule(formula=['OR($G2="Renews soon",$G2="Past due")'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Subscription Renewal Tracker",
+        "",
+        "1. One row per subscription. Type Last renewed (the date you were last charged), Months per cycle (1 = monthly, 12 = yearly), and Cost per cycle.",
+        "2. Next renewal = EDATE(B2,C2), the same day of the month after Months per cycle. If that day does not exist (08/31 plus 6 months), EDATE uses the last day of the month: 02/28/2027.",
+        "3. Days left = Next renewal minus the As of date in K1. Status shows Renews soon at 30 days or fewer, and Past due below 0.",
+        "4. Monthly cost = Cost per cycle / Months per cycle. Annual cost = Cost per cycle x 12 / Months per cycle. Totals are in K2 and K3.",
+        "5. The sample As of date is 10/02/2026 so the numbers stay put. Type =TODAY() in K1 to count from today.",
+        "6. After a renewal, type the new charge date in Last renewed.",
+        "",
+        "Subscriptions and prices are fictional.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-subscription-renewal-tracker.xlsx")
+
+
+def budget_vs_actual():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Budget vs actual"
+    header(ws, ["Category", "Budget", "Actual", "Variance ($)", "Variance (%)", "Status"],
+           [28, 12, 12, 13, 13, 14])
+    rows = [
+        ("Booth and market fees", 450.00, 450.00),
+        ("Materials", 600.00, 683.40),
+        ("Shipping", 220.00, 241.75),
+        ("Packaging", 120.00, 131.20),
+        ("Software subscriptions", 85.00, 85.00),
+        ("Advertising", 150.00, 92.50),
+        ("Payment processing fees", 90.00, 87.35),
+        ("Training (not budgeted)", 0.00, 45.00),
+    ]
+    for r, (cat, bud, act) in enumerate(rows, start=2):
+        ws.append([cat, bud, act, f"=C{r}-B{r}", f'=IF(B{r}=0,"",(C{r}-B{r})/B{r})',
+                   f'=IF(C{r}>B{r},"Over budget","On or under")'])
+        for col in "BCD":
+            ws[f"{col}{r}"].number_format = USD
+        ws[f"E{r}"].number_format = "0.0%"
+        for col in "DEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    last = 200
+    # Totals sit beside the table so rows can be added below without moving them.
+    ws["H1"], ws["I1"] = "Total budget", f"=SUM(B2:B{last})"
+    ws["H2"], ws["I2"] = "Total actual", f"=SUM(C2:C{last})"
+    ws["H3"], ws["I3"] = "Total variance ($)", "=I2-I1"
+    ws["H4"], ws["I4"] = "Total variance (%)", '=IF(I1=0,"",(I2-I1)/I1)'
+    for c in ("I1", "I2", "I3"):
+        ws[c].number_format = USD
+    ws["I4"].number_format = "0.0%"
+    for c in ("H1", "H2", "H3", "H4"):
+        ws[c].font = Font(bold=True)
+    ws.column_dimensions["H"].width = 20
+    ws.column_dimensions["I"].width = 13
+    ws.conditional_formatting.add(f"A2:F{last}", FormulaRule(formula=['AND($C2<>"",$C2>$B2)'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Budget vs Actual Variance",
+        "",
+        "1. One row per spending category. Type the Budget for the month and the Actual you spent.",
+        "2. Variance ($) = Actual minus Budget. Positive means you spent more than planned.",
+        "3. Variance (%) = (Actual - Budget) / Budget. It stays blank when Budget is 0, because dividing by zero is an error.",
+        "4. Status says Over budget when Actual is more than Budget. Over-budget rows turn red by conditional formatting.",
+        "5. Totals are in H1:I4, beside the table. Copy the last row down to add categories.",
+        "",
+        "Categories and amounts are fictional.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-budget-vs-actual.xlsx")
+
+
+def farmers_market_sales_log():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    header(ws, ["Market date", "Item", "Qty sold", "Price", "Line total"], [13, 28, 10, 10, 12])
+    d1, d2, d3 = date(2026, 9, 12), date(2026, 9, 19), date(2026, 9, 26)
+    rows = [
+        (d1, "Lavender soy candle, 8 oz", 9, 18.00),
+        (d1, "Oatmeal goat milk soap bar", 14, 8.00),
+        (d1, "Brass hoop earrings", 3, 24.00),
+        (d1, "Letterpress birthday card", 12, 6.00),
+        (d2, "Lavender soy candle, 8 oz", 11, 18.00),
+        (d2, "Oatmeal goat milk soap bar", 10, 8.00),
+        (d2, "Cedar soy candle, 8 oz", 6, 18.00),
+        (d2, "Letterpress birthday card", 8, 6.00),
+        (d2, "Brass hoop earrings", 2, 24.00),
+        (d3, "Lavender soy candle, 8 oz", 7, 18.00),
+        (d3, "Oatmeal goat milk soap bar", 16, 8.00),
+        (d3, "Brass hoop earrings", 4, 24.00),
+        (d3, "Letterpress birthday card", 10, 6.00),
+    ]
+    for r, (d, item, qty, price) in enumerate(rows, start=2):
+        ws.append([d, item, qty, price, f"=C{r}*D{r}"])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = USD
+        ws[f"E{r}"].number_format = USD
+        ws[f"E{r}"].fill = FORMULA_FILL
+
+    dt = wb.create_sheet("Daily totals")
+    header(dt, ["Market date", "Revenue (SUMPRODUCT)", "Revenue (SUMIFS check)", "Items sold"],
+           [13, 22, 22, 11])
+    for r, d in enumerate((d1, d2, d3), start=2):
+        dt.append([d,
+                   f"=SUMPRODUCT((Sales!$A$2:$A$500=A{r})*Sales!$C$2:$C$500*Sales!$D$2:$D$500)",
+                   f"=SUMIFS(Sales!$E$2:$E$500,Sales!$A$2:$A$500,A{r})",
+                   f"=SUMIFS(Sales!$C$2:$C$500,Sales!$A$2:$A$500,A{r})"])
+        dt[f"A{r}"].number_format = US_DATE
+        dt[f"B{r}"].number_format = USD
+        dt[f"C{r}"].number_format = USD
+        for col in "BCD":
+            dt[f"{col}{r}"].fill = FORMULA_FILL
+    dt["F1"], dt["G1"] = "All days (SUMPRODUCT)", "=SUMPRODUCT(Sales!C2:C500,Sales!D2:D500)"
+    dt["F2"], dt["G2"] = "All days (sum of Line total)", "=SUM(Sales!E2:E500)"
+    dt["G1"].number_format = USD
+    dt["G2"].number_format = USD
+    dt.column_dimensions["F"].width = 28
+    dt.column_dimensions["G"].width = 13
+    for c in ("F1", "F2"):
+        dt[c].font = Font(bold=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Farmers Market Sales Log",
+        "",
+        "1. Sales tab: one row per item sold at a market day. Type the Market date, Item, Qty sold, and Price. Line total = Qty x Price.",
+        "2. Daily totals tab: type each market date in column A. Revenue (SUMPRODUCT) = SUMPRODUCT((Sales!$A$2:$A$500=A2)*Sales!$C$2:$C$500*Sales!$D$2:$D$500). It multiplies Qty by Price for that day's rows and adds them, without needing the Line total column.",
+        "3. Revenue (SUMIFS check) adds the Line total column for that date. The two columns should match.",
+        "4. G1 = SUMPRODUCT(Sales!C2:C500,Sales!D2:D500) is the grand total of Qty x Price across every day. G2 adds the Line total column; they should match too.",
+        "5. Dates must be real dates, and Qty and Price must be numbers. Text in those cells makes the SUMPRODUCT formula in step 2 return #VALUE!.",
+        "",
+        "The vendor, items, and sales are fictional.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-farmers-market-sales-log.xlsx")
+
+
+def clean_customer_list():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Clean names"
+    header(ws, ["Messy name (paste here)", "Basic: PROPER(TRIM(CLEAN()))",
+                "Full: also fixes non-breaking spaces and line breaks", "Length before", "Length after"],
+           [30, 30, 40, 10, 10])
+    nb = " "
+    raw = [
+        "  dana   ruiz ",
+        "EMMA LEE",
+        f"sam{nb}patel",
+        "jamie\nchen",
+        "  PRIYA   NAIR  ",
+        "ana gomez",
+        "ronald McDONALD",
+        "sean o'neil",
+        f"TOM  REYES{nb}",
+        "   lee wu",
+    ]
+    for r, name in enumerate(raw, start=2):
+        ws.append([name,
+                   f"=PROPER(TRIM(CLEAN(A{r})))",
+                   # UNICHAR(160), not CHAR(160): LibreOffice maps CHAR(160) through the
+                   # system locale, so it misses non-breaking spaces under UTF-8. The
+                   # _xlfn. prefix is how .xlsx files store UNICHAR (Excel 2013+, Sheets).
+                   f'=PROPER(TRIM(CLEAN(SUBSTITUTE(SUBSTITUTE(A{r},_xlfn.UNICHAR(160)," "),CHAR(10)," "))))',
+                   f"=LEN(A{r})", f"=LEN(C{r})"])
+        ws[f"A{r}"].alignment = Alignment(wrap_text=True, vertical="top")
+        for col in "BCDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Clean Up a Customer List with TRIM, PROPER, and CLEAN",
+        "",
+        "1. Paste names in column A. Copy the gray formulas in B and C down next to them.",
+        "2. TRIM removes extra spaces (leading, trailing, and doubled). CLEAN removes most hidden non-printing characters. PROPER capitalizes the first letter of each word.",
+        "3. Column B is the basic formula =PROPER(TRIM(CLEAN(A2))). It does not remove non-breaking spaces (character 160, common in text copied from web pages), and CLEAN deletes a line break instead of replacing it with a space, so jamie + line break + chen becomes Jamiechen.",
+        "4. Column C swaps both for normal spaces first: =PROPER(TRIM(CLEAN(SUBSTITUTE(SUBSTITUTE(A2,UNICHAR(160),\" \"),CHAR(10),\" \")))). UNICHAR(160) is used instead of CHAR(160) because LibreOffice can return a different character for CHAR(160) depending on the computer's locale.",
+        "5. PROPER lowercases the rest of every word, so McDonald becomes Mcdonald. Fix names like that by hand.",
+        "6. To keep the results, copy column C and Paste Special > Values only, then delete the formula columns.",
+        "",
+        "Names are fictional. The non-breaking space and line break behavior was checked in LibreOffice Calc only.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-clean-customer-list.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -809,4 +1069,9 @@ if __name__ == "__main__":
     receivables_aging()
     markup_vs_margin()
     vlookup_price_list()
+    break_even_calculator()
+    subscription_renewal_tracker()
+    budget_vs_actual()
+    farmers_market_sales_log()
+    clean_customer_list()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

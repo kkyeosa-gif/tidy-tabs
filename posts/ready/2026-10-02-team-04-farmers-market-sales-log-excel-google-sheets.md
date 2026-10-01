@@ -3,10 +3,15 @@ title: How to Track Farmers Market Sales in Excel and Google Sheets
 labels: excel-formulas, farmers-market, small-business-bookkeeping
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps come from Microsoft Support and Google Docs Editors Help (not tested here).
 search_description: Track farmers market sales in a spreadsheet: SUMPRODUCT for qty x price, plus one market day's revenue and a SUMIFS check. Free .xlsx template.
+image_prompts: A farmers market stall table with a few jars of jam and a wooden crate of tomatoes, a small chalkboard sign with blurred unreadable writing, a cash apron and a pencil on a paper notepad, morning light, no screens, no logos
+image_alt: Market stall table with jam jars, a tomato crate, and a paper notepad
+threads: Adding up market sales one row at a time is a sad way to spend a Saturday night.\n=SUMPRODUCT((A2:A20=F2)*C2:C20*D2:D20) gives one market day's revenue.\nA SUMIFS on a line total column checks it.
 ---
 Multiply quantity by price and add it all up in one step with `=SUMPRODUCT(C2:C20,D2:D20)`. To get one market day's revenue, wrap the dates in the formula, as in `=SUMPRODUCT((A2:A20=F2)*C2:C20*D2:D20)`.
 
 > Works in: LibreOffice Calc 24.2.7 (Linux), where the template was built and every total below was recalculated and checked against hand math. The Excel and Google Sheets steps use the same functions and link to Microsoft Support and Google Docs Editors Help. Neither app was opened for this post.
+
+![Sales sheet listing farmers market items with quantity sold, price, and line total](images/2026-10-02-team-04-farmers-market-sales-log-excel-google-sheets/farmers-market-sales-log-template.png) *LibreOffice Calc 24.2 PDF export of the Sales sheet with sample data (fake).*
 
 ## Steps
 
@@ -65,7 +70,7 @@ SUMIFS in the check column is the same function used for monthly totals in other
 ## Troubleshooting
 
 ### The revenue cell shows #VALUE!
-SUMPRODUCT with the multiplication form fails when a Qty or Price cell holds text, such as `$18.00` typed with a stray space or a pasted `12 pcs`. The template notes warn about this. I did not reproduce the error in LibreOffice for this post, so check the cause by looking for left-aligned numbers in columns C and D. Retype them as plain numbers.
+SUMPRODUCT with the multiplication form fails when a Qty or Price cell holds text, such as `$18.00` typed with a stray space or a pasted `12 pcs`. The template notes warn about this. This error was not reproduced in LibreOffice for this post, so treat that as the likely cause and look for left-aligned numbers in columns C and D. Retype them as plain numbers.
 
 ### A market day shows $0.00
 The date in Daily totals does not match the date in Sales. Dates stored as text, or dates with a time attached, will not match a plain date. Retype the date in both places as MM/DD/YYYY and format the cells as Date.

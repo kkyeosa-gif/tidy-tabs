@@ -103,6 +103,18 @@ def main():
          render(t + "tidy-tabs-business-days-ship-by-date.xlsx", "Orders", hide_cols="BF", name="orders"))
     save(d % (5, "vlookup-price-list-excel-google-sheets") + "vlookup-price-list-template.png",
          render(t + "tidy-tabs-vlookup-price-list.xlsx", "Order lines", hide_cols="FG", name="orderlines"))
+    # 2026-10-02 team posts
+    d = "images/2026-10-02-team-0%d-%s/"
+    save(d % (1, "break-even-calculator-excel-google-sheets") + "break-even-calculator-template.png",
+         render(t + "tidy-tabs-break-even-calculator.xlsx", "Break-even", name="breakeven"))
+    save(d % (2, "subscription-renewal-tracker-excel-google-sheets") + "subscription-renewal-tracker-template.png",
+         render(t + "tidy-tabs-subscription-renewal-tracker.xlsx", "Subscriptions", hide_cols="CDHIJK", name="subs"))
+    save(d % (3, "budget-vs-actual-variance-excel-google-sheets") + "budget-vs-actual-variance-template.png",
+         render(t + "tidy-tabs-budget-vs-actual.xlsx", "Budget vs actual", hide_cols="GHI", name="budget"))
+    save(d % (4, "farmers-market-sales-log-excel-google-sheets") + "farmers-market-sales-log-template.png",
+         render(t + "tidy-tabs-farmers-market-sales-log.xlsx", "Sales", name="market"))
+    save(d % (5, "clean-customer-list-trim-proper-excel-google-sheets") + "clean-customer-list-trim-proper-template.png",
+         render(t + "tidy-tabs-clean-customer-list.xlsx", "Clean names", hide_cols="DE", name="clean"))
     # Print post: the real 6-page default printout next to the real 1-page result.
     d = "images/2026-09-29-a-print-excel-one-page-us-letter/"
     save(d + "print-excel-one-page-before-after.png",

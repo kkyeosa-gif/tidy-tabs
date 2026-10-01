@@ -3,10 +3,15 @@ title: How to Create a Budget vs Actual Template in Excel and Google Sheets
 labels: excel-formulas, budgeting, small-business-bookkeeping
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps come from Microsoft Support and Google Docs Editors Help (not tested here).
 search_description: Build a budget vs actual template: dollar variance with =C2-B2, percent variance with IF to skip $0.00 budgets, and red over-budget rows. Free .xlsx.
+image_prompts: A workshop shelf with a few shipping boxes, a roll of packing tape and a stack of blank paper receipts held by a binder clip next to a handheld receipt spike, small business packing area, all text blurred and unreadable, no logos, no laptop
+image_alt: Shipping boxes, tape roll, and a clipped stack of paper receipts on a shelf
+threads: A $0.00 budget turns percent variance into a divide-by-zero error.\n=IF(B2=0,"",(C2-B2)/B2) leaves the cell blank instead.\nIn the sample, Materials is $600.00 budgeted and $683.40 actual, so 13.9% over.
 ---
 Subtract budget from actual with `=C2-B2` for the dollar variance, and use `=IF(B2=0,"",(C2-B2)/B2)` for the percent. The IF leaves the percent blank when the budget is $0.00 instead of showing a divide-by-zero error.
 
 > Works in: LibreOffice Calc 24.2.7 (Linux), where the template was built and every variance, percent, and total below was recalculated and checked against hand math. The Excel and Google Sheets steps use the same functions and link to Microsoft Support and Google Docs Editors Help. Neither app was opened for this post.
+
+![Budget vs actual sheet with variance columns and over-budget rows shaded red](images/2026-10-02-team-03-budget-vs-actual-variance-excel-google-sheets/budget-vs-actual-variance-template.png) *LibreOffice Calc 24.2 PDF export of the Budget vs actual sheet with sample data (fake). The total columns on the right are hidden.*
 
 ## Steps
 

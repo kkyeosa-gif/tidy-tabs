@@ -3,10 +3,15 @@ title: How to Build a Break-Even Calculator in Excel and Google Sheets
 labels: formulas, pricing, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps follow Microsoft Support and Google Docs Editors Help (not tested here).
 search_description: Build a break-even calculator with =ROUNDUP(D2/E2,0) for units and units x price for revenue. Free .xlsx template with booth and Etsy sample products.
+image_prompts: A craft fair table with a small cash box and a stack of blank paper booth-fee receipts next to three soy candles in glass jars, a pencil and a pocket calculator, tent shade in the background, all paper text blurred and unreadable, no logos
+image_alt: Cash box and booth receipts beside candles and a pocket calculator
+threads: 11 candles pays off a $120.00 booth fee, not 10.\nFixed costs divided by profit per unit, rounded up: =ROUNDUP(D2/E2,0).\nAt $11.50 profit it is 10.43, and ten candles leave you $5.00 short.
 ---
 Divide your fixed costs by the profit per unit and round up: `=ROUNDUP(D2/E2,0)`, where E2 is price minus variable cost. A $120.00 booth fee and an $11.50 profit per candle means you need to sell 11 candles to break even.
 
 > Works in: LibreOffice Calc 24.2.7 (Linux), where the template was built and every formula and result below was recalculated and checked against hand math. The Excel and Google Sheets steps use the same functions and link to Microsoft Support and Google Docs Editors Help. Neither app was opened for this post.
+
+![Break-even sheet listing four handmade products with price, fixed costs, profit per unit, and break-even units](images/2026-10-02-team-01-break-even-calculator-excel-google-sheets/break-even-calculator-template.png) *LibreOffice Calc 24.2 PDF export of the Break-even sheet with sample data (fake).*
 
 ## Steps
 

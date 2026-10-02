@@ -32,6 +32,16 @@ blogId: 대시보드 주소창 `https://www.blogger.com/blog/posts/<숫자>` 의
 
 ## 2. Blogger API refresh token
 
+**먼저 OAuth 앱을 "프로덕션"으로.** Google Cloud 의 OAuth 앱이 "테스트" 상태면 Google 이
+refresh token 을 **7일 뒤 만료**시킨다 (https://developers.google.com/identity/protocols/oauth2 ,
+"publishing status of Testing is issued a refresh token expiring in 7 days"). 2026-09-29 에
+세 블로그가 모두 이 이유로 멈췄다. Google Cloud 콘솔 → **Google 인증 플랫폼 → 대상(Audience)**
+(예전 화면: API 및 서비스 → OAuth 동의 화면) → 게시 상태 "테스트 중" → **앱 게시** → 확인.
+"인증 필요" 안내가 나와도 본인 계정만 쓰는 용도면 그대로 진행해도 된다 (로그인 때
+"확인되지 않은 앱" 경고가 뜨면 **고급 → 이동**). 프로덕션으로 바꾼 **뒤에** 발급한 토큰만
+만료되지 않는다. 테스트 상태에서 받은 토큰은 다시 받아야 한다.
+
+
 기존 블로그 설정 때 쓴 OAuth 클라이언트 그대로. 이 저장소 폴더에서:
 
 ```bash
@@ -92,3 +102,13 @@ Search Console 은 docs/search-console-setup.md.
 - 검색 설명: docs/search-description.md. Threads: docs/threads-setup.md.
 - 템플릿 다시 만들기: `pip install openpyxl && python3 scripts/build-templates.py`.
 - 글 수정: posts/published/ 파일을 고치고 Actions → **Update a published Blogger post**.
+
+## 게시가 멈췄을 때: "Blogger 로그인 토큰 만료" 알림 (invalid_grant)
+
+GitHub 이슈 "[알림] Blogger 로그인 토큰 만료 (사용자 조치 필요)" 가 열리면 코드로는 못 고친다.
+1. 위 2단계의 "먼저 OAuth 앱을 프로덕션으로" 를 확인한다.
+2. `node scripts/get-refresh-token.mjs` 로 새 토큰을 받는다 (Tidy Tabs 블로그 소유 계정).
+3. 저장소 Settings → Secrets → `BLOGGER_REFRESH_TOKEN` 값을 새 토큰으로 교체한다.
+   같은 Google 계정이 가진 다른 블로그(ordinarydayinkorea, half-handy)도 같은 토큰을 쓸 수 있다.
+4. 다음 게시 시간에 자동으로 다시 올라가고, 첫 게시가 성공하면 알림 이슈는 자동으로 닫힌다.
+   밀린 글은 몰아서 올리지 않고 하루 5개씩 순서대로 나간다.

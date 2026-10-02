@@ -54,6 +54,7 @@ async function main() {
   if (updatedRaw !== raw) writeFileSync(targetFile, updatedRaw);
 
   console.log(`Updated: ${meta.title} -> ${result.url ?? existing.url}`);
+  writeFileSync("alert-healed", "updated\n"); // a successful Blogger call: the login token works
 }
 
 main().catch((err) => {

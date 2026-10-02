@@ -132,6 +132,7 @@ async function main() {
   );
 
   console.log(`Published: ${meta.title} -> ${result.url ?? result.id}`);
+  writeFileSync("alert-healed", "published\n"); // lets open-alert.mjs close a healed failure alert
 
   await postToThreads({ file, meta, body, url: result.url ?? "" });
 

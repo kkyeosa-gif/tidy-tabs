@@ -97,4 +97,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JOB_STATUS: ${{ job.status }}
+          REQUIRE_HEALED: "1"
         run: node scripts/open-alert.mjs

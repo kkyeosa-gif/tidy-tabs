@@ -1,4 +1,5 @@
 // Shared helpers for the Blogger publish/update scripts.
+import { appendFileSync } from "node:fs";
 
 export function parseFrontmatter(raw) {
   const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -251,7 +252,22 @@ export async function getAccessToken() {
       grant_type: "refresh_token",
     }),
   });
-  if (!res.ok) throw new Error(`token refresh failed: ${res.status} ${await res.text()}`);
+  if (!res.ok) {
+    const text = await res.text();
+    // invalid_grant = the refresh token expired or was revoked. Code can't fix
+    // that, so the alert spells out what the user has to do. The usual cause
+    // (2026-09-29, all three blogs): the Google Cloud OAuth app was still in
+    // "Testing", where Google expires refresh tokens after 7 days.
+    if (/invalid_grant/.test(text) && process.env.ALERT_FILE) {
+      appendFileSync(
+        process.env.ALERT_FILE,
+        "- invalid_grant: Blogger login token expired or was revoked, so nothing can publish. " +
+          "User action needed: in Google Cloud, set the OAuth app's publishing status to In production, " +
+          "then issue a new token (docs/blogger-setup.md, step 2) and replace the BLOGGER_REFRESH_TOKEN secret.\n"
+      );
+    }
+    throw new Error(`token refresh failed: ${res.status} ${text}`);
+  }
   const data = await res.json();
   return data.access_token;
 }

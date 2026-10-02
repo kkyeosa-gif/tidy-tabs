@@ -6,6 +6,8 @@
 // The Claude "Tidy Tabs 알림" routine pushes open alerts to the user's phone.
 import { existsSync, readFileSync } from "node:fs";
 
+const TOKEN_TITLE = "[알림] Blogger 로그인 토큰 만료 (사용자 조치 필요)";
+
 const { GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_SERVER_URL, GITHUB_RUN_ID, GITHUB_WORKFLOW, JOB_STATUS } = process.env;
 const failed = JOB_STATUS && JOB_STATUS !== "success";
 const notes = existsSync("alert.md") ? readFileSync("alert.md", "utf8").trim() : "";
@@ -18,11 +20,18 @@ const api = (path, init = {}) =>
 // A clean run closes this workflow's open "실패" alert (the failure healed,
 // e.g. a flaky network call). "경고" alerts stay open until a person closes
 // them, because a clean no-op run doesn't prove the warning is resolved.
+// With REQUIRE_HEALED=1 (publish.yml) only a run that really published counts:
+// most publish runs are no-ops between slots, and letting those close the
+// alert made it flap open/closed every slot from 09/29 to 10/02 while the
+// token was dead. "alert-healed" is written by the scripts after a successful
+// Blogger call, which also proves the login token works again.
 if (!failed && !notes) {
-  const failTitle = `[알림] ${GITHUB_WORKFLOW} 실패`;
+  const healed = existsSync("alert-healed");
+  if (process.env.REQUIRE_HEALED === "1" && !healed) process.exit(0);
+  const closable = new Set([`[알림] ${GITHUB_WORKFLOW} 실패`, ...(healed ? [TOKEN_TITLE] : [])]);
   const open = await (await api("/issues?state=open&labels=alert&per_page=100")).json();
   for (const issue of Array.isArray(open) ? open : []) {
-    if (issue.title !== failTitle) continue;
+    if (!closable.has(issue.title)) continue;
     await api(`/issues/${issue.number}/comments`, {
       method: "POST",
       body: JSON.stringify({ body: `다음 실행이 정상으로 끝나서 자동으로 닫습니다: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}` }),
@@ -33,7 +42,7 @@ if (!failed && !notes) {
   process.exit(0);
 }
 
-const title = `[알림] ${GITHUB_WORKFLOW} ${failed ? "실패" : "경고"}`;
+const title = /invalid_grant/.test(notes) ? TOKEN_TITLE : `[알림] ${GITHUB_WORKFLOW} ${failed ? "실패" : "경고"}`;
 const runUrl = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}`;
 
 await api("/labels", { method: "POST", body: JSON.stringify({ name: "alert", color: "d73a4a" }) }); // 422 if it exists; fine

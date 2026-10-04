@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeEkdXCnD3E
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-build-packing-slip-template-in.html
 title: How to Build a Packing Slip Template in Google Sheets
 labels: page-setup, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Google Sheets print steps from Google Docs Editors Help (not tested here).

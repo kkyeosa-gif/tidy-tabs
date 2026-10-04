@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeEmi_2m4B7
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-add-running-balance-column-in.html
 title: How to Add a Running Balance Column in Excel and Google Sheets
 labels: excel-formulas, cash-flow, small-business-bookkeeping
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel/Google Sheets steps from Microsoft Support / Google Docs Editors Help (not tested here).

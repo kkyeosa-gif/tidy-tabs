@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeFIERUm8JB
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-build-accounts-receivable-aging.html
 title: How to Build an Accounts Receivable Aging Report in Excel and Google Sheets
 labels: excel-formulas, invoicing, small-business-bookkeeping
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps come from Microsoft Support and Google Docs Editors Help (not tested here).

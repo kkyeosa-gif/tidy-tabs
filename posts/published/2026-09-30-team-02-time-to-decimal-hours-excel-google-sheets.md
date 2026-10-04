@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeFcrLFnTUe
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-convert-clock-times-to-decimal.html
 title: How to Convert Clock Times to Decimal Hours in Excel and Google Sheets
 labels: formulas, time-tracking
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps come from Microsoft Support and Google Docs Editors Help (not tested here).

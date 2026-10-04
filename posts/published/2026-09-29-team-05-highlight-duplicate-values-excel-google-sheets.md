@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeE6VwXm6JU
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-highlight-duplicate-values-in.html
 title: How to Highlight Duplicate Values in Excel and Google Sheets
 labels: conditional-formatting, data-cleanup
 tested_in: LibreOffice Calc 24.2.7 (Linux). Google Sheets/Excel conditional-formatting steps from Google Docs Editors Help / Microsoft Support (not tested here).

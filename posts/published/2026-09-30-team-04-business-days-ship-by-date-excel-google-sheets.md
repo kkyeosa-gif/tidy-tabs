@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeHLWJiFBKr
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-add-business-days-to-date-in.html
 title: How to Add Business Days to a Date in Excel and Google Sheets
 labels: formulas, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps come from Microsoft Support and Google Docs Editors Help (not tested here).

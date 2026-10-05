@@ -71,7 +71,25 @@ def save(out, *images):
     print("wrote", out, os.path.getsize(out) // 1024, "KB")
 
 
+def heroes_2026_10_06():
+    t = "templates/"
+    d = "images/2026-10-06-team-0%d-%s/"
+    save(d % (1, "loan-payment-calculator-pmt-excel-google-sheets") + "loan-payment-calculator-template.png",
+         render(t + "tidy-tabs-loan-payment-calculator.xlsx", "Loans", name="loans"))
+    save(d % (2, "percent-change-month-over-month-excel-google-sheets") + "percent-change-template.png",
+         render(t + "tidy-tabs-percent-change.xlsx", "Sales", name="pctchange"))
+    save(d % (3, "rank-top-customers-excel-google-sheets") + "rank-top-customers-template.png",
+         render(t + "tidy-tabs-rank-top-customers.xlsx", "Customers", name="rank"))
+    save(d % (4, "invoice-number-generator-text-excel-google-sheets") + "invoice-number-generator-template.png",
+         render(t + "tidy-tabs-invoice-number-generator.xlsx", "Invoices", name="invnum"))
+    save(d % (5, "combine-address-columns-textjoin-excel-google-sheets") + "combine-address-columns-textjoin-template.png",
+         render(t + "tidy-tabs-combine-address-columns.xlsx", "Addresses", hide_cols="H", name="addr"))
+
+
 def main():
+    heroes_2026_10_06()
+    return
+    # older heroes (rebuilding rewrites their PNGs; the early return above skips them)
     t = "templates/"
     save("images/2026-09-25-a-split-city-state-zip-excel-google-sheets/split-city-state-zip-template.png",
          render(t + "tidy-tabs-split-city-state-zip.xlsx", "Split", name="split"))

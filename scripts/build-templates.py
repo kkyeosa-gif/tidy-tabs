@@ -1052,6 +1052,196 @@ def clean_customer_list():
     wb.save(OUT / "tidy-tabs-clean-customer-list.xlsx")
 
 
+def loan_payment_calculator():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Loans"
+    header(ws, ["Loan", "Amount", "Yearly rate", "Years", "Monthly payment", "Total paid", "Total interest"],
+           [28, 12, 11, 8, 15, 13, 14])
+    rows = [
+        ("Equipment loan (fictional)", 15000.00, 0.065, 5),
+        ("Kiln purchase", 8000.00, 0.0725, 3),
+        ("Booth trailer", 22000.00, 0.059, 7),
+        ("Inventory line", 5000.00, 0.09, 2),
+    ]
+    for r, (name, amt, rate, yrs) in enumerate(rows, start=2):
+        ws.append([name, amt, rate, yrs, f"=PMT(C{r}/12,D{r}*12,-B{r})", f"=E{r}*D{r}*12", f"=F{r}-B{r}"])
+        ws[f"B{r}"].number_format = USD
+        ws[f"C{r}"].number_format = "0.00%"
+        for col in "EFG":
+            ws[f"{col}{r}"].number_format = USD
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Loan Payment Calculator with PMT",
+        "",
+        "1. One row per loan. Type the Amount, the Yearly rate (6.5% or 0.065), and the Years.",
+        "2. Monthly payment = PMT(rate/12, years*12, -amount). The rate is divided by 12 and the years are multiplied by 12 because the payments are monthly.",
+        "3. The minus sign before the amount makes the payment come out positive. Without it PMT returns a negative number.",
+        "4. Total paid = Monthly payment x number of payments. Total interest = Total paid minus Amount.",
+        "5. Results can be a cent off a lender's statement because lenders round each month's payment.",
+        "",
+        "Loans and rates are fictional. This is arithmetic only, not financial advice.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-loan-payment-calculator.xlsx")
+
+
+def percent_change():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    header(ws, ["Sales channel", "Last month", "This month", "Change ($)", "Change (%)"], [26, 13, 13, 13, 12])
+    rows = [
+        ("Whole shop", 2400.00, 2760.00),
+        ("Etsy orders", 1800.00, 1692.00),
+        ("Farmers market", 950.00, 1140.00),
+        ("Workshops (new this month)", 0.00, 300.00),
+        ("Wholesale", 640.00, 640.00),
+    ]
+    for r, (name, old, new) in enumerate(rows, start=2):
+        ws.append([name, old, new, f"=C{r}-B{r}", f'=IF(B{r}=0,"",(C{r}-B{r})/B{r})'])
+        for col in "BCD":
+            ws[f"{col}{r}"].number_format = USD
+        ws[f"E{r}"].number_format = "0.0%"
+        for col in "DE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Percent Change Between Two Months",
+        "",
+        "1. Type last month in column B and this month in column C.",
+        "2. Change ($) = This month minus Last month.",
+        "3. Change (%) = (This month - Last month) / Last month, formatted as Percent. Divide by the earlier month, not the later one.",
+        "4. If Last month is 0 the percent is undefined, so the formula leaves the cell blank (see the Workshops row).",
+        "5. A negative percent means the number went down.",
+        "",
+        "All figures are fictional.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-percent-change.xlsx")
+
+
+def rank_top_customers():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Customers"
+    header(ws, ["Customer", "Total sales", "Rank (ties share)", "Unique rank (ties broken)"], [26, 13, 14, 16])
+    rows = [
+        ("Harbor Coffee Co.", 4850.00), ("Maple Street Bakery", 3920.00), ("Oak & Ember Candles", 3920.00),
+        ("Riverside Yoga", 2780.00), ("Juniper Florist", 2150.00), ("Bluebird Books", 2150.00),
+        ("Cedar Hardware", 1640.00), ("Lakeview Dental Office", 3100.00), ("Pine Grove Garden", 980.00),
+        ("North End Tailors", 1275.00),
+    ]
+    for r, (name, tot) in enumerate(rows, start=2):
+        ws.append([name, tot, f"=RANK(B{r},$B$2:$B$11,0)", f"=C{r}+COUNTIF($B$2:B{r},B{r})-1"])
+        ws[f"B{r}"].number_format = USD
+        for col in "CD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws["F1"], ws["G1"], ws["H1"] = "Top 3", "Customer", "Total sales"
+    for c in ("F1", "G1", "H1"):
+        ws[c].fill, ws[c].font = HEADER_FILL, HEADER_FONT
+    for i in range(1, 4):
+        r = i + 1
+        ws[f"F{r}"] = i
+        ws[f"G{r}"] = f"=INDEX($A$2:$A$11,MATCH(F{r},$D$2:$D$11,0))"
+        ws[f"H{r}"] = f"=INDEX($B$2:$B$11,MATCH(F{r},$D$2:$D$11,0))"
+        ws[f"H{r}"].number_format = USD
+        ws[f"G{r}"].fill = ws[f"H{r}"].fill = FORMULA_FILL
+    ws.column_dimensions["F"].width = 8
+    ws.column_dimensions["G"].width = 26
+    ws.column_dimensions["H"].width = 13
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Rank Customers by Sales",
+        "",
+        "1. Type customer names in A and total sales in B.",
+        "2. Rank = RANK(B2,$B$2:$B$11,0). The 0 ranks the biggest total as 1. Use 1 instead of 0 to rank the smallest as 1.",
+        "3. Tied totals get the same rank, and the next rank is skipped (two customers at rank 2 means no rank 3).",
+        "4. Unique rank = Rank + COUNTIF($B$2:B2,B2) - 1. The first customer with a total keeps the rank, the next one with the same total gets rank + 1.",
+        "5. The Top 3 block uses INDEX/MATCH on the unique rank, so it never hits a missing rank.",
+        "6. Lock the range with $ signs ($B$2:$B$11) so it does not slide when you fill down. Extend it when you add customers.",
+        "",
+        "Customers and totals are fictional.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-rank-top-customers.xlsx")
+
+
+def invoice_number_generator():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Invoices"
+    header(ws, ["Client", "Invoice date", "Invoice number (TEXT)", "Invoice number (YEAR)", "Amount"],
+           [26, 13, 22, 22, 12])
+    rows = [
+        ("Harbor Coffee Co.", date(2026, 9, 28), 450.00),
+        ("Maple Street Bakery", date(2026, 9, 30), 1200.00),
+        ("Riverside Yoga", date(2026, 10, 2), 315.00),
+        ("Juniper Florist", date(2026, 10, 5), 780.00),
+        ("Bluebird Books", date(2026, 10, 9), 95.00),
+        ("Cedar Hardware", date(2026, 10, 12), 640.00),
+    ]
+    for r, (client, d, amt) in enumerate(rows, start=2):
+        ws.append([client, d,
+                   f'="INV-"&TEXT(B{r},"yyyy")&"-"&TEXT(ROWS($A$2:A{r}),"0000")',
+                   f'="INV-"&YEAR(B{r})&"-"&TEXT(ROWS($A$2:A{r}),"0000")', amt])
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"E{r}"].number_format = USD
+        for col in "CD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Automatic Invoice Numbers",
+        "",
+        "1. Type the client and invoice date. Copy the gray formulas down for each new row.",
+        "2. Column C: =\"INV-\"&TEXT(B2,\"yyyy\")&\"-\"&TEXT(ROWS($A$2:A2),\"0000\"). TEXT(...,\"0000\") pads the count to four digits; ROWS counts how many rows are in the range, so each new row gets the next number.",
+        "3. Column D does the year with YEAR(B2) instead of a TEXT format code. Use it if a date format code such as yyyy does not work in your language or locale.",
+        "4. The number follows the row position, not a saved counter. If you sort or delete rows, the numbers shift. Once an invoice is sent, copy the numbers and Paste Special > Values only so they stay fixed.",
+        "5. The year comes from the invoice date, so the count does not restart on its own each January. Start a new sheet or tab each year.",
+        "",
+        "Clients and amounts are fictional.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-invoice-number-generator.xlsx")
+
+
+def combine_address_columns():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Addresses"
+    header(ws, ["Street", "Unit", "City", "State", "ZIP", "TEXTJOIN (skips blanks)", "With ZIP", "Plain & join (stray commas)"],
+           [22, 9, 14, 7, 8, 38, 44, 38])
+    rows = [
+        ("118 Elm Street", "Apt 4B", "Boston", "MA", "02108"),
+        ("2450 Harbor Road", "", "Portland", "ME", "04101"),
+        ("77 Mill Lane", "Suite 210", "Hoboken", "NJ", "07030"),
+        ("910 Cedar Avenue", "", "Providence", "RI", "02903"),
+        ("36 Orchard Way", "Unit 2", "Albany", "NY", "12207"),
+    ]
+    for r, row in enumerate(rows, start=2):
+        ws.append(list(row) + [f'=_xlfn.TEXTJOIN(", ",TRUE,A{r}:D{r})',
+                               f'=_xlfn.TEXTJOIN(", ",TRUE,A{r}:D{r})&" "&E{r}',
+                               f'=A{r}&", "&B{r}&", "&C{r}&", "&D{r}'])
+        ws[f"E{r}"].number_format = "@"
+        for col in "FGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Combine Address Columns with TEXTJOIN",
+        "",
+        "1. Put street, unit, city, and state in A to D and the ZIP in E (formatted as Text so 02108 keeps its zero).",
+        "2. Column F: =TEXTJOIN(\", \",TRUE,A2:D2). The first argument is the separator, TRUE skips empty cells, and the last is the range to join.",
+        "3. Column G adds the ZIP after a space, so the state and ZIP are not split by a comma.",
+        "4. Column H shows the older way, joining with &. When Unit is empty it leaves a double comma, which is what TEXTJOIN avoids.",
+        "5. TEXTJOIN is in Excel 2019 and Microsoft 365, and in Google Sheets. It is not in Excel 2016 or earlier.",
+        "",
+        "Addresses are fictional. Checked in LibreOffice Calc only.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-combine-address-columns.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()

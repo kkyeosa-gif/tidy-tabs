@@ -184,3 +184,29 @@ Google 도움말 링크로 근거를 댄다.
   길이 열 D(before)/E(after), 행 2~11: before 14,8,9,10,16,9,15,11,11,9 / after 9,8,9,10,10,9,15,11,9,6. 전부 기대값과 일치 (TOM 행: 원본 11자 -> "Tom Reyes" 9자).
 - 열 B (기본 공식)의 한계도 확인: nbsp 행은 "Sam"+nbsp+"Patel" 그대로, 줄바꿈 행은 "Jamiechen" (CLEAN 이 줄바꿈을 공백 없이 삭제, PROPER 가 뒤 단어를 소문자로), TOM 행은 끝 nbsp 남음. 트러블슈팅 재료.
 - McDonald -> "Mcdonald", o'neil -> "O'Neil" 둘 다 LibreOffice 에서 기대대로 나옴.
+
+## 2026-10-06 — 신규 주제 5개 템플릿 제작/검증 (LibreOffice Calc 24.2.7, Linux)
+- 주제: tasks/team-topics-2026-10-06.md. 훅: tasks/hooks-2026-10-06.md.
+- 빌드: scripts/build-templates.py 에 함수 5개 추가, 새 함수만 실행 (기존 바이너리 변경 없음).
+- 검증: `soffice --headless --convert-to xlsx` 후 openpyxl data_only=True. LibreOffice 에서만 확인. Excel, Google Sheets 에서는 열어보지 않음.
+
+### 1. templates/tidy-tabs-loan-payment-calculator.xlsx (탭: Loans, How to use)
+- 수식: Monthly `=PMT(C2/12,D2*12,-B2)`, Total paid `=E2*D2*12`, Total interest `=F2-B2`.
+- 검증: $15,000.00 / 6.50% / 5년 -> $293.49 (293.4922), 총 $17,609.53, 이자 $2,609.53; $8,000 / 7.25% / 3년 -> $247.93, $8,925.56, $925.56; $22,000 / 5.90% / 7년 -> $320.33, $26,908.10, $4,908.10; $5,000 / 9.00% / 2년 -> $228.42, $5,482.17, $482.17. 첫 행 손계산 일치.
+
+### 2. templates/tidy-tabs-percent-change.xlsx (탭: Sales, How to use)
+- 수식: `=C2-B2`, `=IF(B2=0,"",(C2-B2)/B2)`.
+- 검증: 2400->2760 = $360.00, 15.0%; 1800->1692 = -$108.00, -6.0%; 950->1140 = $190.00, 20.0%; 0->300 = $300.00, % 공백; 640->640 = $0.00, 0.0%.
+
+### 3. templates/tidy-tabs-rank-top-customers.xlsx (탭: Customers, How to use)
+- 수식: Rank `=RANK(B2,$B$2:$B$11,0)`, Unique `=C2+COUNTIF($B$2:B2,B2)-1`, Top 3 `INDEX/MATCH` on unique rank.
+- 검증: 10행 (표 순서). Rank 열 = 1,2,2,5,6,6,8,4,10,9; Unique 열 = 1,2,3,5,6,7,8,4,10,9. 동점 $3,920.00 x2 -> rank 2,2 / unique 2,3 (rank 3 은 없음); $2,150.00 x2 -> rank 6,6 / unique 6,7. Lakeview $3,100.00 = rank 4. Top 3 = Harbor Coffee $4,850.00, Maple Street Bakery $3,920.00, Oak & Ember Candles $3,920.00. 손으로 순위 세어 일치.
+
+### 4. templates/tidy-tabs-invoice-number-generator.xlsx (탭: Invoices, How to use)
+- 수식: C `="INV-"&TEXT(B2,"yyyy")&"-"&TEXT(ROWS($A$2:A2),"0000")`, D `="INV-"&YEAR(B2)&"-"&TEXT(ROWS($A$2:A2),"0000")`.
+- 검증: 6행, 날짜 09/28/2026 ~ 10/12/2026 -> INV-2026-0001 ~ INV-2026-0006, C 와 D 열 동일. TEXT "yyyy" 의 로케일 의존성은 재현 안 함 (노트에 YEAR 대안만 안내).
+
+### 5. templates/tidy-tabs-combine-address-columns.xlsx (탭: Addresses, How to use)
+- 수식: F `=_xlfn.TEXTJOIN(", ",TRUE,A2:D2)` (Excel 에서는 TEXTJOIN), G `=F2&" "&E2` 형태 (TEXTJOIN(...)&" "&E2), H `=A2&", "&B2&", "&C2&", "&D2`.
+- 검증: 5행. 단위(Unit) 있는 행 "118 Elm Street, Apt 4B, Boston, MA", 없는 행 "2450 Harbor Road, Portland, ME", ZIP 포함 "..., ME 04101" (ZIP 은 텍스트라 02108 유지). H 열은 단위가 비면 "2450 Harbor Road, , Portland, ME" (이중 쉼표). 
+- 한계: Excel 2016 이하에서 TEXTJOIN 미지원은 Microsoft 문서 기준 (직접 확인 안 함).

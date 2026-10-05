@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeHfIqnljRJ
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-look-up-price-with-vlookup-in.html
 title: How to Look Up a Price With VLOOKUP in Excel and Google Sheets
 labels: formulas, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps from Microsoft Support and Google Docs Editors Help (not tested here).

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeHs3hwlZV1
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-build-break-even-calculator-in.html
 title: How to Build a Break-Even Calculator in Excel and Google Sheets
 labels: formulas, pricing, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps follow Microsoft Support and Google Docs Editors Help (not tested here).

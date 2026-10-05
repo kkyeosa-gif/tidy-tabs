@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeF4IjLGswO
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-markup-and-profit.html
 title: How to Calculate Markup and Profit Margin in Excel and Google Sheets
 labels: formulas, pricing, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps follow Microsoft Support and Google Docs Editors Help (not tested here).

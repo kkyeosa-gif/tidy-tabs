@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeICGr7gfaG
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-track-subscription-renewals-in.html
 title: How to Track Subscription Renewals in Excel and Google Sheets
 labels: excel-formulas, small-business-bookkeeping
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps come from Microsoft Support and Google Docs Editors Help (not tested here).

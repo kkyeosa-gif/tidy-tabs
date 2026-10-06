@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeKRq-pmnfx
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-loan-payment-in-excel.html
 title: How to Calculate a Loan Payment in Excel and Google Sheets
 labels: excel-formulas, loans, small-business-finance
 tested_in: LibreOffice Calc 24.2.7 (Linux). The Excel step follows Microsoft Support (not tested here). Google Sheets was not opened.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeKD7sEG6qP
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-clean-up-customer-list-with-trim.html
 title: How to Clean Up a Customer List With TRIM and PROPER in Excel and Google Sheets
 labels: data-cleanup, excel-formulas, spreadsheet-basics
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps come from Microsoft Support and Google Docs Editors Help (not tested here).

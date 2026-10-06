@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeKmQxzIEBw
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-percent-change-in.html
 title: How to Calculate Percent Change in Excel and Google Sheets
 labels: excel-formulas, etsy-sellers, small-business-bookkeeping
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps use the same functions; the IF link is from Microsoft Support (not tested here).

@@ -210,3 +210,33 @@ Google 도움말 링크로 근거를 댄다.
 - 수식: F `=_xlfn.TEXTJOIN(", ",TRUE,A2:D2)` (Excel 에서는 TEXTJOIN), G `=F2&" "&E2` 형태 (TEXTJOIN(...)&" "&E2), H `=A2&", "&B2&", "&C2&", "&D2`.
 - 검증: 5행. 단위(Unit) 있는 행 "118 Elm Street, Apt 4B, Boston, MA", 없는 행 "2450 Harbor Road, Portland, ME", ZIP 포함 "..., ME 04101" (ZIP 은 텍스트라 02108 유지). H 열은 단위가 비면 "2450 Harbor Road, , Portland, ME" (이중 쉼표). 
 - 한계: Excel 2016 이하에서 TEXTJOIN 미지원은 Microsoft 문서 기준 (직접 확인 안 함).
+
+## 2026-10-07 — 신규 주제 5개 템플릿 제작/검증 (LibreOffice Calc 24.2.7, Linux)
+- 주제: tasks/team-topics-2026-10-07.md. 훅: tasks/hooks-2026-10-07.md.
+- 빌드: scripts/build-templates.py 에 함수 5개 추가 (sale_price_discount, shipping_weight_tier_lookup, reorder_point_calculator, freelance_hourly_rate, convert_text_to_numbers) 후 main 에 등록. 새 함수 5개만 import 해서 실행 (기존 바이너리 변경 없음). 참고: 2026-10-06 함수 5개(loan_payment 등)는 main 에 아직 등록 안 돼 있음 (이번엔 손대지 않음).
+- 검증: `soffice --headless --convert-to xlsx --outdir <scratch> templates/<file>.xlsx` 후 openpyxl data_only=True 로 읽고 손계산 기대값과 셀 단위 비교. **LibreOffice Calc 24.2.7 (Linux) 에서만 확인. Excel, Google Sheets 에서는 열어보지 않음.** FILTER/LET 미사용.
+- 환경: python3 (/usr/local/bin) 에는 openpyxl 이 없고 /usr/bin/python3 에 있음.
+
+### 1. templates/tidy-tabs-sale-price-discount-calculator.xlsx (탭: Sale prices, Reverse and stacked, How to use)
+- 수식: Sale price `=B2*(1-C2)`, You save `=B2-D2`, Original price (역산) `=D2/(1-C2)`, 중복할인 `=B8*(1-B9)*(1-B10)`, 잘못된 합산 `=B8*(1-(B9+B10))`.
+- 검증: 8행 판매가 $16.20/$15.30/$6.00/$7.65/$20.40/$4.50/$36.00/$28.80, 절약 $1.80/$2.70/$2.00/$0.85/$3.60/$1.50/$12.00/$3.20; 합계 원가 $162.50, 판매가 $134.85, 절약 $27.65. $48.00 25% 할인 = $36.00. 역산 $36.00 @25% -> $48.00, $20.40 @15% -> $24.00, $7.65 @10% -> $8.50. $100.00 에 20% 후 10% = $72.00 (30% 합산은 $70.00, 차이 $2.00, 실제 총 할인 28%). 손계산 일치.
+
+### 2. templates/tidy-tabs-shipping-weight-tier-lookup.xlsx (탭: Orders, Unsorted table demo, How to use)
+- 수식: `=IFERROR(VLOOKUP(B2,$G$2:$H$7,2,TRUE),"Below minimum")`, `=IFERROR(INDEX($H$2:$H$7,MATCH(B2,$G$2:$G$7,1)),"Below minimum")`, 오류 확인용 `=VLOOKUP(B2,$G$2:$H$7,2,TRUE)`. 요율표(From oz -> $): 1 -> 4.50, 4 -> 5.75, 8 -> 7.25, 16 -> 9.80, 32 -> 13.40, 64 -> 18.90 (가짜 요율).
+- 검증: 12행 무게 2.5/3.99/4/4.01/7.9/8/12.5/16/20/40/64/0.5 -> $4.50/$4.50/$5.75/$5.75/$5.75/$7.25/$7.25/$9.80/$9.80/$13.40/$18.90/"Below minimum". VLOOKUP 과 INDEX/MATCH 열 동일. 경계: 4 oz = $5.75 (4 oz 구간 시작), 3.99 = $4.50, 4.01 = $5.75. 0.5 oz 는 IFERROR 없이 #N/A.
+- 정렬 안 된 표 데모 (1, 8, 4, 16, 32, 64 순서): 5 oz -> $5.75 (우연히 맞음), 10 oz -> $5.75 (정답 $7.25, 틀림, 오류 표시 없음). 이 동작은 LibreOffice 에서만 확인. Excel/Sheets 가 정렬 안 된 표에서 같은 값을 줄지는 확인 안 함 (노트에도 그렇게 적음).
+
+### 3. templates/tidy-tabs-reorder-point-calculator.xlsx (탭: Reorder, How to use)
+- 수식: Daily `=B2/$K$1` (K1 = 30), Reorder point `=ROUNDUP(C2*D2+E2,0)`, Flag `=IF(G2<=F2,"REORDER","OK")`. 조건부 서식으로 REORDER 행 빨강.
+- 검증: 6행. 90개/7일/안전 6 -> 일 3.00, 재주문점 27, 재고 40 OK. 60/10/8 -> 2.00, 28, 재고 28 REORDER (경계, 같을 때 REORDER). 33/14/4 -> 1.10, 20 (19.4 올림), 재고 21 OK. 75/5/10 -> 2.50, 23 (22.5 올림), 재고 18 REORDER. 120/12/15 -> 4.00, 63, 재고 80 OK. 45/21/5 -> 1.50, 37 (36.5 올림), 재고 30 REORDER. 손계산 일치.
+- 주제 파일은 craft inventory tracker 글 링크를 요구함 (본문에서 연결, 템플릿엔 링크 없음).
+
+### 4. templates/tidy-tabs-freelance-hourly-rate-calculator.xlsx (탭: Hourly rate, How to use)
+- 수식: Weeks worked `=52-B4`, Hours worked `=B7*B5`, Billable hours `=B8*B6`, Money needed `=B2+B3`, Rate `=B10/B9`, 올림 `=ROUNDUP(B11,0)`. 입력은 B2:B6, 시나리오 3열(C:E)은 같은 수식.
+- 검증: 기본 (60,000 + 6,000, 4주 휴가, 주 30시간, 65%) -> 48주, 1,440시간, 936 청구시간, $66,000.00, $70.51 (70.5128), 올림 $71. What-if 1 (목표 $75,000.00): $81,000.00 / 936 = $86.54. What-if 2 (휴가 6주): 46주, 1,380시간, 897, $73.58. What-if 3 (청구 75%): 1,080, $61.11. 손계산 일치. 세금/자영업 비용 미포함, 노트에 회계사 안내 문구 넣음.
+
+### 5. templates/tidy-tabs-convert-text-to-numbers.xlsx (탭: Pasted amounts, How to use)
+- 수식: ISNUMBER `=ISNUMBER(A2)`, Basic clean `=VALUE(SUBSTITUTE(SUBSTITUTE(TRIM(A2),"$",""),",",""))`, 괄호 처리 `=IF(LEFT(TRIM(A2),1)="(",-1,1)*VALUE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(TRIM(A2),"$",""),",",""),"(",""),")",""))`. A열은 텍스트 서식(@)로 문자열 저장.
+- 검증: 10행 전부 ISNUMBER FALSE (텍스트). 텍스트 열 SUM = 0. Basic clean 합 = 괄호 처리 열 합 = $5,095.60 (손계산 1250+18-45.5+89.95+2400+12.5+7.25+1075.4+310-22). 정리 후 ISNUMBER 전부 TRUE.
+- 발견: LibreOffice 에서는 Basic clean(괄호 처리 없음)도 VALUE("(45.50)") = -45.5, VALUE("(22.00)") = -22 로 나옴. Excel/Sheets 의 VALUE 가 괄호를 어떻게 읽는지는 확인 안 함 -> 글에서는 괄호 처리 열(D)을 쓰고, LibreOffice 동작에 기대지 말라고 쓸 것 (노트에도 적음).
+- 로케일: US 로케일에서만 확인. 다른 지역 설정의 $ , . 해석은 미확인.

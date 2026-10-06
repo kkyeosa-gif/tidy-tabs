@@ -86,8 +86,23 @@ def heroes_2026_10_06():
          render(t + "tidy-tabs-combine-address-columns.xlsx", "Addresses", hide_cols="H", name="addr"))
 
 
+def heroes_2026_10_07():
+    t = "templates/"
+    d = "images/2026-10-07-team-0%d-%s/"
+    save(d % (1, "sale-price-discount-calculator-excel-google-sheets") + "sale-price-discount-calculator-template.png",
+         render(t + "tidy-tabs-sale-price-discount-calculator.xlsx", "Sale prices", hide_cols="F", name="saleprice"))
+    save(d % (2, "shipping-cost-weight-tier-lookup-excel-google-sheets") + "shipping-weight-tier-lookup-template.png",
+         render(t + "tidy-tabs-shipping-weight-tier-lookup.xlsx", "Orders", hide_cols="DE", name="shiptier"))
+    save(d % (3, "reorder-point-calculator-excel-google-sheets") + "reorder-point-calculator-template.png",
+         render(t + "tidy-tabs-reorder-point-calculator.xlsx", "Reorder", hide_cols="I", name="reorder"))
+    save(d % (4, "freelance-hourly-rate-calculator-excel-google-sheets") + "freelance-hourly-rate-calculator-template.png",
+         render(t + "tidy-tabs-freelance-hourly-rate-calculator.xlsx", "Hourly rate", name="hourly"))
+    save(d % (5, "convert-text-to-numbers-dollar-signs-excel-google-sheets") + "convert-text-to-numbers-template.png",
+         render(t + "tidy-tabs-convert-text-to-numbers.xlsx", "Pasted amounts", hide_cols="EF", name="text2num"))
+
+
 def main():
-    heroes_2026_10_06()
+    heroes_2026_10_07()
     return
     # older heroes (rebuilding rewrites their PNGs; the early return above skips them)
     t = "templates/"

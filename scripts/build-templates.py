@@ -1242,6 +1242,281 @@ def combine_address_columns():
     wb.save(OUT / "tidy-tabs-combine-address-columns.xlsx")
 
 
+def sale_price_discount():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sale prices"
+    header(ws, ["Item", "Original price", "Percent off", "Sale price", "You save"],
+           [30, 14, 12, 12, 12])
+    rows = [
+        ("Lavender soy candle, 8 oz", 18.00, 0.10),
+        ("Cedar soy candle, 8 oz", 18.00, 0.15),
+        ("Oatmeal goat milk soap bar", 8.00, 0.25),
+        ("Charcoal soap bar", 8.50, 0.10),
+        ("Brass hoop earrings", 24.00, 0.15),
+        ("Letterpress birthday card", 6.00, 0.25),
+        ("Beaded necklace", 48.00, 0.25),
+        ("Candle and soap gift set", 32.00, 0.10),
+    ]
+    for r, (item, price, pct) in enumerate(rows, start=2):
+        ws.append([item, price, pct, f"=B{r}*(1-C{r})", f"=B{r}-D{r}"])
+        for col in "BDE":
+            ws[f"{col}{r}"].number_format = USD
+        ws[f"C{r}"].number_format = "0%"
+        for col in "DE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws["G1"], ws["H1"] = "Total at original prices", "=SUM(B2:B500)"
+    ws["G2"], ws["H2"] = "Total at sale prices", "=SUM(D2:D500)"
+    ws["G3"], ws["H3"] = "Total saved", "=SUM(E2:E500)"
+    for r in (1, 2, 3):
+        ws[f"G{r}"].font = Font(bold=True)
+        ws[f"H{r}"].number_format = USD
+    ws.column_dimensions["G"].width = 24
+    ws.column_dimensions["H"].width = 13
+
+    rv = wb.create_sheet("Reverse and stacked")
+    header(rv, ["Item", "Where you saw it", "Percent off", "Sale price", "Original price"],
+           [28, 18, 12, 12, 14])
+    for r, (item, where, pct, sale) in enumerate([
+        ("Beaded necklace", "Market tag", 0.25, 36.00),
+        ("Brass hoop earrings", "Etsy listing", 0.15, 20.40),
+        ("Charcoal soap bar", "Receipt", 0.10, 7.65),
+    ], start=2):
+        rv.append([item, where, pct, sale, f"=D{r}/(1-C{r})"])
+        rv[f"C{r}"].number_format = "0%"
+        for col in "DE":
+            rv[f"{col}{r}"].number_format = USD
+        rv[f"E{r}"].fill = FORMULA_FILL
+    rv["A7"] = "Two discounts in a row"
+    rv["A7"].font = Font(bold=True, size=12)
+    labels = [
+        ("Original price", 100.00),
+        ("First discount", 0.20),
+        ("Second discount", 0.10),
+        ("Price after both, one at a time", "=B8*(1-B9)*(1-B10)"),
+        ("Wrong: add the percents (30% off)", "=B8*(1-(B9+B10))"),
+        ("Difference", "=B11-B12"),
+        ("Real total discount", "=1-B11/B8"),
+    ]
+    for r, (label, val) in enumerate(labels, start=8):
+        rv[f"A{r}"], rv[f"B{r}"] = label, val
+    for r in (8, 11, 12, 13):
+        rv[f"B{r}"].number_format = USD
+    for r in (9, 10, 14):
+        rv[f"B{r}"].number_format = "0%"
+    for r in (11, 12, 13, 14):
+        rv[f"B{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Sale Price and Discount Calculator",
+        "",
+        "1. Sale prices tab: type the Original price and Percent off. Sale price = B2*(1-C2). You save = B2-D2.",
+        "2. Format Percent off as a percentage and type 25% (or 0.25), not 25.",
+        "3. Reverse and stacked tab, top: you know the sale price and the percent off and want the original price. Original price = D2/(1-C2).",
+        "4. Reverse and stacked tab, bottom: 20% off and then 10% off is not 30% off. $100.00 becomes $80.00, then $72.00, a real discount of 28%.",
+        "5. Totals for the item list are in H1:H3.",
+        "",
+        "Items and prices are fictional. This is arithmetic only; it does not include sales tax or shipping.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-sale-price-discount-calculator.xlsx")
+
+
+def shipping_weight_tier_lookup():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order #", "Weight (oz)", "Rate (VLOOKUP)", "Rate (INDEX/MATCH)", "VLOOKUP without IFERROR",
+                "", "From (oz)", "Rate"],
+           [10, 12, 15, 18, 22, 4, 11, 10])
+    # Lower edge of each band, smallest to largest. An exact hit on an edge
+    # belongs to that band, so 4 oz is in the 4 oz band.
+    table = [(1, 4.50), (4, 5.75), (8, 7.25), (16, 9.80), (32, 13.40), (64, 18.90)]
+    weights = [2.5, 3.99, 4, 4.01, 7.9, 8, 12.5, 16, 20, 40, 64, 0.5]
+    for r, w in enumerate(weights, start=2):
+        ws.append([str(2100 + r - 1), w,
+                   f'=IFERROR(VLOOKUP(B{r},$G$2:$H$7,2,TRUE),"Below minimum")',
+                   f'=IFERROR(INDEX($H$2:$H$7,MATCH(B{r},$G$2:$G$7,1)),"Below minimum")',
+                   f"=VLOOKUP(B{r},$G$2:$H$7,2,TRUE)"])
+        for col in "CDE":
+            ws[f"{col}{r}"].number_format = USD
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"B{r}"].number_format = "0.00"
+    for r, (lo, rate) in enumerate(table, start=2):
+        ws[f"G{r}"], ws[f"H{r}"] = lo, rate
+        ws[f"H{r}"].number_format = USD
+    for c in ("G1", "H1"):
+        ws[c].fill, ws[c].font = HEADER_FILL, HEADER_FONT
+
+    un = wb.create_sheet("Unsorted table demo")
+    header(un, ["Weight (oz)", "VLOOKUP result", "Correct rate (sorted table)", "", "From (oz)", "Rate"],
+           [12, 16, 24, 4, 11, 10])
+    unsorted = [(1, 4.50), (8, 7.25), (4, 5.75), (16, 9.80), (32, 13.40), (64, 18.90)]
+    for r, w in enumerate([5, 10], start=2):
+        un.append([w, f"=VLOOKUP(A{r},$E$2:$F$7,2,TRUE)",
+                   f"=VLOOKUP(A{r},Orders!$G$2:$H$7,2,TRUE)"])
+        for col in "BC":
+            un[f"{col}{r}"].number_format = USD
+        un[f"B{r}"].fill = ALERT_FILL
+    for r, (lo, rate) in enumerate(unsorted, start=2):
+        un[f"E{r}"], un[f"F{r}"] = lo, rate
+        un[f"F{r}"].number_format = USD
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Shipping Cost by Weight Tier (approximate match lookup)",
+        "",
+        "1. Rate table in G:H, Orders tab. From (oz) is the smallest weight in each band. A package at or above that weight and below the next row uses that rate.",
+        "2. Rate (VLOOKUP) = IFERROR(VLOOKUP(B2,$G$2:$H$7,2,TRUE),\"Below minimum\"). TRUE (or leaving it out) means approximate match: the largest From value that is less than or equal to the weight.",
+        "3. Rate (INDEX/MATCH) does the same with MATCH(...,1). Both columns agree.",
+        "4. The From column must be sorted smallest to largest. Approximate match skips through the list instead of checking every row, so an unsorted table can return a wrong rate with no error. See the Unsorted table demo tab: in LibreOffice 5 oz happens to come out right ($5.75) but 10 oz returns $5.75 instead of $7.25. Other apps can pick differently on an unsorted table.",
+        "5. A weight under the first band (0.50 oz here) has no band, so VLOOKUP returns #N/A. Column E shows it; IFERROR in column C turns it into text. IFERROR also hides other errors, so test the table first.",
+        "6. Exactly 4 oz is in the 4 oz band ($5.75). 3.99 oz is in the 1 oz band ($4.50). 4.01 oz is in the 4 oz band.",
+        "",
+        "Rates and weight bands are made up for this sample, not a carrier's rates. Use your own.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-shipping-weight-tier-lookup.xlsx")
+
+
+def reorder_point_calculator():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Reorder"
+    header(ws, ["Supply", "Units sold (last 30 days)", "Daily sales", "Lead time (days)", "Safety stock",
+                "Reorder point", "On hand", "Flag"],
+           [28, 14, 11, 12, 11, 12, 10, 12])
+    rows = [
+        ("Glass jars, 8 oz", 90, 7, 6, 40),
+        ("Soy wax, 1 lb bags", 60, 10, 8, 28),
+        ("Candle wicks, pack of 50", 33, 14, 4, 21),
+        ("Cotton ribbon spools", 75, 5, 10, 18),
+        ("Kraft mailer boxes", 120, 12, 15, 80),
+        ("Shipping label rolls", 45, 21, 5, 30),
+    ]
+    for r, (item, sold, lead, safety, onhand) in enumerate(rows, start=2):
+        ws.append([item, sold, f"=B{r}/$K$1", lead, safety,
+                   f"=ROUNDUP(C{r}*D{r}+E{r},0)", onhand,
+                   f'=IF(G{r}<=F{r},"REORDER","OK")'])
+        ws[f"C{r}"].number_format = "0.00"
+        for col in "CFH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    last = 200
+    ws["J1"], ws["K1"] = "Days in sales period", 30
+    ws["J1"].font = Font(bold=True)
+    ws.column_dimensions["J"].width = 22
+    ws.conditional_formatting.add(f"H2:H{last}", FormulaRule(formula=['$H2="REORDER"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Reorder Point Calculator",
+        "",
+        "1. One row per supply. Type Units sold for the last 30 days, Lead time (days) from order to delivery, Safety stock (spare units you want to keep), and On hand.",
+        "2. Daily sales = Units sold / days in the period. The period length is in K1 (30).",
+        "3. Reorder point = ROUNDUP(Daily sales x Lead time + Safety stock, 0). ROUNDUP, because a fraction of a unit still needs a whole unit.",
+        "4. Flag = IF(On hand <= Reorder point, \"REORDER\", \"OK\"). At exactly the reorder point the flag says REORDER.",
+        "5. Example: 90 units in 30 days is 3 a day. 3 x 7 lead days + 6 safety stock = 27.",
+        "6. Copy the last row down to add supplies.",
+        "",
+        "Supplies and numbers are fictional. Safety stock is your own judgment; this file only does the arithmetic.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-reorder-point-calculator.xlsx")
+
+
+def freelance_hourly_rate():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Hourly rate"
+    header(ws, ["", "Your numbers", "What if 1: higher goal", "What if 2: more time off", "What if 3: more billable"],
+           [36, 15, 18, 18, 18])
+    inputs = [
+        ("Yearly income goal", 60000, 75000, 60000, 60000, USD),
+        ("Yearly overhead (software, supplies)", 6000, 6000, 6000, 6000, USD),
+        ("Weeks off per year", 4, 4, 6, 4, "0"),
+        ("Hours per week you work", 30, 30, 30, 30, "0"),
+        ("Share of those hours you bill", 0.65, 0.65, 0.65, 0.75, "0%"),
+    ]
+    for r, (label, *vals, fmt) in enumerate(inputs, start=2):
+        ws.append([label] + vals)
+        for col in "BCDE":
+            ws[f"{col}{r}"].number_format = fmt
+    calc = [
+        ("Weeks worked", "=52-{c}4", "0"),
+        ("Hours worked per year", "={c}7*{c}5", "#,##0"),
+        ("Billable hours per year", "={c}8*{c}6", "#,##0"),
+        ("Money you need to bring in", "={c}2+{c}3", USD),
+        ("Hourly rate", "={c}10/{c}9", USD),
+        ("Rate rounded up to a whole dollar", "=ROUNDUP({c}11,0)", USD),
+    ]
+    for r, (label, f, fmt) in enumerate(calc, start=7):
+        ws[f"A{r}"] = label
+        for col in "BCDE":
+            ws[f"{col}{r}"] = f.format(c=col)
+            ws[f"{col}{r}"].number_format = fmt
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws["A11"].font = Font(bold=True)
+    for col in "BCDE":
+        ws[f"{col}11"].font = Font(bold=True)
+    ws.freeze_panes = "B2"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Freelance Hourly Rate Calculator",
+        "",
+        "1. Type your numbers in column B, rows 2 to 6. Columns C to E are what-if copies: change any input there and the rate below it updates.",
+        "2. Weeks worked = 52 - weeks off. Hours worked = weeks worked x hours per week. Billable hours = hours worked x billable share.",
+        "3. Money you need = income goal + overhead. Hourly rate = money you need / billable hours.",
+        "4. Example: (52-4) x 30 x 65% = 936 billable hours. ($60,000.00 + $6,000.00) / 936 = $70.51 an hour.",
+        "5. Billable share is the part of your work week you can actually charge for. Time spent finding clients, invoicing and emailing is not billable.",
+        "",
+        "Illustration only. This does not cover taxes, self-employment costs, or benefits; ask an accountant about those. All numbers are made up.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-freelance-hourly-rate-calculator.xlsx")
+
+
+def convert_text_to_numbers():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Pasted amounts"
+    header(ws, ["Pasted text", "Is it a number?", "Basic clean", "Clean with (negatives)", "Is it a number now?"],
+           [16, 14, 14, 22, 18])
+    texts = ["$1,250.00", " 18.00", "(45.50)", "$89.95", "$2,400.00 ", "12.50",
+             "$7.25", "$1,075.40", "$310.00", "(22.00)"]
+    for r, t in enumerate(texts, start=2):
+        ws.append([t, f"=ISNUMBER(A{r})",
+                   f'=VALUE(SUBSTITUTE(SUBSTITUTE(TRIM(A{r}),"$",""),",",""))',
+                   f'=IF(LEFT(TRIM(A{r}),1)="(",-1,1)*VALUE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(TRIM(A{r}),"$",""),",",""),"(",""),")",""))',
+                   f"=ISNUMBER(D{r})"])
+        ws[f"A{r}"].number_format = "@"
+        ws[f"A{r}"].alignment = Alignment(horizontal="left")
+        for col in "CD":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "BCDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    labels = [("SUM of the pasted text", "=SUM(A2:A500)"),
+              ("SUM of Basic clean", "=SUM(C2:C500)"),
+              ("SUM of Clean with (negatives)", "=SUM(D2:D500)")]
+    for r, (label, f) in enumerate(labels, start=1):
+        ws[f"G{r}"], ws[f"H{r}"] = label, f
+        ws[f"G{r}"].font = Font(bold=True)
+        ws[f"H{r}"].number_format = USD
+    ws.column_dimensions["G"].width = 30
+    ws.column_dimensions["H"].width = 14
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Convert Text to Numbers (pasted dollar amounts)",
+        "",
+        "1. Column A holds amounts as text, the way they arrive when you paste from a bank or Etsy export. SUM ignores text, so H1 is $0.00.",
+        "2. Column B: =ISNUMBER(A2) is FALSE for text and TRUE for a real number.",
+        "3. Column C: =VALUE(SUBSTITUTE(SUBSTITUTE(TRIM(A2),\"$\",\"\"),\",\",\"\")). TRIM removes stray spaces, SUBSTITUTE removes $ and commas, VALUE turns the text into a number.",
+        "4. Column D also handles amounts in parentheses, such as (45.50), as negatives: it removes the ( and ) and multiplies by -1. LibreOffice reads (45.50) as -45.50 even in column C, but do not count on that in other apps; column D does not depend on it.",
+        "5. Column E checks that the cleaned values are real numbers. Copy C or D, then Paste Special > Values to keep the numbers.",
+        "",
+        "Amounts are fictional. Checked in LibreOffice Calc with a US locale only; other regional settings can read $, commas and periods differently.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-convert-text-to-numbers.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -1264,4 +1539,9 @@ if __name__ == "__main__":
     budget_vs_actual()
     farmers_market_sales_log()
     clean_customer_list()
+    sale_price_discount()
+    shipping_weight_tier_lookup()
+    reorder_point_calculator()
+    freelance_hourly_rate()
+    convert_text_to_numbers()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

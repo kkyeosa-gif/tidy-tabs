@@ -28,3 +28,10 @@
 - How to Build an Accounts Receivable Aging Report in Excel and Google Sheets — `receivables-aging-report-excel-google-sheets` (연체 일수 구간별 SUMIFS)
 - How to Calculate Markup and Profit Margin in Excel and Google Sheets — `markup-vs-margin-calculator-excel-google-sheets` (원가/마크업/마진 혼동 해결)
 - How to Look Up a Price With VLOOKUP in Excel and Google Sheets — `vlookup-price-list-excel-google-sheets` (정확히 일치 + IFERROR + INDEX/MATCH)
+
+## 2026-10-07 리서처 추가 5개 (검색 데이터 없음, 3-gate 기준만 적용)
+- How to Calculate a Sale Price and Discount in Excel and Google Sheets — `sale-price-discount-calculator-excel-google-sheets`
+- How to Look Up Shipping Cost by Weight Tier in Excel and Google Sheets — `shipping-cost-weight-tier-lookup-excel-google-sheets` (근사 일치 VLOOKUP)
+- How to Calculate a Reorder Point in Excel and Google Sheets — `reorder-point-calculator-excel-google-sheets`
+- How to Calculate Your Freelance Hourly Rate in Excel and Google Sheets — `freelance-hourly-rate-calculator-excel-google-sheets`
+- How to Convert Text to Numbers (Dollar Signs and Commas) in Excel and Google Sheets — `convert-text-to-numbers-dollar-signs-excel-google-sheets`

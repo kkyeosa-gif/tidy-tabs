@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeIc7qjkVut
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-create-budget-vs-actual-template.html
 title: How to Create a Budget vs Actual Template in Excel and Google Sheets
 labels: excel-formulas, budgeting, small-business-bookkeeping
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps come from Microsoft Support and Google Docs Editors Help (not tested here).

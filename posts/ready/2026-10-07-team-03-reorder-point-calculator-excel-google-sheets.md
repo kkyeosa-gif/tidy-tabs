@@ -36,7 +36,7 @@ The formulas work as typed. Microsoft documents the arguments on its [ROUNDUP fu
 
 ### In Google Sheets
 
-The same formulas work as typed. Google documents the arguments on its [ROUNDUP function](https://support.google.com/docs/answer/3093444) page.
+The same formulas work as typed. Google documents the arguments on its [ROUNDUP function](https://support.google.com/docs/answer/3093443) page.
 
 ## Example
 

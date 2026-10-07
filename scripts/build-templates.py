@@ -1587,7 +1587,6 @@ def sales_tax_calculator():
     wb.save(OUT / "tidy-tabs-sales-tax-calculator.xlsx")
 
 
-# SLOT-1-DONE
 
 
 def sum_expenses_by_category():
@@ -1864,5 +1863,9 @@ if __name__ == "__main__":
     reorder_point_calculator()
     freelance_hourly_rate()
     convert_text_to_numbers()
-    # REG-SLOTS
+    sales_tax_calculator()
+    sum_expenses_by_category()
+    round_prices_nearest_nickel_99()
+    remove_non_breaking_spaces()
+    year_to_date_sales_total()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

@@ -267,3 +267,10 @@ Google 도움말 링크로 근거를 댄다.
 - 수식: C `=ROUND(B2,2)`, D `=MROUND(B2,0.05)`, E `=CEILING(B2,0.05)`, F `=ROUNDUP(B2,0)-0.01`. B 는 반올림 전 가격(4자리).
 - 검증 (LibreOffice Calc 24.2.7 Linux 에서만; Excel, Google Sheets 에서는 열어보지 않음): 8행 13.4167 -> 13.42/13.40/13.45/13.99; 8.2333 -> 8.23/8.25/8.25/8.99; 24.7083 -> 24.71/24.70/24.75/24.99; 17.9625 -> 17.96/17.95/18.00/17.99; 6.13 -> 6.13/6.15/6.15/6.99; 31.4467 -> 31.45/31.45/31.45/31.99; 12.9833 -> 12.98/13.00/13.00/12.99; 22.0000 -> 22.00/22.00/22.00/21.99 (정수 가격은 .99 수식이 1센트 내림). 손계산 일치.
 - 부호: 임시 파일에서 LibreOffice 는 MROUND(13.4167,-0.05) = 13.4 를 반환 (Excel 동작은 확인 안 함). 글에서 음수 동작은 주장하지 않음. 부동소수점 표시 문제(12.9899999)는 재현 안 함, 글에 쓰지 않음.
+
+## 2026-10-08 — 주제 4: Remove non-breaking spaces (templates/tidy-tabs-remove-non-breaking-spaces.xlsx, 탭: Pasted names, How to use)
+- 빌드: scripts/build-templates.py remove_non_breaking_spaces() (main 등록은 리드). 셀 A 에 Python chr(160), 끝 줄바꿈(\n), 끝 탭(\t) 직접 삽입.
+- 수식: LEN `=LEN(A2)`, 코드 `=_xlfn.UNICODE(MID(A2,5,1))`, TRIM만 `=TRIM(A2)`, 정리 `=TRIM(CLEAN(SUBSTITUTE(A2,_xlfn.UNICHAR(160)," ")))`, COUNTIF/VLOOKUP(FALSE) 를 L2:M9 고객 목록에 대해 정리 전(A)/후(E).
+- 검증 (LibreOffice Calc 24.2.7 Linux 만, Excel/Sheets 아님): 8행 LEN 전 9/8/9/10/11/10/8/10 -> 후 9/8/8/9/10/9/8/10. 5번째 문자 코드 160 (6행), 32 (Mark Diaz, Mike Stone). COUNTIF 전 합계 1 (Mike Stone 만), 후 8. VLOOKUP 전 7행 "not found", 후 $120.00/$45.00/$89.50/$210.00/$65.00/$150.00/$38.00/$72.25. LibreOffice TRIM 은 CHAR(160) 을 지우지 않음 (LEN 9 -> 9). 손계산 일치.
+- 발견: LibreOffice 에서 CHAR(160)/CODE 는 프로필 로케일에 따라 다름. 기본 프로필 160 (정상), 새 프로필(-env:UserInstallation, render-previews 방식) 에서 CODE = 194 이고 SUBSTITUTE(CHAR(160)) 가 안 먹음. 그래서 템플릿은 UNICHAR/UNICODE 사용 (clean_customer_list 와 동일). 글은 CHAR(160) 을 답으로 쓰고 Troubleshooting 에 이 차이를 적음. Excel/Sheets 의 CHAR(160) 동작은 확인 안 함.
+- Microsoft TRIM 페이지 본문(curl) 확인: "designed to trim the 7-bit ASCII space character (value 32)... By itself, the TRIM function does not remove this nonbreaking space character." Google 도움말 URL 은 HEAD 로는 404, GET 은 200 (TRIM 3094140, SUBSTITUTE 3094215, import 40608).

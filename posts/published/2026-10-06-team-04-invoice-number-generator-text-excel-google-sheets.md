@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeMU79DGx5Y
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-auto-number-invoices-in-excel.html
 title: How to Auto Number Invoices in Excel and Google Sheets
 labels: formulas, invoices, freelancers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps follow Microsoft Support (Google Sheets not tested here).

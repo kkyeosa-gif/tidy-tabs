@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeM2fh5lJIG
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-sale-price-and.html
 title: How to Calculate a Sale Price and Discount in Excel and Google Sheets
 labels: excel-formulas, pricing, small-business-finance
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets were not opened for this post.

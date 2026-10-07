@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeMouvLG1zX
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-combine-address-columns-with.html
 title: How to Combine Address Columns With TEXTJOIN in Excel and Google Sheets
 labels: excel-formulas, mailing-labels, data-cleanup
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps follow Microsoft Support (neither app was tested here).

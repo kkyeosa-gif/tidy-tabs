@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeNLDsEllNU
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-look-up-shipping-cost-by-weight.html
 title: How to Look Up Shipping Cost by Weight in Excel and Google Sheets
 labels: excel-formulas, shipping, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7 (Linux) only. The Excel and Google Sheets steps follow Microsoft Support and Google Docs Editors Help and were not opened or tested here.

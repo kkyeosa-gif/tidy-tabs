@@ -1517,19 +1517,322 @@ def convert_text_to_numbers():
     wb.save(OUT / "tidy-tabs-convert-text-to-numbers.xlsx")
 
 
-# SLOT-1
+def sales_tax_calculator():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales tax"
+    header(ws, ["Item", "Price before tax", "Sales tax", "Total"], [28, 16, 12, 12])
+    rows = [
+        ("Ceramic mug", 18.00),
+        ("Sticker pack", 4.50),
+        ("Canvas tote bag", 24.00),
+        ("Soy candle, 8 oz", 16.00),
+        ("Art print, 8 x 10", 12.99),
+        ("Beaded earrings", 32.50),
+    ]
+    for r, (item, price) in enumerate(rows, start=2):
+        ws.append([item, price, f"=ROUND(B{r}*$F$1,2)", f"=B{r}+C{r}"])
+        for col in "BCD":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "CD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws["A8"] = "Total"
+    ws["A8"].font = Font(bold=True)
+    for col in "BCD":
+        ws[f"{col}8"] = f"=SUM({col}2:{col}7)"
+        ws[f"{col}8"].number_format = USD
+        ws[f"{col}8"].font = Font(bold=True)
+    ws["E1"], ws["F1"] = "Sales tax rate", 0.0625
+    ws["E1"].font = Font(bold=True)
+    ws["F1"].number_format = "0.00%"
+    ws.column_dimensions["E"].width = 16
+    ws.column_dimensions["F"].width = 10
+
+    inc = wb.create_sheet("Tax-inclusive totals")
+    header(inc, ["Item", "Total paid (tax included)", "Tax inside the total", "Price before tax"], [28, 16, 16, 16])
+    paid = [
+        ("Ceramic mug", 19.13),
+        ("Sticker pack", 4.78),
+        ("Canvas tote bag", 25.50),
+        ("Soy candle, 8 oz", 17.00),
+        ("Art print, 8 x 10", 13.80),
+        ("Beaded earrings", 34.53),
+        ("Gift set, one price at a booth", 50.00),
+    ]
+    for r, (item, total) in enumerate(paid, start=2):
+        inc.append([item, total, f"=ROUND(B{r}-B{r}/(1+$F$1),2)", f"=B{r}-C{r}"])
+        for col in "BCD":
+            inc[f"{col}{r}"].number_format = USD
+        for col in "CD":
+            inc[f"{col}{r}"].fill = FORMULA_FILL
+    inc["E1"], inc["F1"] = "Sales tax rate", "='Sales tax'!F1"
+    inc["E1"].font = Font(bold=True)
+    inc["F1"].number_format = "0.00%"
+    inc.column_dimensions["E"].width = 16
+    inc.column_dimensions["F"].width = 10
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Sales Tax Calculator",
+        "",
+        "1. Type your rate in F1 on the Sales tax tab (6.25% is a made-up example). Rates vary by state, county and city, so check your state's revenue department site for the real rate.",
+        "2. Sales tax = ROUND(Price x rate, 2). ROUND to cents because you cannot collect a fraction of a cent.",
+        "3. Total = Price + Sales tax. Row 8 adds up each column.",
+        "4. Tax-inclusive totals tab: type what the customer paid in column B. Tax inside = ROUND(Total - Total / (1 + rate), 2). Price before tax = Total - Tax.",
+        "5. The rate on the second tab follows F1 on the first tab.",
+        "6. Example: $18.00 x 6.25% = $1.125, rounded to $1.13, so the total is $19.13.",
+        "",
+        "Items, prices and the rate are fictional. This sheet only does arithmetic and is not tax advice.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-sales-tax-calculator.xlsx")
 
 
-# SLOT-2
+# SLOT-1-DONE
 
 
-# SLOT-3
+def sum_expenses_by_category():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Expenses"
+    header(ws, ["Date", "Vendor", "Category", "Amount", "", "Category", "Total spent", "% of total"],
+           [12, 24, 13, 12, 3, 16, 14, 11])
+    log = [
+        (date(2026, 9, 1), "Greenline Office Supply", "Supplies", 84.50),
+        (date(2026, 9, 2), "Lakeview Web Hosting", "Software", 29.00),
+        (date(2026, 9, 3), "Pioneer Postal Center", "Shipping", 46.25),
+        (date(2026, 9, 5), "Metro Transit Pass", "Travel", 90.00),
+        (date(2026, 9, 6), "Harbor Coffee", "Meals", 18.40),
+        (date(2026, 9, 8), "Northeast Electric", "Utilities", 112.30),
+        (date(2026, 9, 9), "Social Ads Co", "Advertising", 150.00),
+        (date(2026, 9, 10), "Greenline Office Supply", "Supplies", 37.80),
+        (date(2026, 9, 12), "Pioneer Postal Center", "Shipping", 62.10),
+        (date(2026, 9, 13), "Cloud Backup Plus", "Software", 12.99),
+        (date(2026, 9, 15), "Oak Street Deli", "Meals", 24.75),
+        (date(2026, 9, 16), "Harbor Parking Garage", "Travel", 22.00),
+        (date(2026, 9, 17), "Social Ads Co", "Advertising", 75.00),
+        (date(2026, 9, 19), "Craft Paper Wholesale", "Supplies", 128.60),
+        (date(2026, 9, 20), "Northeast Gas", "Utilities", 58.45),
+        (date(2026, 9, 22), "Pioneer Postal Center", "Shipping", 33.90),
+        (date(2026, 9, 23), "Design Template Shop", "Software", 49.00),
+        (date(2026, 9, 24), "Amtrak Regional", "Travel", 134.00),
+        (date(2026, 9, 25), "Maple Cafe", "Meals", 31.20),
+        (date(2026, 9, 26), "Craft Paper Wholesale", "Supplies", 66.40),
+        (date(2026, 9, 27), "Local Print Shop", "Advertising", 95.50),
+        (date(2026, 9, 29), "Lakeview Internet", "Utilities", 69.99),
+    ]
+    for r, (d, vendor, cat, amt) in enumerate(log, start=2):
+        ws.append([d, vendor, cat, amt])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = USD
+    cats = ["Supplies", "Software", "Shipping", "Travel", "Meals", "Utilities", "Advertising"]
+    for r, cat in enumerate(cats, start=2):
+        ws[f"F{r}"] = cat
+        ws[f"G{r}"] = f"=SUMIF($C$2:$C$40,F{r},$D$2:$D$40)"
+        ws[f"H{r}"] = f"=G{r}/$G$9"
+        ws[f"G{r}"].number_format = USD
+        ws[f"H{r}"].number_format = "0.0%"
+        ws[f"G{r}"].fill = ws[f"H{r}"].fill = FORMULA_FILL
+    ws["F9"], ws["G9"], ws["H9"] = "Total", "=SUM(G2:G8)", "=SUM(H2:H8)"
+    ws["G9"].number_format, ws["H9"].number_format = USD, "0.0%"
+    ws["F11"], ws["G11"] = "Log total", "=SUM($D$2:$D$40)"
+    ws["F12"], ws["G12"] = "Difference", "=ROUND(G11-G9,2)"
+    ws["F13"], ws["G13"] = "Check", '=IF(G12=0,"OK","CHECK CATEGORIES")'
+    for c in ("F9", "G9", "H9", "F11", "F12", "F13"):
+        ws[c].font = Font(bold=True)
+    ws["G11"].number_format = ws["G12"].number_format = USD
+    ws["G11"].fill = ws["G12"].fill = ws["G13"].fill = FORMULA_FILL
+    ws.conditional_formatting.add("G13", FormulaRule(formula=['$G$13<>"OK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Sum Expenses by Category",
+        "",
+        "1. Log one expense per row in A to D (Date, Vendor, Category, Amount). The formulas read rows 2 to 40, so you can add up to 39 rows without editing anything.",
+        "2. Type each category exactly the same way every time. The category list is in F2:F8.",
+        "3. Total spent = SUMIF($C$2:$C$40,F2,$D$2:$D$40). It adds column D wherever column C matches the category in column F.",
+        "4. % of total = G2/$G$9, where G9 is the sum of the category totals.",
+        "5. Check: G11 = SUM($D$2:$D$40), every amount in the log. G12 is G11 minus G9. If it is not $0.00, G13 says CHECK CATEGORIES and some expense has a category that is not in the list.",
+        "6. Common cause: a typo or a trailing space, such as \"Supplies \" with a space after it. Retype the category, or clean the column with TRIM.",
+        "7. To add a category, insert a row between rows 2 and 8 (so the Total row still covers it) and copy the formulas from the row above.",
+        "",
+        "Vendors and amounts are fictional. This file only adds up what you type; it is not tax or accounting advice.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-sum-expenses-by-category.xlsx")
 
 
-# SLOT-4
+def round_prices_nearest_nickel_99():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Prices"
+    header(ws, ["Item", "Price after markup math", "Nearest cent", "Nearest $0.05", "Up to next $0.05",
+                "Ends in .99"],
+           [30, 16, 13, 14, 15, 13])
+    rows = [
+        ("Beeswax candle, 4 oz", 13.4167),
+        ("Cotton tote bag", 8.2333),
+        ("Hand-poured soap set", 24.7083),
+        ("Ceramic mug", 17.9625),
+        ("Greeting card, single", 6.13),
+        ("Linen napkins, set of 4", 31.4467),
+        ("Sticker sheet", 12.9833),
+        ("Embroidered patch", 22.0),
+    ]
+    for r, (item, price) in enumerate(rows, start=2):
+        ws.append([item, price, f"=ROUND(B{r},2)", f"=MROUND(B{r},0.05)", f"=CEILING(B{r},0.05)",
+                   f"=ROUNDUP(B{r},0)-0.01"])
+        ws[f"B{r}"].number_format = '"$"#,##0.0000'
+        for col in "CDEF":
+            ws[f"{col}{r}"].number_format = USD
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Round Prices to the Nearest $0.05 or .99",
+        "",
+        "1. Type your unrounded prices in column B (the result of your markup or discount math).",
+        "2. Nearest cent: =ROUND(B2,2). Nearest nickel: =MROUND(B2,0.05). Always up to the next nickel: =CEILING(B2,0.05).",
+        "3. Ending in .99: =ROUNDUP(B2,0)-0.01. It rounds up to the next whole dollar, then takes off a cent.",
+        "4. Watch out: a price that is already a whole dollar, such as $22.00, becomes $21.99 with the .99 formula.",
+        "5. Example: $13.4167 becomes $13.42 (cent), $13.40 (nickel), $13.45 (up) and $13.99 (.99).",
+        "6. Copy the last row down to add items.",
+        "",
+        "Items and prices are fictional. Checked in LibreOffice Calc only.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-round-prices-nearest-nickel-99.xlsx")
 
 
-# SLOT-5
+def remove_non_breaking_spaces():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Pasted names"
+    header(ws, ["Pasted name", "LEN before", "Code at position 5", "TRIM only", "Cleaned",
+                "LEN after", "COUNTIF before", "COUNTIF after", "Plan price before", "Plan price after",
+                "", "Customer list", "Plan price"],
+           [18, 10, 12, 14, 14, 10, 12, 12, 14, 14, 3, 16, 12])
+    nb = chr(160)  # built in with Python so the cells hold a real non-breaking space
+    raw = [
+        f"Dana{nb}Ruiz",
+        f"Emma{nb}Lee",
+        f"Sara{nb}Kim{nb}",
+        "Mark Diaz\n",
+        f"Lena{nb}Ortiz\t",
+        f"Josh{nb}{nb}Park",
+        f"Anna{nb}Cho",
+        "Mike Stone",
+    ]
+    book = [("Dana Ruiz", 120), ("Emma Lee", 45), ("Sara Kim", 89.5), ("Mark Diaz", 210),
+            ("Lena Ortiz", 65), ("Josh Park", 150), ("Anna Cho", 38), ("Mike Stone", 72.25)]
+    for r, name in enumerate(raw, start=2):
+        ws.append([name, f"=LEN(A{r})", f"=CODE(MID(A{r},5,1))", f"=TRIM(A{r})",
+                   f'=TRIM(CLEAN(SUBSTITUTE(A{r},CHAR(160)," ")))', f"=LEN(E{r})",
+                   f"=COUNTIF($L$2:$L$9,A{r})", f"=COUNTIF($L$2:$L$9,E{r})",
+                   f'=IFERROR(VLOOKUP(A{r},$L$2:$M$9,2,FALSE),"not found")',
+                   f'=IFERROR(VLOOKUP(E{r},$L$2:$M$9,2,FALSE),"not found")'])
+        ws[f"A{r}"].alignment = Alignment(wrap_text=True, vertical="top")
+        for col in "BCDEFGHIJ":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "IJ":
+            ws[f"{col}{r}"].number_format = USD
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        ws[f"L{r}"], ws[f"M{r}"] = book[r - 2]
+        ws[f"M{r}"].number_format = USD
+    ws["L11"], ws["M11"] = "Found before", "=SUM(G2:G9)"
+    ws["L12"], ws["M12"] = "Found after", "=SUM(H2:H9)"
+    for c in ("L11", "L12"):
+        ws[c].font = Font(bold=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Remove Non-Breaking Spaces (CHAR 160) in Excel and Google Sheets",
+        "",
+        "1. Column A holds fictional names pasted the way web pages and PDFs deliver them: most have a non-breaking space (character 160) where a normal space should be, and some have a trailing line break or tab.",
+        "2. Column B: =LEN(A2) counts every character, including the invisible ones. Dana Ruiz shows 9 instead of 8.",
+        "3. Column C: =CODE(MID(A2,5,1)) shows the character code at position 5. A normal space is 32, a non-breaking space is 160. This works here because every first name has 4 letters; change the 5 to point at the character you suspect.",
+        "4. Column D: =TRIM(A2) only removes the regular space character (code 32), so the non-breaking spaces stay. Compare its length to column B.",
+        "5. Column E: =TRIM(CLEAN(SUBSTITUTE(A2,CHAR(160),\" \"))). SUBSTITUTE swaps character 160 for a normal space, CLEAN removes line breaks and tabs, TRIM removes extra spaces.",
+        "6. CLEAN deletes a line break or tab instead of replacing it with a space. If one sits between two words, swap it first: SUBSTITUTE(A2,CHAR(10),\" \").",
+        "7. Columns G to J look each name up in the customer list in L:M. Before cleaning, only Mike Stone is found. After cleaning, all 8 are found.",
+        "8. To keep the results, copy column E and Paste Special > Values only, then delete the gray formula columns.",
+        "",
+        "Names and prices are fictional. Checked in LibreOffice Calc 24.2.7 (Linux) only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-remove-non-breaking-spaces.xlsx")
+
+
+def year_to_date_sales_total():
+    rows = [
+        (date(2026, 1, 12), "Harbor Coffee", 1250.00),
+        (date(2026, 1, 28), "Maple Street Bakery", 480.00),
+        (date(2026, 2, 10), "Oak & Ember Candles", 920.50),
+        (date(2026, 2, 24), "Harbor Coffee", 1100.00),
+        (date(2026, 4, 7), "Maple Street Bakery", 640.00),
+        (date(2026, 5, 19), "Harbor Coffee", 1380.75),
+        (date(2026, 6, 23), "Oak & Ember Candles", 705.00),
+        (date(2026, 7, 8), "Lakeview Florist", 450.00),
+        (date(2026, 7, 30), "Harbor Coffee", 1015.00),
+        (date(2026, 8, 4), "Maple Street Bakery", 520.50),
+        (date(2026, 8, 18), "Oak & Ember Candles", 860.00),
+        (date(2026, 8, 31), "Lakeview Florist", 275.00),
+        (date(2026, 9, 12), "Harbor Coffee", 1190.00),
+        (date(2026, 10, 3), "Lakeview Florist", 330.00),
+    ]
+
+    def fill_sheet(ws, text_row=None):
+        header(ws, ["Sale date", "Customer", "Amount"], [13, 26, 12])
+        for r, (d, who, amt) in enumerate(rows, start=2):
+            if r == text_row:
+                ws.append([d.strftime("%m/%d/%Y"), who, amt])
+                ws[f"A{r}"].number_format = "@"
+            else:
+                ws.append([d, who, amt])
+                ws[f"A{r}"].number_format = US_DATE
+            ws[f"C{r}"].number_format = USD
+        ws.column_dimensions["E"].width = 34
+        ws.column_dimensions["F"].width = 14
+        ws["E1"], ws["F1"] = "Report date (type a date)", date(2026, 8, 31)
+        ws["F1"].number_format = US_DATE
+        ws["F1"].fill = PatternFill("solid", fgColor="FFF2CC")
+        labels = [
+            ("Year-to-date sales", '=SUMIFS(C2:C500,A2:A500,">="&DATE(YEAR(F1),1,1),A2:A500,"<="&F1)'),
+            ("Month-to-date sales", '=SUMIFS(C2:C500,A2:A500,">="&DATE(YEAR(F1),MONTH(F1),1),A2:A500,"<="&F1)'),
+            ("Whole report month (EOMONTH)", '=SUMIFS(C2:C500,A2:A500,">="&DATE(YEAR(F1),MONTH(F1),1),A2:A500,"<="&EOMONTH(F1,0))'),
+            ("Start of year", "=DATE(YEAR(F1),1,1)"),
+            ("Start of month", "=DATE(YEAR(F1),MONTH(F1),1)"),
+            ("Month end", "=EOMONTH(F1,0)"),
+            ("Rows with a real date (check)", "=COUNT(A2:A500)"),
+            ("Rows with an amount (check)", "=COUNT(C2:C500)"),
+        ]
+        for i, (lab, f) in enumerate(labels, start=2):
+            ws[f"E{i}"], ws[f"F{i}"] = lab, f
+            ws[f"E{i}"].font = Font(bold=True)
+            ws[f"F{i}"].fill = FORMULA_FILL
+            ws[f"F{i}"].number_format = USD if i <= 4 else (US_DATE if i <= 7 else "0")
+        ws["E1"].font = Font(bold=True)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    fill_sheet(ws)
+    demo = wb.create_sheet("Text date demo")
+    fill_sheet(demo, text_row=12)  # 08/18/2026 typed as text
+    demo["E11"] = "Row 12 (08/18/2026) is stored as text on purpose."
+    demo["E11"].font = Font(italic=True, color="C00000")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Year-to-Date Sales Total",
+        "",
+        "1. Sales tab: one row per sale. Type the Sale date (a real date), Customer, and Amount.",
+        "2. F1 is the Report date. Type the date you want totals through. The sample uses 08/31/2026 so the numbers stay put; you can type =TODAY() instead for a live total.",
+        "3. Year-to-date (F2) = SUMIFS(C2:C500, A2:A500, \">=\"&DATE(YEAR(F1),1,1), A2:A500, \"<=\"&F1). It adds amounts dated January 1 of the report year through the report date.",
+        "4. Month-to-date (F3) is the same with DATE(YEAR(F1),MONTH(F1),1) as the start. F4 uses EOMONTH(F1,0) as the end to total the whole month.",
+        "5. Change F1 and watch F2 to F4 move. Sales after the report date, like the 09/12/2026 and 10/03/2026 rows, are left out.",
+        "6. Text date demo tab: the same data, but the 08/18/2026 date is stored as text. SUMIFS skips it; compare the totals with the Sales tab. F8 and F9 count real dates and amounts, so a gap means a text date.",
+        "7. Add rows under the last sale. The formulas read down to row 500.",
+        "",
+        "Customers and amounts are fictional.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-year-to-date-sales-total.xlsx")
 
 
 if __name__ == "__main__":

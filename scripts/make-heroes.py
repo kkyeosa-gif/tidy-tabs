@@ -104,11 +104,16 @@ def heroes_2026_10_07():
 def heroes_2026_10_08():
     t = "templates/"
     d = "images/2026-10-08-team-0%d-%s/"
-    # HERO-SLOT-1
-    # HERO-SLOT-2
-    # HERO-SLOT-3
-    # HERO-SLOT-4
-    # HERO-SLOT-5
+    save(d % (1, "sales-tax-calculator-excel-google-sheets") + "sales-tax-calculator-template.png",
+         render(t + "tidy-tabs-sales-tax-calculator.xlsx", "Sales tax", name="salestax"))
+    save(d % (2, "sum-expenses-by-category-sumif-excel-google-sheets") + "sum-expenses-by-category-template.png",
+         render(t + "tidy-tabs-sum-expenses-by-category.xlsx", "Expenses", name="sumexp"))
+    save(d % (3, "round-prices-nearest-nickel-99-excel-google-sheets") + "round-prices-nearest-nickel-99-template.png",
+         render(t + "tidy-tabs-round-prices-nearest-nickel-99.xlsx", "Prices", name="roundprices"))
+    save(d % (4, "remove-non-breaking-spaces-clean-substitute-excel-google-sheets") + "remove-non-breaking-spaces-template.png",
+         render(t + "tidy-tabs-remove-non-breaking-spaces.xlsx", "Pasted names", hide_cols="DIJKLM", name="nbsp"))
+    save(d % (5, "year-to-date-sales-total-sumifs-excel-google-sheets") + "year-to-date-sales-total-template.png",
+         render(t + "tidy-tabs-year-to-date-sales-total.xlsx", "Sales", name="ytd"))
 
 
 def main():

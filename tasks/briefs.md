@@ -240,3 +240,30 @@ Google 도움말 링크로 근거를 댄다.
 - 검증: 10행 전부 ISNUMBER FALSE (텍스트). 텍스트 열 SUM = 0. Basic clean 합 = 괄호 처리 열 합 = $5,095.60 (손계산 1250+18-45.5+89.95+2400+12.5+7.25+1075.4+310-22). 정리 후 ISNUMBER 전부 TRUE.
 - 발견: LibreOffice 에서는 Basic clean(괄호 처리 없음)도 VALUE("(45.50)") = -45.5, VALUE("(22.00)") = -22 로 나옴. Excel/Sheets 의 VALUE 가 괄호를 어떻게 읽는지는 확인 안 함 -> 글에서는 괄호 처리 열(D)을 쓰고, LibreOffice 동작에 기대지 말라고 쓸 것 (노트에도 적음).
 - 로케일: US 로케일에서만 확인. 다른 지역 설정의 $ , . 해석은 미확인.
+
+## 2026-10-08 #2 — templates/tidy-tabs-sum-expenses-by-category.xlsx (탭: Expenses, How to use)
+- 빌드: build-templates.py 의 sum_expenses_by_category() 만 import 해서 실행. LibreOffice Calc 24.2.7 (Linux) 에서만 확인, Excel/Google Sheets 는 열어보지 않음.
+- 수식: G2:G8 `=SUMIF($C$2:$C$40,F2,$D$2:$D$40)`, H `=G2/$G$9`, G9 `=SUM(G2:G8)`, 확인 G11 `=SUM($D$2:$D$40)`, G12 `=ROUND(G11-G9,2)`, G13 `=IF(G12=0,"OK","CHECK CATEGORIES")`.
+- 검증: 로그 22행. Supplies $317.30 (22.2%), Software $90.99 (6.4%), Shipping $142.25 (9.9%), Travel $246.00 (17.2%), Meals $74.35 (5.2%), Utilities $240.74 (16.8%), Advertising $320.50 (22.4%). Total $1,432.13 = 로그 합계, 차이 $0.00, Check OK. 퍼센트 합은 100.0% (표시값 반올림 합은 100.1%). 손계산 일치.
+- 함정 재현 (임시 복사본): C2 를 "Supplies " (끝 공백) 으로 바꾸면 LibreOffice 에서 Supplies 합계 $232.80 (=$317.30 - $84.50, 해당 행 누락), Total $1,347.63, 로그 합계 $1,432.13, 차이 $84.50, Check = CHECK CATEGORIES. 오류 표시 없음. Excel/Sheets 동작은 확인 안 함.
+
+## 2026-10-08 — 주제 5: year-to-date sales (LibreOffice Calc 24.2.7, Linux)
+
+### templates/tidy-tabs-year-to-date-sales-total.xlsx (탭: Sales, Text date demo, How to use)
+- 수식: YTD `=SUMIFS(C2:C500,A2:A500,">="&DATE(YEAR(F1),1,1),A2:A500,"<="&F1)`, MTD 은 시작을 `DATE(YEAR(F1),MONTH(F1),1)`, 월말까지는 `EOMONTH(F1,0)`. F1 = 보고 날짜 (고정 08/31/2026, TODAY 미사용). 이 파일은 FILTER/LET 미사용.
+- 검증 (LibreOffice 재계산, 손계산 일치): 14행. F1=08/31/2026 -> YTD $9,596.75, MTD $1,655.50, 월 전체 $1,655.50 (08/31 행 $275.00 포함, 09/12 $1,190.00 와 10/03 $330.00 제외). F1=07/31/2026 -> YTD $7,941.25, MTD $1,465.00. F1=08/15/2026 -> YTD $8,461.75, MTD $520.50, 월 전체 $1,655.50. F1=12/31/2026 -> YTD $11,116.75, MTD $0.00.
+- 텍스트 날짜 재현: Text date demo 탭 (08/18/2026 $860.00 을 텍스트로 저장) -> YTD $8,736.75 (정상 $9,596.75 보다 $860.00 적음), MTD $795.50 (정상 $1,655.50). 오류 표시 없이 조용히 빠짐. COUNT(A) = 13 vs COUNT(C) = 14 로 확인 가능. 이 동작은 LibreOffice 에서만 확인, Excel/Sheets 는 확인 안 함.
+- LibreOffice Calc 24.2.7 (Linux) 에서만 확인. Excel, Google Sheets 에서는 열어보지 않음.
+
+## 2026-10-08 — Topic 1: sales tax calculator (LibreOffice Calc 24.2.7, Linux)
+### templates/tidy-tabs-sales-tax-calculator.xlsx (탭: Sales tax, Tax-inclusive totals, How to use)
+- 수식: 세금 `=ROUND(B2*$F$1,2)` (F1 = 6.25%, 가짜 요율), 합계 `=B2+C2`, 합계행 SUM. 두 번째 탭: `=ROUND(B2-B2/(1+$F$1),2)` (세금 역산), `=B2-C2`; 요율은 `='Sales tax'!F1`.
+- 검증: 6행 가격 $18.00/$4.50/$24.00/$16.00/$12.99/$32.50 -> 세금 $1.13/$0.28/$1.50/$1.00/$0.81/$2.03, 합계 $19.13/$4.78/$25.50/$17.00/$13.80/$34.53. 합계행 $107.99 / $6.75 / $114.74. 역산 탭: 같은 총액 -> 원가 $18.00/$4.50/$24.00/$16.00/$12.99/$32.50 (왕복 일치), $50.00 -> 세금 $2.94, 원가 $47.06. 손계산 일치 (18 x 0.0625 = 1.125 -> 1.13, 즉 .5 에서 올림).
+- **LibreOffice Calc 24.2.7 (Linux) 에서만 확인. Excel, Google Sheets 에서는 열어보지 않음.** 세금 자문 아님, 면세 품목 처리는 템플릿에 없음.
+- 링크: Google 도움말은 curl -I (HEAD) 로는 404, GET 으로는 200 (ROUND 3093440 제목 확인). Microsoft ROUND 링크 HEAD 200.
+
+## 2026-10-08 — 주제 3: round prices nearest nickel / .99
+### templates/tidy-tabs-round-prices-nearest-nickel-99.xlsx (탭: Prices, How to use)
+- 수식: C `=ROUND(B2,2)`, D `=MROUND(B2,0.05)`, E `=CEILING(B2,0.05)`, F `=ROUNDUP(B2,0)-0.01`. B 는 반올림 전 가격(4자리).
+- 검증 (LibreOffice Calc 24.2.7 Linux 에서만; Excel, Google Sheets 에서는 열어보지 않음): 8행 13.4167 -> 13.42/13.40/13.45/13.99; 8.2333 -> 8.23/8.25/8.25/8.99; 24.7083 -> 24.71/24.70/24.75/24.99; 17.9625 -> 17.96/17.95/18.00/17.99; 6.13 -> 6.13/6.15/6.15/6.99; 31.4467 -> 31.45/31.45/31.45/31.99; 12.9833 -> 12.98/13.00/13.00/12.99; 22.0000 -> 22.00/22.00/22.00/21.99 (정수 가격은 .99 수식이 1센트 내림). 손계산 일치.
+- 부호: 임시 파일에서 LibreOffice 는 MROUND(13.4167,-0.05) = 13.4 를 반환 (Excel 동작은 확인 안 함). 글에서 음수 동작은 주장하지 않음. 부동소수점 표시 문제(12.9899999)는 재현 안 함, 글에 쓰지 않음.

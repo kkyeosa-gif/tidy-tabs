@@ -101,8 +101,18 @@ def heroes_2026_10_07():
          render(t + "tidy-tabs-convert-text-to-numbers.xlsx", "Pasted amounts", hide_cols="EF", name="text2num"))
 
 
+def heroes_2026_10_08():
+    t = "templates/"
+    d = "images/2026-10-08-team-0%d-%s/"
+    # HERO-SLOT-1
+    # HERO-SLOT-2
+    # HERO-SLOT-3
+    # HERO-SLOT-4
+    # HERO-SLOT-5
+
+
 def main():
-    heroes_2026_10_07()
+    heroes_2026_10_08()
     return
     # older heroes (rebuilding rewrites their PNGs; the early return above skips them)
     t = "templates/"

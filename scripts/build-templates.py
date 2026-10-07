@@ -1517,6 +1517,21 @@ def convert_text_to_numbers():
     wb.save(OUT / "tidy-tabs-convert-text-to-numbers.xlsx")
 
 
+# SLOT-1
+
+
+# SLOT-2
+
+
+# SLOT-3
+
+
+# SLOT-4
+
+
+# SLOT-5
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -1544,4 +1559,5 @@ if __name__ == "__main__":
     reorder_point_calculator()
     freelance_hourly_rate()
     convert_text_to_numbers()
+    # REG-SLOTS
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

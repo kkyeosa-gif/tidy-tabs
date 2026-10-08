@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeNmhSYDZxW
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-reorder-point-in-excel.html
 title: How to Calculate a Reorder Point in Excel and Google Sheets
 labels: excel-formulas, inventory, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps use the same functions; the ROUNDUP links are from Microsoft Support and Google Docs Editors Help (not tested here).

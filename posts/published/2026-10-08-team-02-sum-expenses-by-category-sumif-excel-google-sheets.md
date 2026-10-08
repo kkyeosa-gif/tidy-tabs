@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DePv2htmANM
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-sum-expenses-by-category-with.html
 title: How to Sum Expenses by Category With SUMIF in Excel and Google Sheets
 labels: excel-formulas, expenses, freelancers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps use the same SUMIF, SUM and TRIM functions; the links are from Microsoft Support and Google Docs Editors Help (not tested here).

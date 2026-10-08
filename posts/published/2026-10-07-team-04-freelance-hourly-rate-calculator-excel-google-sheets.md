@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeO5uVQoNm_
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-freelance-hourly-rate.html
 title: How to Calculate a Freelance Hourly Rate in Excel and Google Sheets
 labels: excel-formulas, freelance, small-business-finance
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets were not opened; the ROUNDUP help pages are linked.

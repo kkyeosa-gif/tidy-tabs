@@ -35,3 +35,13 @@
 - How to Calculate a Reorder Point in Excel and Google Sheets — `reorder-point-calculator-excel-google-sheets`
 - How to Calculate Your Freelance Hourly Rate in Excel and Google Sheets — `freelance-hourly-rate-calculator-excel-google-sheets`
 - How to Convert Text to Numbers (Dollar Signs and Commas) in Excel and Google Sheets — `convert-text-to-numbers-dollar-signs-excel-google-sheets`
+
+## 2026-10-08 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용)
+- How to Set Wholesale Price Tiers by Quantity With an Approximate-Match Lookup in Excel and Google Sheets — `quantity-price-tiers-lookup-excel-google-sheets` (VLOOKUP TRUE / LOOKUP)
+- How to Calculate Weighted Average Cost of Supplies With SUMPRODUCT in Excel and Google Sheets — `weighted-average-cost-sumproduct-excel-google-sheets` (재료 구매 단가가 바뀔 때)
+
+## 2026-10-09 교체 (리서처 10-08 목록 중 3개가 기존 글과 중복되어 삭제하고 아래 3개로 대체)
+- 삭제: text-dollar-amounts-to-numbers (convert-text-to-numbers 와 중복), effective-hourly-rate-fixed-price (freelance-hourly-rate 와 중복), round-prices-to-99 (round-prices-nearest-nickel-99 와 중복)
+- How to Find the Last Order Date for Each Customer With MAXIFS in Excel and Google Sheets - `last-order-date-per-customer-maxifs-excel-google-sheets`
+- How to Count Orders by Month With COUNTIFS in Excel and Google Sheets - `count-orders-by-month-countifs-excel-google-sheets`
+- How to Find Average Order Value by Sales Channel With AVERAGEIFS in Excel and Google Sheets - `average-order-value-by-channel-averageifs-excel-google-sheets`

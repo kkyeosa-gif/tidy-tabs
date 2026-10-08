@@ -1836,6 +1836,316 @@ def year_to_date_sales_total():
     wb.save(OUT / "tidy-tabs-year-to-date-sales-total.xlsx")
 
 
+def quantity_price_tiers():
+    wb = Workbook()
+    tiers = wb.active
+    tiers.title = "Tiers"
+    header(tiers, ["Min quantity", "Unit price", "Tier"], [14, 12, 16])
+    for r, (q, p, label) in enumerate([(1, 12.00, "1 to 11"), (12, 10.50, "12 to 35"),
+                                        (36, 9.25, "36 to 71"), (72, 8.00, "72 and up")], start=2):
+        tiers.append([q, p, label])
+        tiers[f"B{r}"].number_format = USD
+    tiers["E1"], tiers["E2"], tiers["E3"], tiers["E4"] = "Try a quantity", "Quantity", "Unit price", "Without IFERROR"
+    tiers["F2"] = 0
+    tiers["F3"] = '=IFERROR(VLOOKUP(F2,$A$2:$B$5,2,TRUE),"Below first tier")'
+    tiers["F4"] = "=VLOOKUP(F2,$A$2:$B$5,2,TRUE)"
+    tiers["F2"].fill = PatternFill("solid", fgColor="FFF2CC")
+    for c in ("F3", "F4"):
+        tiers[c].fill = FORMULA_FILL
+        tiers[c].number_format = USD
+    tiers["E1"].font = Font(bold=True)
+    tiers.column_dimensions["E"].width = 18
+    tiers.column_dimensions["F"].width = 18
+
+    ws = wb.create_sheet("Orders")
+    header(ws, ["Order date", "Customer", "Quantity", "VLOOKUP", "LOOKUP", "INDEX + MATCH",
+                "Order total", "All 3 agree?"], [12, 24, 10, 12, 12, 15, 13, 13])
+    orders = [
+        (date(2026, 9, 2), "Harbor Coffee", 1),
+        (date(2026, 9, 4), "Maple Street Bakery", 11),
+        (date(2026, 9, 9), "Oak & Ember Candles", 12),
+        (date(2026, 9, 14), "Lakeview Florist", 35),
+        (date(2026, 9, 18), "Harbor Coffee", 36),
+        (date(2026, 9, 23), "Maple Street Bakery", 71),
+        (date(2026, 9, 26), "Oak & Ember Candles", 72),
+        (date(2026, 9, 30), "Lakeview Florist", 500),
+    ]
+    for r, (d, who, qty) in enumerate(orders, start=2):
+        ws.append([d, who, qty,
+                   f"=VLOOKUP(C{r},Tiers!$A$2:$B$5,2,TRUE)",
+                   f"=LOOKUP(C{r},Tiers!$A$2:$A$5,Tiers!$B$2:$B$5)",
+                   f"=INDEX(Tiers!$B$2:$B$5,MATCH(C{r},Tiers!$A$2:$A$5,1))",
+                   f"=C{r}*D{r}",
+                   f'=IF(AND(D{r}=E{r},E{r}=F{r}),"Yes","CHECK")'])
+        ws[f"A{r}"].number_format = US_DATE
+        for col in "DEFG":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "DEFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    demo = wb.create_sheet("Unsorted demo")
+    header(demo, ["Min quantity", "Unit price", "", "Quantity", "VLOOKUP result", "Correct price"],
+           [14, 12, 3, 10, 16, 14])
+    for r, (q, p) in enumerate([(36, 9.25), (1, 12.00), (72, 8.00), (12, 10.50)], start=2):
+        demo.append([q, p])
+        demo[f"B{r}"].number_format = USD
+    for r, (qty, right) in enumerate([(5, 12.00), (20, 10.50), (40, 9.25), (80, 8.00)], start=2):
+        demo[f"D{r}"] = qty
+        demo[f"E{r}"] = f"=VLOOKUP(D{r},$A$2:$B$5,2,TRUE)"
+        demo[f"F{r}"] = right
+        demo[f"E{r}"].number_format = demo[f"F{r}"].number_format = USD
+        demo[f"E{r}"].fill = FORMULA_FILL
+    demo["A7"] = "The tier table above is NOT sorted from smallest to largest, so approximate match can return wrong prices."
+    demo["A7"].font = Font(italic=True, color="C00000")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Wholesale Price Tiers by Quantity",
+        "",
+        "1. Tiers tab: list the smallest quantity of each tier in A and its unit price in B. Keep column A sorted from smallest to largest. Approximate match depends on that order.",
+        "2. Orders tab: type the quantity in column C. The three unit price columns find the last tier whose minimum is less than or equal to the quantity.",
+        "3. D: =VLOOKUP(C2,Tiers!$A$2:$B$5,2,TRUE). The TRUE (or leaving it out) turns on approximate match.",
+        "4. E: =LOOKUP(C2,Tiers!$A$2:$A$5,Tiers!$B$2:$B$5). F: =INDEX(Tiers!$B$2:$B$5,MATCH(C2,Tiers!$A$2:$A$5,1)). The 1 in MATCH means the same approximate match.",
+        "5. G: =C2*D2 is the order total. H checks that all three methods give the same price.",
+        "6. Edge quantities in the sample: 11 pays the first tier, 12 pays the second; 35 and 36, 71 and 72 work the same way. Quantity 500 uses the last tier.",
+        "7. A quantity below the first minimum (such as 0) returns #N/A. Tiers!F2 to F4 let you try one; F3 wraps the lookup in IFERROR.",
+        "8. Unsorted demo tab: the same tiers in the wrong order. Compare the VLOOKUP result with the correct price. What an unsorted table returns is not guaranteed, so sort it.",
+        "9. To add a tier, insert a row inside the table (not below it) so the ranges grow, and keep the minimums sorted.",
+        "",
+        "Customers, quantities, and prices are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-quantity-price-tiers.xlsx")
+
+
+def weighted_average_cost():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Purchases"
+    header(ws, ["Purchase date", "Item", "Quantity", "Unit cost", "Line total"], [14, 20, 11, 11, 13])
+    buys = [
+        (date(2026, 7, 6), "Soy wax (lb)", 10, 4.00),
+        (date(2026, 7, 20), "Cotton wicks", 200, 0.12),
+        (date(2026, 8, 3), "Soy wax (lb)", 40, 3.50),
+        (date(2026, 8, 12), "Glass jars", 48, 1.85),
+        (date(2026, 8, 25), "Cotton wicks", 500, 0.09),
+        (date(2026, 9, 7), "Soy wax (lb)", 25, 3.80),
+        (date(2026, 9, 15), "Glass jars", 96, 1.60),
+        (date(2026, 9, 22), "Cotton wicks", 300, 0.10),
+        (date(2026, 9, 29), "Glass jars", 24, 2.10),
+    ]
+    for r, (d, item, qty, cost) in enumerate(buys, start=2):
+        ws.append([d, item, qty, cost, f"=C{r}*D{r}"])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = '"$"#,##0.00'
+        ws[f"E{r}"].number_format = USD
+        ws[f"E{r}"].fill = FORMULA_FILL
+
+    s = wb.create_sheet("Summary")
+    header(s, ["Item", "Total quantity", "Total spent", "Weighted avg (SUMIFS)", "Weighted avg (SUMPRODUCT)",
+               "Simple average", "Difference"], [20, 14, 13, 20, 24, 15, 12])
+    for r, item in enumerate(["Soy wax (lb)", "Cotton wicks", "Glass jars"], start=2):
+        s.append([item,
+                  f"=SUMIFS(Purchases!$C$2:$C$40,Purchases!$B$2:$B$40,A{r})",
+                  f"=SUMIFS(Purchases!$E$2:$E$40,Purchases!$B$2:$B$40,A{r})",
+                  f"=C{r}/B{r}",
+                  f"=SUMPRODUCT((Purchases!$B$2:$B$40=A{r})*Purchases!$C$2:$C$40*Purchases!$D$2:$D$40)/B{r}",
+                  f"=AVERAGEIFS(Purchases!$D$2:$D$40,Purchases!$B$2:$B$40,A{r})",
+                  f"=ROUND(D{r}-F{r},4)"])
+        s[f"C{r}"].number_format = USD
+        for col in "DEFG":
+            s[f"{col}{r}"].number_format = '"$"#,##0.0000'
+        for col in "BCDEFG":
+            s[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Weighted Average Cost With SUMPRODUCT",
+        "",
+        "1. Purchases tab: one row per purchase with the date, item, quantity, and unit cost you paid. Column E is quantity times unit cost.",
+        "2. Summary tab, column E: =SUMPRODUCT((Purchases!$B$2:$B$40=A2)*Purchases!$C$2:$C$40*Purchases!$D$2:$D$40)/B2. It multiplies quantity by unit cost for the rows that match the item, adds them up, and divides by the total quantity.",
+        "3. Column D gives the same answer with SUMIFS: total spent divided by total quantity (=C2/B2).",
+        "4. Column F, =AVERAGEIFS(...), is the simple average of the unit costs. It ignores how many units each purchase covered, so it is off whenever the quantities differ.",
+        "5. Example: 10 lb at $4.00 and 40 lb at $3.50 cost $180.00 for 50 lb, so the weighted average is $3.60 per lb. The simple average of $4.00 and $3.50 is $3.75.",
+        "6. The formulas read rows 2 to 40, so you can add purchases without editing them. Type each item name exactly the same way every time.",
+        "7. This is an average unit cost of what you bought. It is not an inventory valuation method or tax advice.",
+        "",
+        "Items, quantities, and prices are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-weighted-average-cost.xlsx")
+
+
+def last_order_date_maxifs():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order date", "Customer", "Amount"], [13, 26, 12])
+    orders = [
+        (date(2026, 6, 8), "Harbor Coffee", 640.00),
+        (date(2026, 6, 19), "Maple Street Bakery", 310.50),
+        (date(2026, 7, 14), "Oak & Ember Candles", 455.00),
+        (date(2026, 7, 28), "Harbor Coffee", 720.00),
+        (date(2026, 8, 11), "Lakeview Florist", 180.25),
+        (date(2026, 8, 26), "Maple Street Bakery", 395.00),
+        (date(2026, 9, 9), "Oak & Ember Candles", 510.75),
+        (date(2026, 9, 17), "Harbor Coffee", 865.00),
+        (date(2026, 9, 24), "Lakeview Florist", 242.00),
+        (date(2026, 9, 30), "Maple Street Bakery", 428.40),
+    ]
+    for r, (d, who, amt) in enumerate(orders, start=2):
+        ws.append([d, who, amt])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+
+    s = wb.create_sheet("Summary")
+    header(s, ["Customer", "Last order date", "Last order amount", "Days since last order", "Orders"],
+           [26, 16, 18, 20, 9])
+    for r, who in enumerate(["Harbor Coffee", "Maple Street Bakery", "Oak & Ember Candles", "Lakeview Florist"],
+                            start=2):
+        s.append([who,
+                  f"=_xlfn.MAXIFS(Orders!$A$2:$A$200,Orders!$B$2:$B$200,A{r})",
+                  f"=SUMIFS(Orders!$C$2:$C$200,Orders!$B$2:$B$200,A{r},Orders!$A$2:$A$200,B{r})",
+                  f"=$H$2-B{r}",
+                  f"=COUNTIFS(Orders!$B$2:$B$200,A{r})"])
+        s[f"B{r}"].number_format = US_DATE
+        s[f"C{r}"].number_format = USD
+        s[f"D{r}"].number_format = "0"
+        for col in "BCDE":
+            s[f"{col}{r}"].fill = FORMULA_FILL
+    s.column_dimensions["G"].width = 14
+    s.column_dimensions["H"].width = 14
+    s["G2"], s["H2"] = "Report date", date(2026, 10, 9)
+    s["H2"].number_format = US_DATE
+    s["H2"].fill = PatternFill("solid", fgColor="FFF2CC")
+    s["G2"].font = Font(bold=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Last Order Date per Customer With MAXIFS",
+        "",
+        "1. Orders tab: one row per order with a real date, the customer name, and the amount. The Summary formulas read rows 2 to 200.",
+        "2. Summary B: =MAXIFS(Orders!$A$2:$A$200,Orders!$B$2:$B$200,A2). It returns the latest (largest) date among the rows whose customer matches A2.",
+        "3. Summary C: =SUMIFS(Orders!$C$2:$C$200,Orders!$B$2:$B$200,A2,Orders!$A$2:$A$200,B2). It adds the amounts for that customer on that last date. If a customer placed two orders on the same day, you get both added together.",
+        "4. Summary D: report date minus the last order date. Change H2 (or type =TODAY()) to see it move.",
+        "5. If a customer has no orders, MAXIFS returns 0, which shows as a date in 1899 or 1900. Wrap it in IF(COUNTIFS(...)=0,\"\",...) if your list can include new customers.",
+        "6. MAXIFS is in Excel 2019 and Microsoft 365, and in Google Sheets. It is not in Excel 2016 or earlier; there, use an array formula with MAX and IF.",
+        "7. Dates typed as text (left-aligned, no date format) are ignored by MAXIFS, so convert them to real dates first.",
+        "",
+        "Customers and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-last-order-date-maxifs.xlsx")
+
+
+def count_orders_by_month():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order date", "Customer", "Amount"], [13, 26, 12])
+    orders = [
+        (date(2026, 7, 8), "Harbor Coffee", 120.00),
+        (date(2026, 7, 22), "Maple Street Bakery", 245.50),
+        (date(2026, 8, 5), "Oak & Ember Candles", 89.00),
+        (date(2026, 8, 19), "Lakeview Florist", 310.25),
+        (date(2026, 8, 31), "Harbor Coffee", 150.00),
+        (date(2026, 9, 1), "Maple Street Bakery", 75.00),
+        (date(2026, 9, 14), "Oak & Ember Candles", 420.00),
+        (date(2026, 9, 28), "Lakeview Florist", 198.75),
+        (date(2026, 10, 2), "Harbor Coffee", 260.00),
+        (date(2026, 10, 7), "Maple Street Bakery", 135.50),
+    ]
+    for r, (d, who, amt) in enumerate(orders, start=2):
+        ws.append([d, who, amt])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+
+    s = wb.create_sheet("Monthly")
+    header(s, ["Month start", "Orders", "Revenue"], [14, 10, 14])
+    for r, m in enumerate([date(2026, 7, 1), date(2026, 8, 1), date(2026, 9, 1), date(2026, 10, 1)], start=2):
+        s.append([m,
+                  f'=COUNTIFS(Orders!$A$2:$A$200,">="&A{r},Orders!$A$2:$A$200,"<"&EDATE(A{r},1))',
+                  f'=SUMIFS(Orders!$C$2:$C$200,Orders!$A$2:$A$200,">="&A{r},Orders!$A$2:$A$200,"<"&EDATE(A{r},1))'])
+        s[f"A{r}"].number_format = US_DATE
+        s[f"C{r}"].number_format = USD
+        s[f"B{r}"].fill = s[f"C{r}"].fill = FORMULA_FILL
+    s["A6"], s["B6"], s["C6"] = "Total", "=SUM(B2:B5)", "=SUM(C2:C5)"
+    s["A7"], s["B7"], s["C7"] = "Orders tab total", "=COUNT(Orders!A2:A200)", "=SUM(Orders!C2:C200)"
+    s["C7"].number_format = s["C6"].number_format = USD
+    for c in ("A6", "A7"):
+        s[c].font = Font(bold=True)
+    s.column_dimensions["A"].width = 18
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Count Orders by Month With COUNTIFS",
+        "",
+        "1. Orders tab: one row per order with a real date, the customer, and the amount. The formulas read rows 2 to 200.",
+        "2. Monthly tab, column A: type the first day of each month (07/01/2026). Format the cells as dates.",
+        "3. Orders: =COUNTIFS(Orders!$A$2:$A$200,\">=\"&A2,Orders!$A$2:$A$200,\"<\"&EDATE(A2,1)). It counts dates on or after the first of the month and before the first of the next month.",
+        "4. Revenue: the same two date tests inside SUMIFS, adding Orders!$C$2:$C$200.",
+        "5. Why \"before the first of the next month\" and not \"on or before the last day\": it also works if a date carries a time of day, such as 08/31/2026 3:30 PM.",
+        "6. Rows 6 and 7 compare the monthly totals with the whole Orders tab. If they differ, an order falls outside the months listed or its date is stored as text.",
+        "7. Sample edge: 08/31/2026 counts in August and 09/01/2026 counts in September.",
+        "",
+        "Customers and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-count-orders-by-month.xlsx")
+
+
+def average_order_value_by_channel():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order date", "Channel", "Amount"], [13, 18, 12])
+    orders = [
+        (date(2026, 9, 3), "Etsy", 34.00),
+        (date(2026, 9, 5), "Farmers market", 22.00),
+        (date(2026, 9, 8), "Shopify", 78.00),
+        (date(2026, 9, 12), "Etsy", 52.50),
+        (date(2026, 9, 13), "Farmers market", 35.50),
+        (date(2026, 9, 17), "Shopify", 45.00),
+        (date(2026, 9, 20), "Farmers market", 18.50),
+        (date(2026, 9, 24), "Etsy", 29.00),
+        (date(2026, 9, 27), "Shopify", 96.50),
+        (date(2026, 9, 28), "Farmers market", 40.00),
+    ]
+    for r, (d, ch, amt) in enumerate(orders, start=2):
+        ws.append([d, ch, amt])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+
+    s = wb.create_sheet("By channel")
+    header(s, ["Channel", "Orders", "Revenue", "Average order value", "Check (revenue / orders)"],
+           [18, 10, 13, 20, 24])
+    for r, ch in enumerate(["Etsy", "Shopify", "Farmers market"], start=2):
+        s.append([ch,
+                  f"=COUNTIFS(Orders!$B$2:$B$200,A{r})",
+                  f"=SUMIFS(Orders!$C$2:$C$200,Orders!$B$2:$B$200,A{r})",
+                  f"=AVERAGEIFS(Orders!$C$2:$C$200,Orders!$B$2:$B$200,A{r})",
+                  f"=C{r}/B{r}"])
+        for col in "CDE":
+            s[f"{col}{r}"].number_format = USD
+        for col in "BCDE":
+            s[f"{col}{r}"].fill = FORMULA_FILL
+    s["A5"], s["B5"], s["C5"], s["D5"] = "All channels", "=SUM(B2:B4)", "=SUM(C2:C4)", "=AVERAGE(Orders!C2:C200)"
+    s["C5"].number_format = s["D5"].number_format = USD
+    s["A5"].font = Font(bold=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Average Order Value by Sales Channel With AVERAGEIFS",
+        "",
+        "1. Orders tab: one row per order with the date, the sales channel, and the order amount. Type each channel name exactly the same way every time.",
+        "2. By channel, column D: =AVERAGEIFS(Orders!$C$2:$C$200,Orders!$B$2:$B$200,A2). The first argument is the range to average, then the range to test and the value it must match.",
+        "3. Column B: =COUNTIFS(Orders!$B$2:$B$200,A2) counts the orders, and column C adds the revenue with SUMIFS.",
+        "4. Column E divides revenue by orders. It should equal column D; if it does not, a row has a text amount or a blank.",
+        "5. If a channel has no orders, AVERAGEIFS returns #DIV/0!. Wrap it in IFERROR(...,\"\") if you list channels you have not sold through yet.",
+        "6. To average only one month, add two more date conditions, for example Orders!$A$2:$A$200,\">=\"&DATE(2026,9,1).",
+        "7. Row 5 is the average across all channels. It is the average of orders, not the average of the three channel averages.",
+        "",
+        "Orders and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    wb.save(OUT / "tidy-tabs-average-order-value-by-channel.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -1868,4 +2178,9 @@ if __name__ == "__main__":
     round_prices_nearest_nickel_99()
     remove_non_breaking_spaces()
     year_to_date_sales_total()
+    quantity_price_tiers()
+    weighted_average_cost()
+    last_order_date_maxifs()
+    count_orders_by_month()
+    average_order_value_by_channel()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

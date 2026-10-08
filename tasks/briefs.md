@@ -274,3 +274,69 @@ Google 도움말 링크로 근거를 댄다.
 - 검증 (LibreOffice Calc 24.2.7 Linux 만, Excel/Sheets 아님): 8행 LEN 전 9/8/9/10/11/10/8/10 -> 후 9/8/8/9/10/9/8/10. 5번째 문자 코드 160 (6행), 32 (Mark Diaz, Mike Stone). COUNTIF 전 합계 1 (Mike Stone 만), 후 8. VLOOKUP 전 7행 "not found", 후 $120.00/$45.00/$89.50/$210.00/$65.00/$150.00/$38.00/$72.25. LibreOffice TRIM 은 CHAR(160) 을 지우지 않음 (LEN 9 -> 9). 손계산 일치.
 - 발견: LibreOffice 에서 CHAR(160)/CODE 는 프로필 로케일에 따라 다름. 기본 프로필 160 (정상), 새 프로필(-env:UserInstallation, render-previews 방식) 에서 CODE = 194 이고 SUBSTITUTE(CHAR(160)) 가 안 먹음. 그래서 템플릿은 UNICHAR/UNICODE 사용 (clean_customer_list 와 동일). 글은 CHAR(160) 을 답으로 쓰고 Troubleshooting 에 이 차이를 적음. Excel/Sheets 의 CHAR(160) 동작은 확인 안 함.
 - Microsoft TRIM 페이지 본문(curl) 확인: "designed to trim the 7-bit ASCII space character (value 32)... By itself, the TRIM function does not remove this nonbreaking space character." Google 도움말 URL 은 HEAD 로는 404, GET 은 200 (TRIM 3094140, SUBSTITUTE 3094215, import 40608).
+
+## 2026-10-08 — 신규 주제 5개 (researcher)
+- tasks/search-stats.md 없음 -> **데이터 없음.** 숫자 기반 판단 불가, 3-gate (직접 제작/검증, 다운로드 가능, 세금·법률 판단 없음)만 적용. 제목/슬러그가 posts/ready, posts/published, tasks/topics-seed.md 와 겹치지 않는지 /tmp/titles.txt 로 대조함. 아래는 좋은 순. 제목 다듬기와 본문은 hook-writer 몫.
+- 공통: 모든 검증은 .xlsx 를 LibreOffice (soffice --headless --convert-to xlsx) 로 재계산 후 openpyxl data_only=True 로 값 확인. Excel/Google Sheets 에서는 열어보지 않음 (글에서는 공식 도움말 링크로 근거).
+
+### 1. ~~How to Convert Text Dollar Amounts From a CSV Into Real Numbers in Excel and Google Sheets~~ (삭제, 2026-10-09)
+- 기존 글과 중복이라 제외: convert-text-to-numbers-dollar-signs 와 같은 주제. 계획 전문은 git 기록에 있음.
+
+### 2. ~~How to Calculate Your Effective Hourly Rate on a Fixed-Price Project in Excel and Google Sheets~~ (삭제, 2026-10-09)
+- 기존 글과 중복이라 제외: freelance-hourly-rate-calculator 와 겹침. 계획 전문은 git 기록에 있음.
+
+### 3. How to Set Wholesale Price Tiers by Quantity With an Approximate-Match Lookup in Excel and Google Sheets
+- slug: `quantity-price-tiers-lookup-excel-google-sheets`
+- 검색어: "excel quantity discount tiers formula", "vlookup approximate match price breaks", "wholesale pricing tiers google sheets"
+- 샘플/템플릿: tidy-tabs-quantity-price-tiers.xlsx (탭: Tiers, Orders, How to use). Tiers: 1-11 $12.00, 12-35 $10.50, 36-71 $9.25, 72+ $8.00 (임의 샘플 가격). Orders 8행: 수량 -> 단가 -> 합계.
+- 수식: `=VLOOKUP(B2,Tiers!$A$2:$B$5,2,TRUE)`, `=B2*C2`, 대안 `=LOOKUP(B2,Tiers!$A$2:$A$5,Tiers!$B$2:$B$5)`, `=INDEX(Tiers!$B$2:$B$5,MATCH(B2,Tiers!$A$2:$A$5,1))`, 경계값 테스트용 열.
+- 확인: 수량 1, 11, 12, 35, 36, 71, 72, 500 (경계) 에서 단가가 기대값. 세 방식이 동일한 값을 내는지. 오름차순 정렬이 깨지면 틀린 값이 나오는 것을 일부러 재현해서 "정렬 필수" 경고 근거로 쓴다. 0 수량 -> #N/A 처리 (IFERROR) 확인.
+- 경쟁: 기존 `vlookup-price-list` 글은 정확히 일치(FALSE) 위주라 TRUE 근사 일치는 별개 주제. Microsoft VLOOKUP 도움말이 1페이지에 있음 -> "수량 할인/도매" 상황으로 롱테일.
+
+### 4. How to Calculate Weighted Average Cost of Supplies With SUMPRODUCT in Excel and Google Sheets
+- slug: `weighted-average-cost-sumproduct-excel-google-sheets`
+- 검색어: "weighted average cost excel sumproduct", "average unit cost when price changes spreadsheet", "calculate average cost of inventory purchases google sheets"
+- 샘플/템플릿: tidy-tabs-weighted-average-cost.xlsx (탭: Purchases, Summary, How to use). Purchases: 날짜 MM/DD/YYYY, 품목 (soy wax, wicks, jars), 수량, 단가, 합계. Summary: 품목별 가중평균 단가, 단순평균과 비교.
+- 수식: `=C2*D2`, 품목별 `=SUMIFS(E:E,B:B,A2)/SUMIFS(C:C,B:B,A2)`, `=SUMPRODUCT((B2:B20=A2)*C2:C20*D2:D20)/SUMIFS(C2:C20,B2:B20,A2)`, `=AVERAGEIFS(D2:D20,B2:B20,A2)` (단순평균 비교).
+- 확인: 손계산 (예: 10 lb x $4.00 + 40 lb x $3.50 = $180 / 50 = $3.60, 단순평균은 $3.75) 일치, SUMPRODUCT 와 SUMIFS 방식 값 동일. 회계기준(FIFO 등)·세금 처리 판단은 하지 않음 - "단순 평균 단가 계산"만.
+- 경쟁: Exceljet/Corporate Finance 류 일반 "weighted average" 글. 공예/베이커리 재료 구매 상황으로 롱테일.
+
+### 5. ~~How to Round Prices to .99 or the Nearest Quarter in Excel and Google Sheets~~ (삭제, 2026-10-09)
+- 기존 글과 중복이라 제외: round-prices-nearest-nickel-99 와 같은 주제. 계획 전문은 git 기록에 있음.
+
+## 2026-10-09 신규 주제 5개 (hook-writer + 템플릿 빌드)
+- 리서처 10-08 목록 중 1, 2, 5번은 기존 글과 중복이라 삭제(위에 취소선). 3번(quantity-price-tiers)과 4번(weighted-average-cost)은 유지, 새로 3개 추가 (MAXIFS, COUNTIFS 월별, AVERAGEIFS 채널별). 검색 데이터 없음, 3-gate 기준만 적용.
+- 템플릿은 scripts/build-templates.py 에 함수 5개 추가. 새 .xlsx 5개만 커밋 대상 (재빌드 시 기존 바이너리는 zip 타임스탬프만 바뀌어 git checkout 으로 되돌림).
+- 검증 방법 공통: soffice --headless --convert-to xlsx 로 재계산 후 openpyxl data_only=True. **LibreOffice Calc 24.2 (Linux) 에서만 확인. Excel, Google Sheets 에서는 열어보지 않음.** 글의 tested_in 에 그대로 적을 것. MAXIFS 는 _xlfn.MAXIFS 로 저장했고 LibreOffice 가 정상 계산함.
+
+### A. quantity-price-tiers-lookup-excel-google-sheets
+- 제목: How to Look Up Wholesale Price Tiers by Quantity in Excel and Google Sheets
+- 템플릿: tidy-tabs-quantity-price-tiers.xlsx (Tiers, Orders, Unsorted demo, How to use)
+- 수식: `=VLOOKUP(C2,Tiers!$A$2:$B$5,2,TRUE)`, `=LOOKUP(C2,Tiers!$A$2:$A$5,Tiers!$B$2:$B$5)`, `=INDEX(Tiers!$B$2:$B$5,MATCH(C2,Tiers!$A$2:$A$5,1))`, 합계 `=C2*D2`.
+- 검증: 수량 1/11/12/35/36/71/72/500 -> $12.00/$12.00/$10.50/$10.50/$9.25/$9.25/$8.00/$8.00, 합계 $12.00/$132.00/$126.00/$367.50/$333.00/$656.75/$576.00/$4,000.00. 세 방식 8행 모두 일치. 수량 0: VLOOKUP #N/A, IFERROR 로 감싸면 "Below first tier". 손계산 일치.
+- 정렬 깨진 표(36,1,72,12 순서): LibreOffice 는 수량 5 -> #N/A, 20 -> #N/A, 40 -> $12.00 (정답 $9.25), 80 -> $10.50 (정답 $8.00). 틀린 값이 나오는 건 확인했지만 정확한 결과는 구현에 따라 다를 수 있어 글에는 "틀리거나 #N/A" 로만 쓰고 Excel/Sheets 가 같다고 쓰지 않음.
+
+### B. weighted-average-cost-sumproduct-excel-google-sheets
+- 제목: How to Calculate Weighted Average Cost With SUMPRODUCT in Excel and Google Sheets
+- 템플릿: tidy-tabs-weighted-average-cost.xlsx (Purchases, Summary, How to use)
+- 수식: `=C2*D2`, `=SUMPRODUCT((Purchases!$B$2:$B$40=A2)*Purchases!$C$2:$C$40*Purchases!$D$2:$D$40)/B2`, `=C2/B2` (SUMIFS 합계 기반), `=AVERAGEIFS(Purchases!$D$2:$D$40,Purchases!$B$2:$B$40,A2)`.
+- 검증: Soy wax 75 lb, $275.00, 가중 $3.6667, 단순 $3.7667. Cotton wicks 1,000, $99.00, 가중 $0.0990, 단순 $0.1033. Glass jars 168, $292.80, 가중 $1.7429, 단순 $1.8500. SUMPRODUCT 와 SUMIFS 값 동일. 손계산 일치. 재고평가법/세금 판단 아님을 노트에 적음.
+
+### C. last-order-date-per-customer-maxifs-excel-google-sheets
+- 제목: How to Find the Last Order Date for Each Customer With MAXIFS in Excel and Google Sheets
+- 템플릿: tidy-tabs-last-order-date-maxifs.xlsx (Orders, Summary, How to use)
+- 수식: `=MAXIFS(Orders!$A$2:$A$200,Orders!$B$2:$B$200,A2)` (파일에는 _xlfn.MAXIFS), 마지막 금액 `=SUMIFS(Orders!$C$2:$C$200,Orders!$B$2:$B$200,A2,Orders!$A$2:$A$200,B2)`, 경과일 `=$H$2-B2` (H2 = 10/09/2026).
+- 검증: Harbor Coffee 09/17/2026 $865.00 (22일), Maple Street Bakery 09/30/2026 $428.40 (9일), Oak & Ember Candles 09/09/2026 $510.75 (30일), Lakeview Florist 09/24/2026 $242.00 (15일). 손계산 일치. LibreOffice 24.2 는 MAXIFS 지원.
+- 한계: 같은 날 주문이 2건이면 SUMIFS 가 합산함 (노트에 적음). 일치 없으면 MAXIFS 는 0 (LibreOffice 동작 기준으로만 서술, Excel/Sheets 는 확인 안 함). Excel 2016 이하에는 MAXIFS 없음 (Microsoft 도움말 링크로 근거, 직접 확인 안 함).
+
+### D. count-orders-by-month-countifs-excel-google-sheets
+- 제목: How to Count Orders by Month With COUNTIFS in Excel and Google Sheets
+- 템플릿: tidy-tabs-count-orders-by-month.xlsx (Orders, Monthly, How to use)
+- 수식: `=COUNTIFS(Orders!$A$2:$A$200,">="&A2,Orders!$A$2:$A$200,"<"&EDATE(A2,1))`, `=SUMIFS(Orders!$C$2:$C$200,Orders!$A$2:$A$200,">="&A2,Orders!$A$2:$A$200,"<"&EDATE(A2,1))`.
+- 검증: 07/2026 2건 $365.50, 08/2026 3건 $549.25 (08/31 포함), 09/2026 3건 $693.75 (09/01 포함), 10/2026 2건 $395.50. 합계 10건 $2,004.00 = Orders 탭 합계. 손계산 일치. 시간 포함 날짜는 직접 테스트하지 않음 (논리만 설명, 검증했다고 쓰지 말 것).
+
+### E. average-order-value-by-channel-averageifs-excel-google-sheets
+- 제목: How to Find Average Order Value by Sales Channel With AVERAGEIFS in Excel and Google Sheets
+- 템플릿: tidy-tabs-average-order-value-by-channel.xlsx (Orders, By channel, How to use)
+- 수식: `=AVERAGEIFS(Orders!$C$2:$C$200,Orders!$B$2:$B$200,A2)`, `=COUNTIFS(Orders!$B$2:$B$200,A2)`, `=SUMIFS(Orders!$C$2:$C$200,Orders!$B$2:$B$200,A2)`, 확인 `=C2/B2`.
+- 검증: Etsy 3건 $115.50 평균 $38.50, Shopify 3건 $219.50 평균 $73.17 (73.1667), Farmers market 4건 $116.00 평균 $29.00, 전체 10건 $451.00 평균 $45.10. 평균 = 매출/건수 일치. 손계산 일치. 일치 항목 없으면 #DIV/0! 가능 (노트에 적음, 직접 재현은 안 함).

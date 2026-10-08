@@ -116,8 +116,23 @@ def heroes_2026_10_08():
          render(t + "tidy-tabs-year-to-date-sales-total.xlsx", "Sales", name="ytd"))
 
 
+def heroes_2026_10_09():
+    t = "templates/"
+    d = "images/2026-10-09-team-0%d-%s/"
+    save(d % (1, "quantity-price-tiers-lookup-excel-google-sheets") + "quantity-price-tiers-lookup-template.png",
+         render(t + "tidy-tabs-quantity-price-tiers.xlsx", "Orders", name="tiers"))
+    save(d % (2, "weighted-average-cost-sumproduct-excel-google-sheets") + "weighted-average-cost-summary-template.png",
+         render(t + "tidy-tabs-weighted-average-cost.xlsx", "Summary", name="wavg"))
+    save(d % (3, "last-order-date-per-customer-maxifs-excel-google-sheets") + "last-order-date-per-customer-template.png",
+         render(t + "tidy-tabs-last-order-date-maxifs.xlsx", "Summary", name="maxifs"))
+    save(d % (4, "count-orders-by-month-countifs-excel-google-sheets") + "count-orders-by-month-template.png",
+         render(t + "tidy-tabs-count-orders-by-month.xlsx", "Monthly", name="bymonth"))
+    save(d % (5, "average-order-value-by-channel-averageifs-excel-google-sheets") + "average-order-value-by-channel-template.png",
+         render(t + "tidy-tabs-average-order-value-by-channel.xlsx", "By channel", name="aov"))
+
+
 def main():
-    heroes_2026_10_08()
+    heroes_2026_10_09()
     return
     # older heroes (rebuilding rewrites their PNGs; the early return above skips them)
     t = "templates/"

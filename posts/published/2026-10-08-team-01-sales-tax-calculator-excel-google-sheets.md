@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DePbTTPiQ3n
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-sales-tax-in-excel-and.html
 title: How to Calculate Sales Tax in Excel and Google Sheets
 labels: excel-formulas, sales-tax, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps use the same functions; the ROUND links are from Microsoft Support and Google Docs Editors Help (not tested here).

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DePNhVom0kC
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-convert-text-with-dollar-signs.html
 title: How to Convert Text With Dollar Signs to Numbers in Excel and Google Sheets
 labels: excel-formulas, data-cleanup, small-business-finance
 tested_in: LibreOffice Calc 24.2 only (Linux, US locale). Not tested in Excel or Google Sheets.

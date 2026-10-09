@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeSADFlmNvw
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-look-up-wholesale-price-tiers-by.html
 title: How to Look Up Wholesale Price Tiers by Quantity in Excel and Google Sheets
 labels: excel-formulas, vlookup, wholesale-pricing
 tested_in: LibreOffice Calc 24.2.7 (Linux) only. The Excel and Google Sheets steps use the same functions; the VLOOKUP and IFERROR help links are from Microsoft Support and Google Docs Editors Help (not tested in those apps).

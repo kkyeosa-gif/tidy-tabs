@@ -131,8 +131,37 @@ def heroes_2026_10_09():
          render(t + "tidy-tabs-average-order-value-by-channel.xlsx", "By channel", name="aov"))
 
 
+def etsy_only_copy(src):
+    """Temp copy of the subtotal template with every non-Etsy row hidden (what the filter does)."""
+    wb = load_workbook(src)
+    ws = wb["Sales"]
+    for r in range(2, ws.max_row + 1):
+        if ws.cell(r, 2).value != "Etsy":
+            ws.row_dimensions[r].hidden = True
+    path = f"{rp.TMP}/subtotal-etsy.xlsx"
+    wb.save(path)
+    return path
+
+
+def heroes_2026_10_10():
+    t = "templates/"
+    d = "images/2026-10-10-team-0%d-%s/"
+    etsy = etsy_only_copy(t + "tidy-tabs-subtotal-filtered-sales.xlsx")
+    save(d % (1, "sum-visible-rows-only-subtotal-excel-google-sheets") + "subtotal-filtered-sales-template.png",
+         render(etsy, "Sales", name="subsales"),
+         render(etsy, "Totals", hide_cols="B", name="subtotals"))
+    save(d % (2, "rolling-3-month-average-sales-excel-google-sheets") + "rolling-average-sales-template.png",
+         render(t + "tidy-tabs-rolling-average-sales.xlsx", "Monthly sales", hide_cols="DE", name="rolling"))
+    save(d % (3, "prorate-first-month-subscription-excel-google-sheets") + "prorate-partial-month-template.png",
+         render(t + "tidy-tabs-prorate-partial-month.xlsx", "Proration", hide_cols="F", name="prorate"))
+    save(d % (4, "two-way-rate-card-lookup-index-match-excel-google-sheets") + "two-way-rate-card-template.png",
+         render(t + "tidy-tabs-two-way-rate-card.xlsx", "Quote", name="quote"))
+    save(d % (5, "in-cell-bar-chart-rept-excel-google-sheets") + "in-cell-bars-template.png",
+         render(t + "tidy-tabs-in-cell-bars.xlsx", "Units sold", hide_cols="DE", name="bars"))
+
+
 def main():
-    heroes_2026_10_09()
+    heroes_2026_10_10()
     return
     # older heroes (rebuilding rewrites their PNGs; the early return above skips them)
     t = "templates/"

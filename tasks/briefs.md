@@ -393,3 +393,14 @@ Google 도움말 링크로 근거를 댄다.
 ## 2026-10-10 (참고) 제외한 후보와 이유
 - case-pack 올림(CEILING): round-prices-nearest-nickel-99 와 함수 중복.
 - 이메일 도메인 추출(FIND/MID): clean-customer-list, split-name 과 유사.
+
+
+## 2026-10-10 주제 5개 템플릿 빌드와 재계산 결과 (script-writer 준비)
+- 환경: LibreOffice Calc 24.2.7.2 (Linux, headless). Excel, Google Sheets 에서는 열어 보지 않음. 샘플 데이터는 모두 가상.
+- 빌드: scripts/build-templates.py 에 함수 5개 추가 (subtotal_filtered_sales, rolling_average_sales, prorate_partial_month, two_way_rate_card, in_cell_bars), main 에 등록. 각 시트 US Letter, 한 페이지 폭에 맞춤. PDF 로 용지 크기 letter 확인.
+- 1 subtotal: 필터 없음 $200.50 / 15행. Etsy 필터(12행 숨김): SUBTOTAL(109) $75.50, (103) 3, (101) $25.17, SUM 은 $200.50 그대로. Farmers market 필터: $68.50, 6, $11.42. 손계산 일치. 필터 조건과 숨김 행은 openpyxl 로 복사본에 저장해 LibreOffice 로 재계산함 (화살표를 직접 누르지는 않음).
+- 2 rolling: C4:C13 = 1083.33, 1483.33, 2200.00, 2433.33, 2183.33, 1616.67, 1766.67, 2183.33, 2983.33, 3633.33. Python 독립 계산과 일치. 차트 없음.
+- 3 prorate: 10/12/2026 $150 = 20/31 = $96.77, 02/20/2026 = 9/28 = $48.21, 윤년 02/20/2028 = 10/29 = $51.72 등 7행 모두 일치.
+- 4 rate card: 9칸 조합 모두 B5/B6/B7 일치 (Brochure + Rush = $500). 오타 "Spa" -> B5 #N/A, B6 "Check spelling", B7 $0. MATCH 는 대소문자 구분 안 함. 드롭다운 클릭은 테스트하지 않음. 게시글의 F1/G1 은 템플릿에서 Quote!B2/B3.
+- 5 bars: 3200/1600/0/450/2400/800 -> 20/10/0/3/15/5 블록. PDF 에서 블록 문자는 렌더되지만 Carlito 에 글리프가 없어 DejaVu Sans 대체 글꼴로 그려지고 문자 사이에 가는 이음선이 보임. 열 E 의 "|" 대안을 함께 제공.
+- 상세 셀 주소: tasks/team-2026-10-10-handoff.md 의 Verified values.

@@ -2146,6 +2146,277 @@ def average_order_value_by_channel():
     wb.save(OUT / "tidy-tabs-average-order-value-by-channel.xlsx")
 
 
+def letter_setup(ws, landscape=False, wrap_col_a=False):
+    """US Letter, fit to one page wide, header row repeated."""
+    ws.page_setup.paperSize = ws.PAPERSIZE_LETTER
+    ws.page_setup.orientation = "landscape" if landscape else "portrait"
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    if wrap_col_a:
+        for row in ws.iter_rows():
+            for c in row:
+                c.alignment = Alignment(wrap_text=True, vertical="top")
+    else:
+        ws.print_title_rows = "1:1"
+
+
+def finish_letter(wb, landscape=False):
+    for ws in wb.worksheets:
+        letter_setup(ws, landscape=landscape and ws.title != "How to use",
+                     wrap_col_a=ws.title == "How to use")
+
+
+def subtotal_filtered_sales():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    header(ws, ["Sale date", "Channel", "Amount"], [13, 18, 12])
+    sales = [
+        (date(2026, 9, 2), "Shopify", 12.00),
+        (date(2026, 9, 3), "Etsy", 34.00),
+        (date(2026, 9, 5), "Farmers market", 22.00),
+        (date(2026, 9, 6), "Farmers market", 8.50),
+        (date(2026, 9, 8), "Shopify", 15.00),
+        (date(2026, 9, 10), "Etsy", 18.50),
+        (date(2026, 9, 12), "Farmers market", 6.00),
+        (date(2026, 9, 14), "Shopify", 9.50),
+        (date(2026, 9, 17), "Farmers market", 14.00),
+        (date(2026, 9, 19), "Shopify", 11.00),
+        (date(2026, 9, 21), "Etsy", 23.00),
+        (date(2026, 9, 23), "Farmers market", 7.50),
+        (date(2026, 9, 25), "Shopify", 5.00),
+        (date(2026, 9, 27), "Farmers market", 10.50),
+        (date(2026, 9, 29), "Shopify", 4.00),
+    ]
+    for r, (d, ch, amt) in enumerate(sales, start=2):
+        ws.append([d, ch, amt])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+    ws.auto_filter.ref = "A1:C16"
+
+    t = wb.create_sheet("Totals")
+    header(t, ["Measure", "Formula", "Result"], [30, 28, 14])
+    rows = [
+        ("Visible total (SUBTOTAL 109)", "=SUBTOTAL(109,C2:C16)", "=SUBTOTAL(109,Sales!C2:C16)", USD),
+        ("Visible count (SUBTOTAL 103)", "=SUBTOTAL(103,C2:C16)", "=SUBTOTAL(103,Sales!C2:C16)", "0"),
+        ("Visible average (SUBTOTAL 101)", "=SUBTOTAL(101,C2:C16)", "=SUBTOTAL(101,Sales!C2:C16)", USD),
+        ("All rows total (SUM, ignores filter)", "=SUM(C2:C16)", "=SUM(Sales!C2:C16)", USD),
+        ("All rows count (COUNT)", "=COUNT(C2:C16)", "=COUNT(Sales!C2:C16)", "0"),
+    ]
+    for r, (label, shown, f, fmt) in enumerate(rows, start=2):
+        t.append([label, None, f])
+        t[f"B{r}"].value = shown
+        t[f"B{r}"].data_type = "s"
+        t[f"C{r}"].number_format = fmt
+        t[f"C{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Sum Only the Visible Rows After Filtering",
+        "",
+        "1. Sales tab: one row per sale. The header row already has filter arrows (Data > Filter in Excel, Data > Create a filter in Google Sheets).",
+        "2. Click the arrow on Channel and keep only one channel, for example Etsy. The other rows are hidden.",
+        "3. Totals tab, C2: =SUBTOTAL(109,Sales!C2:C16) adds only the rows still visible. 109 means SUM, skipping rows hidden by a filter or by hand.",
+        "4. C3: =SUBTOTAL(103,...) counts visible numbers. C4: =SUBTOTAL(101,...) averages the visible rows.",
+        "5. C5: =SUM(Sales!C2:C16) adds every row, so it does not change when you filter. Compare it with C2.",
+        "6. If you add rows below row 16, extend the ranges (or insert the new rows inside the list).",
+        "7. Do not put SUBTOTAL cells inside the filtered range: they would be hidden or counted twice. That is why the totals sit on their own tab.",
+        "",
+        "Sales and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-subtotal-filtered-sales.xlsx")
+
+
+def rolling_average_sales():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Monthly sales"
+    header(ws, ["Month", "Sales", "3-month average", "Check (SUM / 3)", "Matches?"], [12, 12, 17, 17, 11])
+    sales = [1200, 950, 1100, 2400, 3100, 1800, 1650, 1400, 2250, 2900, 3800, 4200]
+    for r, amt in enumerate(sales, start=2):
+        m = date(2026 if r < 2 + 12 else 2027, r - 1, 1)
+        ws.append([m, amt])
+        ws[f"A{r}"].number_format = "mmm yyyy"
+        ws[f"B{r}"].number_format = USD
+        if r >= 4:
+            ws[f"C{r}"] = f'=IF(COUNT(B{r-2}:B{r})<3,"",AVERAGE(B{r-2}:B{r}))'
+            ws[f"D{r}"] = f"=SUM(B{r-2}:B{r})/3"
+            ws[f"E{r}"] = f'=IF(ROUND(C{r}-D{r},6)=0,"Yes","CHECK")'
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = USD
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Rolling 3-Month Average of Sales",
+        "",
+        "1. Monthly sales tab: type each month's sales in column B, one row per month, oldest first. Months with no sales need a 0, not a blank.",
+        "2. C4: =IF(COUNT(B2:B4)<3,\"\",AVERAGE(B2:B4)). It averages this month and the two before it. Fill it down. The first two months have no formula because they do not have three months yet.",
+        "3. The COUNT test keeps the cell blank if any of the three months is empty or text, so a half-filled window is not averaged by mistake.",
+        "4. D4: =SUM(B2:B4)/3 is a check. E says Yes when it equals column C.",
+        "5. Each average moves one row at a time: row 5 drops January and adds April. That smooths out busy and slow seasons.",
+        "6. To use 6 months instead of 3, widen the range (B2:B7) and change both the 3 in COUNT's test and the divisor.",
+        "",
+        "Months and sales are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-rolling-average-sales.xlsx")
+
+
+def prorate_partial_month():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Proration"
+    header(ws, ["Start date", "Monthly fee", "Days charged", "Days in month", "Prorated amount", "Example"],
+           [13, 13, 13, 14, 16, 34])
+    rows = [
+        (date(2026, 10, 12), 150.00, "Retainer starts mid month"),
+        (date(2026, 2, 20), 150.00, "February (28 days)"),
+        (date(2026, 11, 1), 150.00, "Starts on the 1st: full month"),
+        (date(2026, 12, 31), 150.00, "Starts on the last day: 1 day"),
+        (date(2026, 9, 15), 85.00, "Farmers market booth, 30 day month"),
+        (date(2026, 3, 10), 1200.00, "Studio rent"),
+        (date(2028, 2, 20), 150.00, "Leap year February (29 days)"),
+    ]
+    for r, (d, fee, note) in enumerate(rows, start=2):
+        ws.append([d, fee, f"=EOMONTH(A{r},0)-A{r}+1", f"=DAY(EOMONTH(A{r},0))", f"=ROUND(B{r}*C{r}/D{r},2)", note])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"B{r}"].number_format = USD
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = "0"
+        ws[f"E{r}"].number_format = USD
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Prorate a Partial Month of Rent or a Retainer",
+        "",
+        "1. Proration tab: type the start date in A and the full monthly fee in B. Columns C to E are formulas; fill them down for more rows.",
+        "2. C, days charged: =EOMONTH(A2,0)-A2+1. EOMONTH(A2,0) is the last day of the start month; the +1 counts the start day itself.",
+        "3. D, days in that month: =DAY(EOMONTH(A2,0)). It is 28, 29, 30 or 31 depending on the month.",
+        "4. E, prorated amount: =ROUND(B2*C2/D2,2), the fee times days charged over days in the month, rounded to cents.",
+        "5. Example: $150.00 starting 10/12/2026 is 20 of 31 days, $96.77. $150.00 starting 02/20/2026 is 9 of 28 days, $48.21.",
+        "6. Columns C and D must be formatted as Number. If they show a date like 01/20/1900, change the format to Number.",
+        "7. This is arithmetic only. Some leases and contracts count a flat 30 day month or use other rules, so follow your own agreement. It is not legal advice.",
+        "",
+        "Dates and fees are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-prorate-partial-month.xlsx")
+
+
+def two_way_rate_card():
+    wb = Workbook()
+    rc = wb.active
+    rc.title = "Rate card"
+    header(rc, ["Service", "Standard", "Rush", "Same day"], [16, 13, 13, 13])
+    prices = [("Logo", 300, 420, 600), ("Brochure", 350, 500, 700), ("Website", 1200, 1600, 2100)]
+    for r, (svc, *p) in enumerate(prices, start=2):
+        rc.append([svc, *p])
+        for col in "BCD":
+            rc[f"{col}{r}"].number_format = USD
+
+    q = wb.create_sheet("Quote")
+    q.column_dimensions["A"].width = 34
+    for col in "BCD":
+        q.column_dimensions[col].width = 16
+    q["A1"], q["A1"].font = "Pick a service and a turnaround (yellow cells)", Font(bold=True)
+    q["A2"], q["B2"] = "Service", "Brochure"
+    q["A3"], q["B3"] = "Turnaround", "Rush"
+    for c in ("B2", "B3"):
+        q[c].fill = PatternFill("solid", fgColor="FFF2CC")
+    dv1 = DataValidation(type="list", formula1="='Rate card'!$A$2:$A$4", allow_blank=False)
+    dv2 = DataValidation(type="list", formula1="='Rate card'!$B$1:$D$1", allow_blank=False)
+    q.add_data_validation(dv1)
+    q.add_data_validation(dv2)
+    dv1.add("B2")
+    dv2.add("B3")
+    q["A5"] = "Price (INDEX + MATCH)"
+    q["B5"] = "=INDEX('Rate card'!$B$2:$D$4,MATCH(B2,'Rate card'!$A$2:$A$4,0),MATCH(B3,'Rate card'!$B$1:$D$1,0))"
+    q["A6"] = "Price (with IFERROR)"
+    q["B6"] = ("=IFERROR(INDEX('Rate card'!$B$2:$D$4,MATCH(B2,'Rate card'!$A$2:$A$4,0),"
+               "MATCH(B3,'Rate card'!$B$1:$D$1,0)),\"Check spelling\")")
+    q["A7"] = "Price (SUMPRODUCT, comparison)"
+    q["B7"] = "=SUMPRODUCT(('Rate card'!$A$2:$A$4=B2)*('Rate card'!$B$1:$D$1=B3)*'Rate card'!$B$2:$D$4)"
+    for c in ("B5", "B6", "B7"):
+        q[c].number_format = USD
+        q[c].fill = FORMULA_FILL
+        q[c].alignment = Alignment(horizontal="right")
+
+    q["A9"] = "All 9 prices through the same formula"
+    q["A9"].font = Font(bold=True)
+    for i, col in enumerate("BCD"):
+        q[f"{col}10"] = f"='Rate card'!{col}1"
+        q[f"{col}10"].font = Font(bold=True)
+    for r in (11, 12, 13):
+        q[f"A{r}"] = f"='Rate card'!A{r-9}"
+        q[f"A{r}"].font = Font(bold=True)
+        for col in "BCD":
+            q[f"{col}{r}"] = (f"=INDEX('Rate card'!$B$2:$D$4,MATCH($A{r},'Rate card'!$A$2:$A$4,0),"
+                              f"MATCH({col}$10,'Rate card'!$B$1:$D$1,0))")
+            q[f"{col}{r}"].number_format = USD
+            q[f"{col}{r}"].fill = FORMULA_FILL
+    q["A14"] = "Cells that match the rate card (should be 9)"
+    q["B14"] = "=SUMPRODUCT(--(B11:D13='Rate card'!B2:D4))"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Two-Way Rate Card Lookup With INDEX and MATCH",
+        "",
+        "1. Rate card tab: services down column A, turnaround speeds across row 1, prices in B2:D4. Keep the labels spelled the same everywhere.",
+        "2. Quote tab: pick a service in B2 and a turnaround in B3 from the dropdown lists.",
+        "3. B5: =INDEX('Rate card'!$B$2:$D$4,MATCH(B2,'Rate card'!$A$2:$A$4,0),MATCH(B3,'Rate card'!$B$1:$D$1,0)). The first MATCH finds the row number, the second finds the column number, and INDEX returns the price where they cross.",
+        "4. The 0 at the end of each MATCH means exact match.",
+        "5. B6 wraps the same formula in IFERROR so a misspelled service or speed shows Check spelling instead of #N/A. The dropdowns stop most typos, but pasted text can still be wrong.",
+        "6. B7 gets the same price with SUMPRODUCT. A misspelled label returns $0.00 there, not an error, so use it only as a cross-check.",
+        "7. Rows 10 to 14 run the INDEX and MATCH formula on all 9 cells and count how many equal the rate card.",
+        "8. To add a service or speed, insert a row or column inside the table and extend the ranges.",
+        "",
+        "Services and prices are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-two-way-rate-card.xlsx")
+
+
+def in_cell_bars():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Units sold"
+    header(ws, ["Product", "Units sold", "Bar (block characters)", "Blocks (LEN)", "Bar (| fallback)"],
+           [24, 12, 30, 13, 30])
+    items = [("Soy candle, 8 oz", 3200), ("Beeswax melts", 1600), ("Gift tags (retired)", 0),
+             ("Wick trimmer", 450), ("Lip balm", 2400), ("Mini jar candle", 800)]
+    for r, (name, units) in enumerate(items, start=2):
+        ws.append([name, units,
+                   f'=REPT("█",ROUND(B{r}/MAX($B$2:$B$7)*20,0))',
+                   f"=LEN(C{r})",
+                   f'=REPT("|",ROUND(B{r}/MAX($B$2:$B$7)*20,0))'])
+        ws[f"B{r}"].number_format = "#,##0"
+        ws[f"C{r}"].font = Font(color="2E5E4E")
+        ws[f"E{r}"].font = Font(color="2E5E4E")
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Bar Chart Inside Cells With REPT",
+        "",
+        "1. Units sold tab: product names in A, units in B (rows 2 to 7).",
+        "2. C2: =REPT(\"█\",ROUND(B2/MAX($B$2:$B$7)*20,0)). REPT repeats the block character. The biggest value gets 20 blocks and every other row is scaled to it.",
+        "3. Copy the █ character from the formula if you need to retype it. The $ signs keep the MAX range fixed when you fill down.",
+        "4. D2: =LEN(C2) counts the blocks, as a check. With 3,200 / 1,600 / 0 / 450 units the bars are 20 / 10 / 0 / 3 blocks.",
+        "5. Column E uses the | character instead. Use it if the block shows as an empty box or looks different in your font.",
+        "6. To change the full bar length, replace the 20 in both the formula and your width. Widen the column so the longest bar fits.",
+        "7. A bar is rounded to whole characters, so very small values can show 0 blocks.",
+        "",
+        "Products and units are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-in-cell-bars.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -2183,4 +2454,9 @@ if __name__ == "__main__":
     last_order_date_maxifs()
     count_orders_by_month()
     average_order_value_by_channel()
+    subtotal_filtered_sales()
+    rolling_average_sales()
+    prorate_partial_month()
+    two_way_rate_card()
+    in_cell_bars()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

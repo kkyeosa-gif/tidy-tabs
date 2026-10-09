@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeQLUjHGAqa
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-round-prices-to-nearest-005-or.html
 title: How to Round Prices to the Nearest $0.05 or .99 in Excel and Google Sheets
 labels: excel-formulas, pricing, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps use the same functions; the ROUND, ROUNDUP, MROUND and CEILING links are from Microsoft Support and Google Docs Editors Help (not tested here).

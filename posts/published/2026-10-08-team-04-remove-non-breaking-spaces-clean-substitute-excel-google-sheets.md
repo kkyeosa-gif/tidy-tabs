@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeRehHtoLHS
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-remove-non-breaking-spaces-in.html
 title: How to Remove Non-Breaking Spaces in Excel and Google Sheets
 labels: excel-formulas, data-cleaning, text-functions
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps use the same functions; the TRIM, SUBSTITUTE and CLEAN links are from Microsoft Support and Google Docs Editors Help (not tested here).

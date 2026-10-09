@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeSUpfwD2hj
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-weighted-average-cost.html
 title: How to Calculate Weighted Average Cost With SUMPRODUCT in Excel and Google Sheets
 labels: excel-formulas, inventory, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets use the same SUMPRODUCT, SUMIFS and AVERAGEIFS functions; the help links are from Microsoft Support and Google Docs Editors Help (not tested here).

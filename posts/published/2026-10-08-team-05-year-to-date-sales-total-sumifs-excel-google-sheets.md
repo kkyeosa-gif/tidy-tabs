@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeRyUWQGxZo
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-year-to-date-sales-in.html
 title: How to Calculate Year-to-Date Sales in Excel and Google Sheets
 labels: excel-formulas, sales-tracking, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps use the same SUMIFS, DATE and EOMONTH functions; the help links are from Microsoft Support and Google Docs Editors Help (not tested here).

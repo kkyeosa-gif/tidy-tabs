@@ -340,3 +340,56 @@ Google 도움말 링크로 근거를 댄다.
 - 템플릿: tidy-tabs-average-order-value-by-channel.xlsx (Orders, By channel, How to use)
 - 수식: `=AVERAGEIFS(Orders!$C$2:$C$200,Orders!$B$2:$B$200,A2)`, `=COUNTIFS(Orders!$B$2:$B$200,A2)`, `=SUMIFS(Orders!$C$2:$C$200,Orders!$B$2:$B$200,A2)`, 확인 `=C2/B2`.
 - 검증: Etsy 3건 $115.50 평균 $38.50, Shopify 3건 $219.50 평균 $73.17 (73.1667), Farmers market 4건 $116.00 평균 $29.00, 전체 10건 $451.00 평균 $45.10. 평균 = 매출/건수 일치. 손계산 일치. 일치 항목 없으면 #DIV/0! 가능 (노트에 적음, 직접 재현은 안 함).
+
+## 2026-10-10 신규 주제 5개 (researcher)
+- 데이터: tasks/search-stats.md 없음 (데이터 없음). 3-gate 기준만 적용. 검색량·경쟁도 수치 없음.
+- 중복 확인: posts/ready, posts/published, tasks/topics-seed.md, tasks/team-topics-*.md 와 대조. 이미 쓴 SUMIFS/COUNTIFS/AVERAGEIFS/MAXIFS/VLOOKUP/MROUND/CEILING/PMT/TEXTJOIN/RANK/WORKDAY 계열 제외.
+- 사전 검증: LibreOffice Calc 24.2.7.2 (Linux) 에서 아래 수식을 작은 테스트 파일로 재계산해 값 확인. Excel/Sheets 는 열어 보지 않음. 템플릿 빌드 전 단계이므로 최종 값은 템플릿에서 다시 확인할 것.
+- 모든 SERP 1페이지는 Microsoft/Google 공식 도움말이 차지할 가능성이 높음 (확인 안 함, 추정). 그래서 "사업자 상황 + 롱테일"로 비튼다.
+
+순위 (좋은 순)
+
+### 1. sum-visible-rows-only-subtotal-excel-google-sheets
+- 제목 예시: How to Sum Only the Visible Rows After Filtering in Excel and Google Sheets
+- 검색어: "sum only visible cells after filter excel", "SUM ignores filter", "subtotal filtered rows google sheets"
+- 양식: tidy-tabs-subtotal-filtered-sales.xlsx (Sales: Date, Channel, Amount 약 15행 + 자동필터, Totals, How to use). 필터로 Etsy 만 보면 합계가 따라 변함.
+- 수식: `=SUBTOTAL(109,C2:C16)` 합계, `=SUBTOTAL(103,C2:C16)` 건수, `=SUM(C2:C16)` 비교, `=SUBTOTAL(101,C2:C16)` 평균.
+- 확인: 테스트 파일에서 행 2개 숨긴 뒤 SUBTOTAL(109)=$75.50, SUBTOTAL(103)=3, SUM=$160.50 (이미 확인). 템플릿에서는 LibreOffice 자동필터 적용 후 값 확인. 숨긴 행 처리는 109 vs 9 차이가 앱마다 다를 수 있어 Excel/Sheets 동작은 공식 도움말 링크로만.
+- 경쟁: Microsoft SUBTOTAL 도움말, Exceljet, Ablebits. 롱테일 = "Etsy 채널만 필터했을 때 합계".
+
+### 2. rolling-3-month-average-sales-excel-google-sheets
+- 제목 예시: How to Add a Rolling 3-Month Average to Your Sales in Excel and Google Sheets
+- 검색어: "rolling average excel", "3 month moving average formula", "smooth seasonal sales"
+- 양식: tidy-tabs-rolling-average-sales.xlsx (Monthly sales 12개월 계절성 있는 craft/market 매출, Average column, How to use). 12행 + 선택적 선 그래프.
+- 수식: `=AVERAGE(B2:B4)` 아래로 채우기, `=IF(COUNT(B2:B4)<3,"",AVERAGE(B2:B4))` 처음 두 달 빈칸, 확인용 `=SUM(B2:B4)/3`.
+- 확인: 1200/950/1100/2400/3100/1800 -> 1083.33, 1483.33, 2200.00, 2433.33 (LibreOffice 에서 이미 확인). 손계산 일치.
+- 경쟁: Microsoft "moving average" (Analysis ToolPak/차트 추세선), Exceljet, Ablebits. 롱테일 = 계절 매출 평활화.
+
+### 3. prorate-first-month-subscription-excel-google-sheets
+- 제목 예시: How to Prorate a Partial Month for a Retainer or Rent in Excel and Google Sheets
+- 검색어: "prorated rent formula excel", "prorate monthly fee by days", "partial month charge calculator"
+- 양식: tidy-tabs-prorate-partial-month.xlsx (Start dates + monthly fee, Days charged, Prorated amount, How to use). 시작일 10/12/2026 월 $150.
+- 수식: 남은 일수 `=EOMONTH(A2,0)-A2+1`, 월 일수 `=DAY(EOMONTH(A2,0))`, 금액 `=ROUND(B2*C2/D2,2)`.
+- 확인: 10/12/2026 $150 -> 20일/31일 = $96.77. 02/20/2026 $150 -> 9일/28일 = $48.21 (둘 다 LibreOffice 에서 확인). 일수 칸은 숫자 서식(날짜로 보이는 문제는 troubleshooting 소재).
+- 한계: 계약상 일할계산 방식(30일 기준 등)·임대차법 판단은 하지 않음. 산술 예시라고 명시, 계약서를 따르라고 안내.
+- 경쟁: 계산기 사이트, Exceljet EOMONTH. 롱테일 = 프리랜서 리테이너/부스 임대료.
+
+### 4. two-way-rate-card-lookup-index-match-excel-google-sheets
+- 제목 예시: How to Look Up a Price in a Two-Way Rate Card With INDEX and MATCH in Excel and Google Sheets
+- 검색어: "index match match two criteria", "two way lookup excel", "lookup price by row and column"
+- 양식: tidy-tabs-two-way-rate-card.xlsx (Rate card: Logo/Brochure/Website x Standard/Rush/Same day, Quote: 드롭다운 2개로 가격 반환, How to use).
+- 수식: `=INDEX(B2:D4,MATCH(F1,A2:A4,0),MATCH(G1,B1:D1,0))`, `=IFERROR(...,"Check spelling")`, 비교 `=SUMPRODUCT((A2:A4=F1)*(B1:D1=G1)*B2:D4)`.
+- 확인: Brochure + Rush = $500 (확인함), 오타 "Spa" -> "Check spelling". 템플릿에서 9칸 전부 대조. 기존 vlookup-price-list, quantity-price-tiers(1차원)와 다른 2차원 조회. 기존 글의 INDEX/MATCH 한 줄 언급과 링크로 연결.
+- 경쟁: Microsoft INDEX/MATCH 도움말, Exceljet, Ablebits (대형). 롱테일 = 서비스 견적 요금표.
+
+### 5. in-cell-bar-chart-rept-excel-google-sheets
+- 제목 예시: How to Make a Bar Chart Inside Cells With REPT in Excel and Google Sheets
+- 검색어: "in cell bar chart excel", "REPT function bar graph", "sparkline bar google sheets"
+- 양식: tidy-tabs-in-cell-bars.xlsx (Product, Units sold, Bar column, How to use). 제품 6개 판매량.
+- 수식: `=REPT("█",ROUND(B2/MAX($B$2:$B$7)*20,0))`, 길이 확인 `=LEN(C2)`.
+- 확인: 3200/1600/0/450 -> 20/10/0/3 칸 (LibreOffice 에서 확인). 폰트에 따라 블록 문자가 다르게 보일 수 있음(출력 PDF 로 확인). 대안으로 "|" 사용.
+- 경쟁: Exceljet, Ablebits, Microsoft 차트 도움말. 롱테일 = 인쇄용 한 장짜리 재고/판매 표.
+
+## 2026-10-10 (참고) 제외한 후보와 이유
+- case-pack 올림(CEILING): round-prices-nearest-nickel-99 와 함수 중복.
+- 이메일 도메인 추출(FIND/MID): clean-customer-list, split-name 과 유사.

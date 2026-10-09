@@ -45,3 +45,10 @@
 - How to Find the Last Order Date for Each Customer With MAXIFS in Excel and Google Sheets - `last-order-date-per-customer-maxifs-excel-google-sheets`
 - How to Count Orders by Month With COUNTIFS in Excel and Google Sheets - `count-orders-by-month-countifs-excel-google-sheets`
 - How to Find Average Order Value by Sales Channel With AVERAGEIFS in Excel and Google Sheets - `average-order-value-by-channel-averageifs-excel-google-sheets`
+
+## 2026-10-10 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, LibreOffice Calc 24.2 에서 수식 사전 확인)
+- How to Sum Only the Visible Rows After Filtering in Excel and Google Sheets - `sum-visible-rows-only-subtotal-excel-google-sheets` (SUBTOTAL 109/103)
+- How to Add a Rolling 3-Month Average to Your Sales in Excel and Google Sheets - `rolling-3-month-average-sales-excel-google-sheets` (AVERAGE 이동 범위)
+- How to Prorate a Partial Month for a Retainer or Rent in Excel and Google Sheets - `prorate-first-month-subscription-excel-google-sheets` (EOMONTH, DAY)
+- How to Look Up a Price in a Two-Way Rate Card With INDEX and MATCH in Excel and Google Sheets - `two-way-rate-card-lookup-index-match-excel-google-sheets` (INDEX + MATCH x2)
+- How to Make a Bar Chart Inside Cells With REPT in Excel and Google Sheets - `in-cell-bar-chart-rept-excel-google-sheets` (REPT)

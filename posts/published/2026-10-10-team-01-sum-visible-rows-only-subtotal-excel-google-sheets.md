@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeUk1m2FasU
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-sum-only-visible-rows-after.html
 title: How to Sum Only the Visible Rows After Filtering in Excel and Google Sheets
 labels: excel-formulas, sales-tracking, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux) only. Filter criteria and hidden rows were written into a file and recalculated; Excel and Google Sheets were not opened.

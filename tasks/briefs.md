@@ -404,3 +404,24 @@ Google 도움말 링크로 근거를 댄다.
 - 4 rate card: 9칸 조합 모두 B5/B6/B7 일치 (Brochure + Rush = $500). 오타 "Spa" -> B5 #N/A, B6 "Check spelling", B7 $0. MATCH 는 대소문자 구분 안 함. 드롭다운 클릭은 테스트하지 않음. 게시글의 F1/G1 은 템플릿에서 Quote!B2/B3.
 - 5 bars: 3200/1600/0/450/2400/800 -> 20/10/0/3/15/5 블록. PDF 에서 블록 문자는 렌더되지만 Carlito 에 글리프가 없어 DejaVu Sans 대체 글꼴로 그려지고 문자 사이에 가는 이음선이 보임. 열 E 의 "|" 대안을 함께 제공.
 - 상세 셀 주소: tasks/team-2026-10-10-handoff.md 의 Verified values.
+
+## 2026-10-11 신규 주제 5개 (researcher)
+- 데이터: tasks/search-stats.md 없음 (데이터 없음). 검색량·경쟁도 수치 없음. 3-gate 기준만 적용.
+- 중복 확인: posts/ready, posts/published, tasks/topics-seed.md, tasks/team-topics-*.md 와 대조. 가까운 기존 글(sum-expenses-by-category, year-to-date, count-orders-by-month, highlight-duplicate-values, invoice-number-generator, loan-payment)과의 차이는 tasks/team-topics-2026-10-11.md 상단에 적음.
+- 주제 (좋은 순, 슬러그 앞에 2026-10-11-team-0N- 붙임):
+  1. quarterly-sales-totals-sumifs-excel-google-sheets: `=YEAR(A2)&" Q"&ROUNDUP(MONTH(A2)/3,0)` + SUMIFS, 날짜 범위 + EDATE 방식 병행
+  2. find-missing-invoice-numbers-countif-excel-google-sheets: `=IF(COUNTIF($A$2:$A$200,D2)=0,"Missing","OK")`
+  3. sum-if-cell-contains-text-wildcard-sumif-excel-google-sheets: `=SUMIF(range,"*"&A2&"*",sum_range)`
+  4. split-invoice-into-installments-excel-google-sheets: `=ROUND(B1/B2,2)`, 마지막 회차가 남는 센트 흡수, EDATE
+  5. marketplace-fee-net-payout-calculator-excel-google-sheets: 수수료율은 가상 입력값, 순수령액과 목표 수령액용 역산 가격
+- 세금·법률 판단 없음: 분기는 달력 분기이며 세무 신고 분기 판단을 하지 않음. 누락 번호는 "무효 처리된 인보이스일 수 있음"으로만 안내. 할부는 이자·수수료 없는 산술. 5번 수수료 요율은 실제 마켓 요율이 아니라 사용자가 입력.
+
+## 2026-10-11 주제 5개 템플릿 빌드와 재계산 결과 (template-builder)
+- 환경: LibreOffice Calc 24.2 (Linux, headless). Excel, Google Sheets 에서는 열어 보지 않음. 샘플 데이터는 모두 가상. tasks/search-stats.md 없음.
+- 빌드: scripts/build-templates.py 에 함수 5개 추가 (quarterly_sales_totals, missing_invoice_numbers, sumif_contains_text, invoice_installments, marketplace_net_payout), main 에 등록. 시트마다 US Letter, 한 페이지 폭에 맞춤, PDF 로 시트당 1쪽 확인.
+- 1 quarterly: 2025 Q4 $90.00, 2026 Q1 $405.50, Q2 $630.25, Q3 $600.50, Q4 $779.99, 합계 $2,506.24 (두 방식 일치, Python 일치). 텍스트 날짜는 날짜 범위 방식에서만 빠져 CHECK 표시.
+- 2 missing invoice: 1004/1007/1010 누락, 1009 중복, F8 = F4 = 12. 텍스트 숫자 "1005" 와 접두사 "INV-1005" 는 COUNTIF 가 못 찾아 가짜 Missing.
+- 3 SUMIF 와일드카드: Uber $68.75 (3건, 대소문자 무시), "ink" 4건 $78.24 ("Pink" 포함), 빈 검색칸은 전체 $216.59, `~*` 리터럴 동작. 텍스트로 입력한 금액은 COUNTIF 에는 잡히고 SUMIF 합계에서는 빠짐.
+- 4 installments: $2,500.00/6 = 5 x $416.67 + $416.65, 합계 일치. $1,000.00/3 = 333.33, 333.33, 333.34. 01/31 시작 EDATE 는 02/28, 03/31, 04/30.
+- 5 net payout: 6건 손계산 일치, $0.25 상품은 순수령 -$0.02. 목표 $15.00 역산 가격 $16.86 (확인값 $15.01, 센트 반올림 때문). 수수료율 합 100% 면 #DIV/0!.
+- 상세 셀 주소: tasks/team-2026-10-11-handoff.md.

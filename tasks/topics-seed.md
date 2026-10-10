@@ -52,3 +52,9 @@
 - How to Prorate a Partial Month for a Retainer or Rent in Excel and Google Sheets - `prorate-first-month-subscription-excel-google-sheets` (EOMONTH, DAY)
 - How to Look Up a Price in a Two-Way Rate Card With INDEX and MATCH in Excel and Google Sheets - `two-way-rate-card-lookup-index-match-excel-google-sheets` (INDEX + MATCH x2)
 - How to Make a Bar Chart Inside Cells With REPT in Excel and Google Sheets - `in-cell-bar-chart-rept-excel-google-sheets` (REPT)
+## 2026-10-11 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, LibreOffice Calc 24.2 에서 수식 확인)
+- How to Total Sales by Quarter in Excel and Google Sheets - `quarterly-sales-totals-sumifs-excel-google-sheets`
+- How to Find Missing Invoice Numbers in a Sequence in Excel and Google Sheets - `find-missing-invoice-numbers-countif-excel-google-sheets`
+- How to Sum Cells That Contain Certain Text With SUMIF Wildcards in Excel and Google Sheets - `sum-if-cell-contains-text-wildcard-sumif-excel-google-sheets`
+- How to Split an Invoice Into Equal Monthly Payments in Excel and Google Sheets - `split-invoice-into-installments-excel-google-sheets`
+- How to Calculate Net Payout After Marketplace Fees in Excel and Google Sheets - `marketplace-fee-net-payout-calculator-excel-google-sheets`

@@ -2417,6 +2417,299 @@ def in_cell_bars():
     wb.save(OUT / "tidy-tabs-in-cell-bars.xlsx")
 
 
+def quarterly_sales_totals():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    header(ws, ["Sale date", "Amount", "Quarter"], [13, 13, 12])
+    sales = [
+        (date(2025, 12, 20), 90.00), (date(2026, 1, 15), 120.00), (date(2026, 2, 3), 85.50),
+        (date(2026, 3, 31), 200.00), (date(2026, 4, 1), 150.00), (date(2026, 4, 18), 95.25),
+        (date(2026, 5, 9), 310.00), (date(2026, 6, 30), 75.00), (date(2026, 7, 1), 220.00),
+        (date(2026, 7, 22), 60.50), (date(2026, 8, 14), 180.00), (date(2026, 9, 30), 140.00),
+        (date(2026, 10, 1), 99.99), (date(2026, 10, 5), 250.00), (date(2026, 11, 11), 130.00),
+        (date(2026, 12, 31), 300.00),
+    ]
+    for r, (d, amt) in enumerate(sales, start=2):
+        ws.append([d, amt, f'=YEAR(A{r})&" Q"&ROUNDUP(MONTH(A{r})/3,0)'])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"B{r}"].number_format = USD
+        ws[f"C{r}"].fill = FORMULA_FILL
+
+    q = wb.create_sheet("By quarter")
+    header(q, ["Quarter", "Quarter starts", "Total (helper column)", "Orders", "Total (date range)", "Same?"],
+           [12, 15, 21, 9, 19, 9])
+    starts = [date(2025, 10, 1), date(2026, 1, 1), date(2026, 4, 1), date(2026, 7, 1), date(2026, 10, 1)]
+    for r, d in enumerate(starts, start=2):
+        q.append([f'=YEAR(B{r})&" Q"&ROUNDUP(MONTH(B{r})/3,0)', d,
+                  f"=SUMIFS(Sales!$B$2:$B$200,Sales!$C$2:$C$200,A{r})",
+                  f"=COUNTIFS(Sales!$C$2:$C$200,A{r})",
+                  f'=SUMIFS(Sales!$B$2:$B$200,Sales!$A$2:$A$200,">="&B{r},Sales!$A$2:$A$200,"<"&EDATE(B{r},3))',
+                  f'=IF(ROUND(C{r}-E{r},2)=0,"Yes","CHECK")'])
+        q[f"B{r}"].number_format = US_DATE
+        q[f"C{r}"].number_format = q[f"E{r}"].number_format = USD
+        for col in "ACDEF":
+            q[f"{col}{r}"].fill = FORMULA_FILL
+    q["A7"], q["C7"], q["D7"], q["E7"] = "All quarters", "=SUM(C2:C6)", "=SUM(D2:D6)", "=SUM(E2:E6)"
+    q["A8"], q["C8"] = "All sales on Sales tab", "=SUM(Sales!B2:B200)"
+    q["D8"] = "=COUNT(Sales!B2:B200)"
+    for c in ("C7", "E7", "C8"):
+        q[c].number_format = USD
+    for c in ("A7", "A8"):
+        q[c].font = Font(bold=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Total Sales by Quarter",
+        "",
+        "1. Sales tab: type the sale date in A (a real date, not text) and the amount in B. Column C is a formula: fill it down.",
+        "2. C2: =YEAR(A2)&\" Q\"&ROUNDUP(MONTH(A2)/3,0). ROUNDUP(MONTH/3,0) turns months 1 to 3 into 1, 4 to 6 into 2, 7 to 9 into 3 and 10 to 12 into 4. The year is added so 2025 Q4 and 2026 Q4 stay separate.",
+        "3. By quarter tab, C2: =SUMIFS(Sales!$B$2:$B$200,Sales!$C$2:$C$200,A2) adds every sale with that quarter label. D counts the orders with COUNTIFS.",
+        "4. E2 gets the same total without a helper column, by date range: =SUMIFS(amounts,dates,\">=\"&B2,dates,\"<\"&EDATE(B2,3)). B2 is the first day of the quarter. F says Yes when both agree.",
+        "5. Row 7 adds the quarters and row 8 adds the whole Sales tab. If they differ, a date is outside the quarters listed or is stored as text.",
+        "6. Quarters here are calendar quarters (January to March is Q1). If your business year starts in another month, this sheet does not apply as is.",
+        "7. 03/31 and 04/01 fall in different quarters, and 12/31 is in Q4. Both methods handle the boundary days.",
+        "",
+        "Sales and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-quarterly-sales-totals.xlsx")
+
+
+def missing_invoice_numbers():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Invoices"
+    header(ws, ["Invoice number", "Client", "Amount"], [16, 24, 13])
+    rows = [(1001, "Maple Street Bakery", 450.00), (1002, "Dana Ruiz Design", 300.00),
+            (1003, "Harbor Yoga", 180.00), (1005, "Cedar Hill Farm", 620.00),
+            (1006, "Maple Street Bakery", 450.00), (1008, "Harbor Yoga", 180.00),
+            (1009, "Sam Patel LLC", 975.00), (1009, "Sam Patel LLC", 975.00),
+            (1011, "Dana Ruiz Design", 300.00), (1012, "Cedar Hill Farm", 620.00)]
+    for r, (n, c, a) in enumerate(rows, start=2):
+        ws.append([n, c, a])
+        ws[f"C{r}"].number_format = USD
+
+    ck = wb.create_sheet("Check")
+    header(ck, ["Expected number", "Times found", "Status"], [17, 13, 14])
+    for r in range(2, 14):
+        ck.append([f"=MIN(Invoices!$A$2:$A$200)+ROW()-2",
+                   f"=COUNTIF(Invoices!$A$2:$A$200,A{r})",
+                   f'=IF(B{r}=0,"Missing",IF(B{r}>1,"Duplicate","OK"))'])
+        ck[f"A{r}"].number_format = "0"
+        for col in "ABC":
+            ck[f"{col}{r}"].fill = FORMULA_FILL
+    ck.conditional_formatting.add("C2:C13", FormulaRule(formula=['$C2="Missing"'], fill=ALERT_FILL))
+    ck.conditional_formatting.add("C2:C13", FormulaRule(formula=['$C2="Duplicate"'], fill=PatternFill("solid", fgColor="FFF2CC")))
+    ck["E1"], ck["F1"] = "Summary", None
+    ck["E1"].font = Font(bold=True)
+    ck.column_dimensions["E"].width = 28
+    ck.column_dimensions["F"].width = 10
+    summary = [
+        ("Lowest number", "=MIN(Invoices!A2:A200)"),
+        ("Highest number", "=MAX(Invoices!A2:A200)"),
+        ("Numbers expected in range", "=F3-F2+1"),
+        ("Invoices entered", "=COUNT(Invoices!A2:A200)"),
+        ("Missing numbers", '=COUNTIF(C2:C13,"Missing")'),
+        ("Numbers used twice", '=COUNTIF(C2:C13,"Duplicate")'),
+        ("Check: entered - duplicate extras + missing", "=F5-(SUMPRODUCT((B2:B13>1)*(B2:B13-1)))+F6"),
+    ]
+    for i, (label, f) in enumerate(summary, start=2):
+        ck[f"E{i}"], ck[f"F{i}"] = label, f
+        ck[f"F{i}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Find Missing Invoice Numbers",
+        "",
+        "1. Invoices tab: list every invoice number you issued in column A (any order). Use plain numbers such as 1001. If your numbers have a prefix like INV-1001, keep the number in its own column.",
+        "2. Check tab, A2: =MIN(Invoices!$A$2:$A$200)+ROW()-2 lists each expected number from the lowest one upward. Fill it down for as many numbers as the range needs.",
+        "3. B2: =COUNTIF(Invoices!$A$2:$A$200,A2) counts how often that number appears.",
+        "4. C2: =IF(B2=0,\"Missing\",IF(B2>1,\"Duplicate\",\"OK\")). Missing numbers turn red, duplicates yellow.",
+        "5. F6 counts the missing numbers. F5 minus the extra copies plus F6 should equal F4 (the numbers expected in the range).",
+        "6. The check only looks between your lowest and highest number. A missing number before the first or after the last one is not detected.",
+        "7. A missing number is a question to answer, not proof of a problem: it may be a voided invoice. This sheet does not decide that.",
+        "8. The Check tab lists 12 numbers. If your lowest-to-highest range is longer, fill the Check formulas down and widen the ranges in the summary; until then F8 will not equal F4, which tells you rows are missing from the list.",
+        "",
+        "Clients and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-missing-invoice-numbers.xlsx")
+
+
+def sumif_contains_text():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Expenses"
+    header(ws, ["Date", "Description", "Amount"], [13, 34, 13])
+    rows = [
+        (date(2026, 9, 1), "Uber to client meeting", 18.40), (date(2026, 9, 2), "Printer ink cartridge", 42.99),
+        (date(2026, 9, 4), "UBER EATS lunch", 14.25), (date(2026, 9, 7), "Pink ribbon spool", 6.50),
+        (date(2026, 9, 9), "Etsy listing fees", 3.20), (date(2026, 9, 12), "Etsy shipping labels", 27.80),
+        (date(2026, 9, 15), "Domain renewal", 12.00), (date(2026, 9, 18), "Uber airport", 36.10),
+        (date(2026, 9, 21), "Packing tape and ink pen", 9.75), (date(2026, 9, 24), "Stamps*", 11.60),
+        (date(2026, 9, 26), "Ink refill kit", 19.00), (date(2026, 9, 30), "Software subscription", 15.00),
+    ]
+    for r, (d, desc, amt) in enumerate(rows, start=2):
+        ws.append([d, desc, amt])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+
+    t = wb.create_sheet("Totals")
+    header(t, ["Text to find", "Contains (total)", "Contains (count)", "Starts with (total)", "Ends with (total)"],
+           [18, 17, 17, 19, 18])
+    for r, word in enumerate(["Uber", "Etsy", "ink", "Ink pen", "Stamps~*", "Zoom"], start=2):
+        t.append([word,
+                  f'=SUMIF(Expenses!$B$2:$B$200,"*"&A{r}&"*",Expenses!$C$2:$C$200)',
+                  f'=COUNTIF(Expenses!$B$2:$B$200,"*"&A{r}&"*")',
+                  f'=SUMIF(Expenses!$B$2:$B$200,A{r}&"*",Expenses!$C$2:$C$200)',
+                  f'=SUMIF(Expenses!$B$2:$B$200,"*"&A{r},Expenses!$C$2:$C$200)'])
+        for col in "BDE":
+            t[f"{col}{r}"].number_format = USD
+        for col in "BCDE":
+            t[f"{col}{r}"].fill = FORMULA_FILL
+    t["A9"], t["B9"] = "All expenses", "=SUM(Expenses!C2:C200)"
+    t["B9"].number_format = USD
+    t["A9"].font = Font(bold=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Sum Cells That Contain Certain Text",
+        "",
+        "1. Expenses tab: date, description and amount. Totals tab column A holds the word to look for.",
+        "2. B2: =SUMIF(Expenses!$B$2:$B$200,\"*\"&A2&\"*\",Expenses!$C$2:$C$200). The * wildcard stands for any text, so the description only has to contain the word somewhere. Letter case is ignored.",
+        "3. C2: =COUNTIF(Expenses!$B$2:$B$200,\"*\"&A2&\"*\") counts the matching rows.",
+        "4. D2 drops the first * (text starts with the word). E2 drops the last * (text ends with the word).",
+        "5. The match is on letters, not on words. \"ink\" also matches \"Pink ribbon spool\". Use a longer phrase such as \"Printer ink\" if that is a problem.",
+        "6. To search for a real * or ?, put a ~ in front of it: Stamps~* finds the text Stamps*.",
+        "7. A blank cell in column A makes the pattern ** , which matches every row that has text.",
+        "8. SUMIF does not read cell colors and only matches text, so a number in the description column is not found by a * pattern.",
+        "",
+        "Expenses are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-sumif-contains-text.xlsx")
+
+
+def invoice_installments():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Payment plan"
+    ws.column_dimensions["A"].width = 24
+    for col, w in zip("BCD", (16, 16, 16)):
+        ws.column_dimensions[col].width = w
+    ws["A1"], ws["A1"].font = "Invoice total", Font(bold=True)
+    ws["B1"] = 2500.00
+    ws["A2"], ws["A2"].font = "Number of payments (1 to 12)", Font(bold=True)
+    ws["B2"] = 6
+    ws["A3"], ws["A3"].font = "First payment date", Font(bold=True)
+    ws["B3"] = date(2026, 11, 1)
+    ws["B1"].number_format = USD
+    ws["B3"].number_format = US_DATE
+    dv = DataValidation(type="whole", operator="between", formula1="1", formula2="12", allow_blank=False,
+                        showErrorMessage=True, errorTitle="Payments", error="Enter a whole number from 1 to 12.")
+    ws.add_data_validation(dv)
+    dv.add("B2")
+    for c in ("B1", "B2", "B3"):
+        ws[c].fill = PatternFill("solid", fgColor="FFF2CC")
+    ws["A4"] = "Regular payment"
+    ws["B4"] = "=ROUND(B1/B2,2)"
+    ws["A5"] = "Last payment"
+    ws["B5"] = "=B1-B4*(B2-1)"
+    for c in ("B4", "B5"):
+        ws[c].number_format = USD
+        ws[c].fill = FORMULA_FILL
+    for col, name in zip("ABCD", ["Payment #", "Due date", "Amount", "Balance after"]):
+        ws[f"{col}7"] = name
+        ws[f"{col}7"].fill, ws[f"{col}7"].font = HEADER_FILL, HEADER_FONT
+    for n in range(1, 13):
+        r = 7 + n
+        ws[f"A{r}"] = n
+        ws[f"B{r}"] = f'=IF(A{r}>$B$2,"",EDATE($B$3,A{r}-1))'
+        ws[f"C{r}"] = f'=IF(A{r}>$B$2,"",IF(A{r}=$B$2,$B$5,$B$4))'
+        ws[f"D{r}"] = f'=IF(A{r}>$B$2,"",$B$1-SUM($C$8:C{r}))'
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = USD
+        for col in "BCD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws["A21"], ws["C21"] = "Total of payments", "=SUM(C8:C19)"
+    ws["A22"], ws["C22"] = "Difference from invoice", "=ROUND(C21-B1,2)"
+    ws["C21"].number_format = ws["C22"].number_format = USD
+    ws["A21"].font = ws["A22"].font = Font(bold=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Split an Invoice Into Equal Monthly Payments",
+        "",
+        "1. Payment plan tab: change the three yellow cells: invoice total (B1), number of payments from 1 to 12 (B2) and the first payment date (B3).",
+        "2. B4: =ROUND(B1/B2,2) is the regular payment rounded to cents.",
+        "3. B5: =B1-B4*(B2-1) is the last payment. It takes whatever cents are left over so the payments add up to the invoice exactly. $1,000.00 in 3 payments is $333.33, $333.33, $333.34.",
+        "4. Due dates: =IF(A8>$B$2,\"\",EDATE($B$3,A8-1)) moves the first date forward one month at a time. Rows beyond your number of payments stay blank.",
+        "5. EDATE keeps the day of the month, but a month that is too short uses its last day: a first date of 01/31/2026 gives 02/28/2026 and then 03/31/2026.",
+        "6. Balance after: =$B$1-SUM($C$8:C8), which should end at $0.00. C22 shows the difference between the payments and the invoice (should be $0.00).",
+        "7. Only B2 values from 1 to 12 are supported. This is arithmetic for a plan you already agreed with the client; it adds no interest or fees.",
+        "",
+        "Amounts and dates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-invoice-installments.xlsx")
+
+
+def marketplace_net_payout():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Net payout"
+    header(ws, ["Order", "Sale price", "Fees", "Net payout", "Net % of price"], [26, 13, 12, 14, 15])
+    orders = [("Soy candle, 8 oz", 18.00), ("Cedar soap bar", 8.50), ("Brass hoop earrings", 24.00),
+              ("Gift tag set", 1.00), ("Candle gift box", 60.00), ("Sticker sample", 0.25)]
+    for r, (name, price) in enumerate(orders, start=2):
+        ws.append([name, price, f"=ROUND(B{r}*($H$2+$H$3)+$H$4,2)", f"=B{r}-C{r}", f"=D{r}/B{r}"])
+        for col in "BCD":
+            ws[f"{col}{r}"].number_format = USD
+        ws[f"E{r}"].number_format = "0.0%"
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws["A8"], ws["B8"], ws["C8"], ws["D8"] = "Total", "=SUM(B2:B7)", "=SUM(C2:C7)", "=SUM(D2:D7)"
+    ws["E8"] = "=D8/B8"
+    for col in "BCD":
+        ws[f"{col}8"].number_format = USD
+    ws["E8"].number_format = "0.0%"
+    ws["A8"].font = Font(bold=True)
+
+    ws.column_dimensions["G"].width = 34
+    ws.column_dimensions["H"].width = 12
+    ws["G1"], ws["G1"].font = "Fee settings (fictional rates)", Font(bold=True)
+    for r, (label, val, fmt) in enumerate([("Marketplace fee, % of price", 0.065, "0.0%"),
+                                           ("Payment processing, % of price", 0.03, "0.0%"),
+                                           ("Fixed fee per order", 0.25, USD)], start=2):
+        ws[f"G{r}"], ws[f"H{r}"] = label, val
+        ws[f"H{r}"].number_format = fmt
+        ws[f"H{r}"].fill = PatternFill("solid", fgColor="FFF2CC")
+    ws["G6"], ws["G6"].font = "Price needed for a target payout", Font(bold=True)
+    ws["G7"], ws["H7"] = "Target net payout", 15.00
+    ws["G8"], ws["H8"] = "Price to charge", "=ROUNDUP((H7+H4)/(1-H2-H3),2)"
+    ws["G9"], ws["H9"] = "Check: net payout at that price", "=H8-ROUND(H8*(H2+H3)+H4,2)"
+    ws["H7"].number_format = ws["H8"].number_format = ws["H9"].number_format = USD
+    ws["H7"].fill = PatternFill("solid", fgColor="FFF2CC")
+    ws["H8"].fill = ws["H9"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Net Payout After Marketplace Fees",
+        "",
+        "1. Net payout tab: yellow cells H2:H4 hold the fee settings. The rates here are made up. Replace them with the rates shown in your own seller account, and update them when the marketplace changes its fees.",
+        "2. C2: =ROUND(B2*($H$2+$H$3)+$H$4,2) is the fee on that order: both percentages of the price plus the fixed fee, rounded to cents.",
+        "3. D2: =B2-C2 is the net payout. E2: =D2/B2 is the share of the price you keep.",
+        "4. The fixed fee hurts small orders most: the $1.00 gift tag set keeps only 65.0% of its price, and the $0.25 sticker sample ends up at a net payout of -$0.02, a loss.",
+        "5. H8: =ROUNDUP((H7+H4)/(1-H2-H3),2) works backward to the price that nets your target, rounded up to the next cent. H9 checks it by running the forward formula on that price. Because fees are rounded to cents, the check can land a cent above the target (here $15.01 for a $15.00 target).",
+        "6. This sheet covers only the fees you type in. It does not include shipping, sales tax collected, advertising, refunds, or income tax.",
+        "",
+        "Orders and rates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-marketplace-net-payout.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -2459,4 +2752,9 @@ if __name__ == "__main__":
     prorate_partial_month()
     two_way_rate_card()
     in_cell_bars()
+    quarterly_sales_totals()
+    missing_invoice_numbers()
+    sumif_contains_text()
+    invoice_installments()
+    marketplace_net_payout()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

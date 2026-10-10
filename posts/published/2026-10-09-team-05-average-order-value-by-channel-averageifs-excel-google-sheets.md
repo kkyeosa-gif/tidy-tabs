@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeUXHGQG0fp
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-average-order-value-by.html
 title: How to Find Average Order Value by Sales Channel With AVERAGEIFS in Excel and Google Sheets
 labels: excel-formulas, sales-tracking, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux). Excel and Google Sheets steps use the same AVERAGEIFS, COUNTIFS and SUMIFS functions; the help link is from Microsoft Support (not tested in either app).

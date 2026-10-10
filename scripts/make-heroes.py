@@ -25,7 +25,7 @@ W, H, PAD = 1600, 900, 50
 BG = (244, 246, 243)
 
 
-def render(src, sheet, hide_cols="", name="hero", zoom=3.0):
+def render(src, sheet, hide_cols="", name="hero", zoom=3.0, widths=None):
     """PDF-render one sheet (optionally hiding columns) and return a cropped PIL image."""
     wb = load_workbook(src)
     wb.move_sheet(sheet, -wb.index(wb[sheet]))
@@ -37,6 +37,8 @@ def render(src, sheet, hide_cols="", name="hero", zoom=3.0):
         ws.print_options.gridLines = True
     for col in hide_cols:
         wb[sheet].column_dimensions[col].hidden = True
+    for col, width in (widths or {}).items():
+        wb[sheet].column_dimensions[col].width = width
     path = f"{rp.TMP}/{name}.xlsx"
     wb.save(path)
     page = pymupdf.open(rp.to_pdf(path))[0]
@@ -160,8 +162,23 @@ def heroes_2026_10_10():
          render(t + "tidy-tabs-in-cell-bars.xlsx", "Units sold", hide_cols="DE", name="bars"))
 
 
+def heroes_2026_10_11():
+    t = "templates/"
+    d = "images/2026-10-11-team-0%d-%s/"
+    save(d % (1, "quarterly-sales-totals-sumifs-excel-google-sheets") + "quarterly-sales-totals-by-quarter-template.png",
+         render(t + "tidy-tabs-quarterly-sales-totals.xlsx", "By quarter", name="quarters"))
+    save(d % (2, "find-missing-invoice-numbers-countif-excel-google-sheets") + "missing-invoice-numbers-check-template.png",
+         render(t + "tidy-tabs-missing-invoice-numbers.xlsx", "Check", name="missinginv", widths={"E": 46}))
+    save(d % (3, "sum-if-cell-contains-text-wildcard-sumif-excel-google-sheets") + "sumif-contains-text-totals-template.png",
+         render(t + "tidy-tabs-sumif-contains-text.xlsx", "Totals", name="sumifwild"))
+    save(d % (4, "split-invoice-into-installments-excel-google-sheets") + "invoice-installments-payment-plan-template.png",
+         render(t + "tidy-tabs-invoice-installments.xlsx", "Payment plan", name="installments", widths={"A": 34}))
+    save(d % (5, "marketplace-fee-net-payout-calculator-excel-google-sheets") + "marketplace-net-payout-calculator-template.png",
+         render(t + "tidy-tabs-marketplace-net-payout.xlsx", "Net payout", name="netpayout"))
+
+
 def main():
-    heroes_2026_10_10()
+    heroes_2026_10_11()
     return
     # older heroes (rebuilding rewrites their PNGs; the early return above skips them)
     t = "templates/"

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeSwHJ8FCQs
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-last-order-date-for-each.html
 title: How to Find the Last Order Date for Each Customer With MAXIFS in Excel and Google Sheets
 labels: excel-formulas, customer-tracking, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux) only. Excel and Google Sheets steps use the same functions; the MAXIFS, SUMIFS and import help links are from Microsoft Support and Google Docs Editors Help (not tested here).

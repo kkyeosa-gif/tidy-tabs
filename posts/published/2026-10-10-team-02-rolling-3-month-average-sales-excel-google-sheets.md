@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeU5cNimkBs
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-rolling-average-of.html
 title: How to Calculate a Rolling Average of Monthly Sales in Excel and Google Sheets
 labels: excel-formulas, sales-tracking, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux) only. The template was recalculated there and every result was checked against hand math. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

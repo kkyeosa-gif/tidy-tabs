@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeUDUKVmwbH
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-count-orders-by-month-with.html
 title: How to Count Orders by Month With COUNTIFS in Excel and Google Sheets
 labels: excel-formulas, order-tracking, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux) only. Excel and Google Sheets use the same COUNTIFS, SUMIFS and EDATE functions; the help links are from Microsoft Support and Google Docs Editors Help (not tested here).

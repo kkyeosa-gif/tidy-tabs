@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeW751coGpI
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-make-bar-chart-inside-cells-with.html
 title: How to Make a Bar Chart Inside Cells With REPT in Excel and Google Sheets
 labels: excel-formulas, charts, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux) only. Excel and Google Sheets were not opened; the REPT and LEN help links are from Microsoft Support.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeWoGv4G6lr
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-look-up-price-by-row-and-column.html
 title: How to Look Up a Price by Row and Column With INDEX and MATCH in Excel and Google Sheets
 labels: excel-formulas, pricing, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux) only. The template was recalculated there and every result below was checked against the rate card. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeVU52bAB84
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-prorate-partial-month-of-rent-or.html
 title: How to Prorate a Partial Month of Rent or a Retainer in Excel and Google Sheets
 labels: excel-formulas, invoicing, small-business
 tested_in: LibreOffice Calc 24.2.7 (Linux) only. The template was recalculated there and every result was checked against an independent calculation. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

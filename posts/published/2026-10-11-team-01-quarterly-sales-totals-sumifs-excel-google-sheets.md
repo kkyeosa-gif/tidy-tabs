@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeXJpBtluOK
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-total-sales-by-quarter-in-excel.html
 title: How to Total Sales by Quarter in Excel and Google Sheets
 labels: excel-formulas, sales-tracking, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against hand or Python math, including the quarter boundary days and a date typed as text. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

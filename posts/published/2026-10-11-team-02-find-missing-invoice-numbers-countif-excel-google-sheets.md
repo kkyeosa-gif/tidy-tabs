@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeXePEPlBSK
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-missing-invoice-numbers-in.html
 title: How to Find Missing Invoice Numbers in a Sequence in Excel and Google Sheets
 labels: excel-formulas, invoicing, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against hand math, including a text-number case and an out-of-range case. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

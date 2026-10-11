@@ -425,3 +425,24 @@ Google 도움말 링크로 근거를 댄다.
 - 4 installments: $2,500.00/6 = 5 x $416.67 + $416.65, 합계 일치. $1,000.00/3 = 333.33, 333.33, 333.34. 01/31 시작 EDATE 는 02/28, 03/31, 04/30.
 - 5 net payout: 6건 손계산 일치, $0.25 상품은 순수령 -$0.02. 목표 $15.00 역산 가격 $16.86 (확인값 $15.01, 센트 반올림 때문). 수수료율 합 100% 면 #DIV/0!.
 - 상세 셀 주소: tasks/team-2026-10-11-handoff.md.
+
+## 2026-10-12 신규 주제 5개 (researcher)
+- 데이터: tasks/search-stats.md 없음 (데이터 없음). 검색량·경쟁도 수치 없음. 3-gate 기준만 적용.
+- 중복 확인: posts/ready, posts/published, tasks/topics-seed.md, tasks/team-topics-*.md 와 대조. 가까운 기존 글(highlight-duplicate-values, quantity-price-tiers-lookup, year-to-date-sales-total, weighted-average-cost, rank-top-customers)과의 차이는 tasks/team-topics-2026-10-12.md 상단에 적음.
+- 주제 (좋은 순, 슬러그 앞에 2026-10-12-team-0N- 붙임):
+  1. compare-two-lists-find-missing-countif-excel-google-sheets: `=IF(COUNTIF($D$2:$D$200,A2)=0,"Not found","Found")`, 양방향
+  2. tiered-sales-commission-sumproduct-excel-google-sheets: 구간별 요율을 구간 안의 매출에만 적용, SUMPRODUCT
+  3. monthly-sales-goal-progress-excel-google-sheets: 달성률, 하루 필요 매출(EOMONTH), 직선 예상치
+  4. batch-cost-per-unit-excel-google-sheets: 포장 단가 x 사용량, 판매 가능 개수로 나눈 개당 원가
+  5. percent-of-total-product-sales-excel-google-sheets: 구성비, 누적 구성비, 상위 80% 표시
+- 세금·법률 판단 없음: 커미션은 서면 계약을 따르라고 안내하는 산술 예시(급여·원천징수 아님). 원가는 재료비만, 인건비·배송·수수료·세금 제외.
+
+## 2026-10-12 주제 5개 템플릿 빌드와 재계산 결과 (template-builder)
+- 환경: LibreOffice Calc 24.2 (Linux, headless). Excel, Google Sheets 에서는 열어 보지 않음. 샘플 데이터는 모두 가상. tasks/search-stats.md 없음.
+- 빌드: scripts/build-templates.py 에 함수 5개 추가 (compare_two_lists, tiered_commission, sales_goal_progress, batch_cost_per_unit, percent_of_total_sales), main 에 등록. 시트마다 US Letter, 한 페이지 폭에 맞춤, PDF 로 시트당 1쪽 확인. 빌드가 기존 템플릿 .xlsx 도 다시 저장해서 git checkout 으로 되돌리고 새 파일 5개만 남김. openpyxl 은 /usr/bin/python3 에만 있음.
+- 1 compare: 10명 vs 8명, A 에만 4건 (ana, maya, omar, jo), B 에만 2건 (chris, pat), 양쪽 6건. 대소문자 무시. 끝 공백은 가짜 Not found, `*` 는 와일드카드로 전부 Found.
+- 2 commission: $126.00, $150.00, $560.00, $0.00, $1,640.04, $400.00, 합계 $2,876.04 (두 방식 일치, Python 일치). 음수 매출과 텍스트 매출은 두 방식이 서로 달라짐.
+- 3 goal: 10월 합계 $2,699.25 (9/30 매출 제외), 달성률 33.7%, 하루 필요 $278.99, 예상 $6,973.06 Behind. 월말 "Last day", 목표 초과 시 공백, 매출 없는 달 정상.
+- 4 batch: 재료비 합계 $151.26, 개당 $6.30, 판매 가능 개당 $6.88. 판매 가능 0개면 공백, 포장당 수량 0 이면 #DIV/0!, 수량 칸 텍스트는 #VALUE!.
+- 5 percent: 상위 3개 83.0% (80% 를 넘기는 3번째 포함), 합계 100%. 정렬 안 하면 전부 Top sellers 로 잘못 표시, 매출 비면 #DIV/0!.
+- 상세 셀 주소: tasks/team-2026-10-12-handoff.md.

@@ -177,7 +177,23 @@ def heroes_2026_10_11():
          render(t + "tidy-tabs-marketplace-net-payout.xlsx", "Net payout", name="netpayout"))
 
 
+def heroes_2026_10_12():
+    t = "templates/"
+    d = "images/2026-10-12-team-0%d-%s/"
+    save(d % (1, "compare-two-lists-find-missing-countif-excel-google-sheets") + "compare-two-lists-find-missing-template.png",
+         render(t + "tidy-tabs-compare-two-lists.xlsx", "Lists", name="lists"))
+    save(d % (2, "tiered-sales-commission-sumproduct-excel-google-sheets") + "tiered-sales-commission-template.png",
+         render(t + "tidy-tabs-tiered-commission.xlsx", "Commission", name="commission"))
+    save(d % (3, "monthly-sales-goal-progress-excel-google-sheets") + "monthly-sales-goal-progress-template.png",
+         render(t + "tidy-tabs-sales-goal-progress.xlsx", "Goal", name="goal"))
+    save(d % (4, "batch-cost-per-unit-excel-google-sheets") + "batch-cost-per-unit-template.png",
+         render(t + "tidy-tabs-batch-cost-per-unit.xlsx", "Batch cost", name="batch"))
+    save(d % (5, "percent-of-total-product-sales-excel-google-sheets") + "percent-of-total-sales-by-product-template.png",
+         render(t + "tidy-tabs-percent-of-total-sales.xlsx", "Sales by product", name="pct"))
+
+
 def main():
+    heroes_2026_10_12()
     heroes_2026_10_11()
     return
     # older heroes (rebuilding rewrites their PNGs; the early return above skips them)

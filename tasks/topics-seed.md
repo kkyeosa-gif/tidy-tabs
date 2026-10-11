@@ -58,3 +58,10 @@
 - How to Sum Cells That Contain Certain Text With SUMIF Wildcards in Excel and Google Sheets - `sum-if-cell-contains-text-wildcard-sumif-excel-google-sheets`
 - How to Split an Invoice Into Equal Monthly Payments in Excel and Google Sheets - `split-invoice-into-installments-excel-google-sheets`
 - How to Calculate Net Payout After Marketplace Fees in Excel and Google Sheets - `marketplace-fee-net-payout-calculator-excel-google-sheets`
+
+## 2026-10-12 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, LibreOffice Calc 24.2 에서 수식 확인)
+- How to Compare Two Lists and Find Missing Items in Excel and Google Sheets - `compare-two-lists-find-missing-countif-excel-google-sheets`
+- How to Calculate Tiered Sales Commission in Excel and Google Sheets - `tiered-sales-commission-sumproduct-excel-google-sheets`
+- How to Track Progress to a Monthly Sales Goal in Excel and Google Sheets - `monthly-sales-goal-progress-excel-google-sheets`
+- How to Calculate Cost Per Unit for a Handmade Batch in Excel and Google Sheets - `batch-cost-per-unit-excel-google-sheets`
+- How to Calculate Percent of Total Sales by Product in Excel and Google Sheets - `percent-of-total-product-sales-excel-google-sheets`

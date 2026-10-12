@@ -192,7 +192,23 @@ def heroes_2026_10_12():
          render(t + "tidy-tabs-percent-of-total-sales.xlsx", "Sales by product", name="pct"))
 
 
+def heroes_2026_10_13():
+    t = "templates/"
+    d = "images/2026-10-13-team-0%d-%s/"
+    save(d % (1, "invoice-due-date-payment-terms-excel-google-sheets") + "invoice-due-date-payment-terms-template.png",
+         render(t + "tidy-tabs-invoice-due-dates.xlsx", "Due dates", name="duedates"))
+    save(d % (2, "sales-by-day-of-week-sumif-excel-google-sheets") + "sales-by-day-of-week-template.png",
+         render(t + "tidy-tabs-sales-by-weekday.xlsx", "By weekday", name="weekday"))
+    save(d % (3, "repeat-customer-rate-countif-excel-google-sheets") + "repeat-customer-rate-template.png",
+         render(t + "tidy-tabs-repeat-customers.xlsx", "Customers", name="repeat"))
+    save(d % (4, "cheapest-supplier-cost-per-ounce-index-match-excel-google-sheets") + "cheapest-supplier-cost-per-ounce-template.png",
+         render(t + "tidy-tabs-supplier-price-compare.xlsx", "Compare", name="supplier"))
+    save(d % (5, "split-sku-code-into-parts-left-mid-find-excel-google-sheets") + "split-sku-code-into-parts-template.png",
+         render(t + "tidy-tabs-split-sku-code.xlsx", "SKUs", name="sku"))
+
+
 def main():
+    heroes_2026_10_13()
     heroes_2026_10_12()
     heroes_2026_10_11()
     return

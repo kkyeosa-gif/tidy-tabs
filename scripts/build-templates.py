@@ -2710,6 +2710,323 @@ def marketplace_net_payout():
     wb.save(OUT / "tidy-tabs-marketplace-net-payout.xlsx")
 
 
+INPUT_FILL = PatternFill("solid", fgColor="FFF2CC")
+
+
+def invoice_due_dates():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Due dates"
+    header(ws, ["Invoice", "Client", "Invoice date", "Terms", "Days", "Due date", "Days until due", "Status"],
+           [12, 26, 13, 17, 14, 13, 14, 12])
+    invoices = [
+        ("INV-1001", "Maple Street Bakery", date(2026, 9, 1), "Net 30"),
+        ("INV-1002", "Harbor Yoga Studio", date(2026, 9, 15), "Net 15"),
+        ("INV-1003", "Birch Design Co", date(2026, 9, 28), "Net 45"),
+        ("INV-1004", "Lantern Print Shop", date(2026, 10, 5), "Net 30"),
+        ("INV-1005", "Cedar Row Realty", date(2026, 10, 13), "Due on receipt"),
+        ("INV-1006", "Willow Pet Care", date(2026, 10, 1), "Net 60"),
+        ("INV-1007", "Granite Fitness", date(2026, 8, 20), "Net 60"),
+        ("INV-1008", "Juniper Books", date(2026, 10, 10), "Net 15"),
+    ]
+    last = 20
+    for r in range(2, last + 1):
+        if r - 2 < len(invoices):
+            ws.append(list(invoices[r - 2]))
+        else:
+            ws.append([])
+        ws[f"C{r}"].number_format = US_DATE
+        ws[f"E{r}"] = f'=IF(D{r}="","",IFERROR(VLOOKUP(D{r},$J$2:$K$6,2,FALSE),"Check terms"))'
+        ws[f"F{r}"] = f'=IF(OR(C{r}="",NOT(ISNUMBER(E{r}))),"",C{r}+E{r})'
+        ws[f"G{r}"] = f'=IF(F{r}="","",F{r}-$K$8)'
+        ws[f"H{r}"] = f'=IF(G{r}="","",IF(G{r}<0,"Past due",IF(G{r}=0,"Due today","Open")))'
+        ws[f"F{r}"].number_format = US_DATE
+        for col in "EFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    dv = DataValidation(type="list", formula1="=$J$2:$J$6", allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add(f"D2:D{last}")
+    ws.conditional_formatting.add(f"H2:H{last}", FormulaRule(formula=['H2="Past due"'], fill=ALERT_FILL))
+    ws.column_dimensions["I"].width = 4
+    ws.column_dimensions["J"].width = 20
+    ws.column_dimensions["K"].width = 12
+    ws["J1"], ws["K1"] = "Terms", "Days"
+    for c in (ws["J1"], ws["K1"]):
+        c.fill, c.font = HEADER_FILL, HEADER_FONT
+    for r, (name, days) in enumerate([("Due on receipt", 0), ("Net 15", 15), ("Net 30", 30),
+                                      ("Net 45", 45), ("Net 60", 60)], start=2):
+        ws[f"J{r}"], ws[f"K{r}"] = name, days
+        ws[f"J{r}"].fill = ws[f"K{r}"].fill = INPUT_FILL
+    ws["J8"], ws["K8"] = "As-of date", date(2026, 10, 13)
+    ws["K8"].number_format = US_DATE
+    ws["J8"].font = Font(bold=True)
+    ws["K8"].fill = INPUT_FILL
+    ws["J10"], ws["K10"] = "Open or due today", f'=COUNTIF(H2:H{last},"Open")+COUNTIF(H2:H{last},"Due today")'
+    ws["J11"], ws["K11"] = "Past due", f'=COUNTIF(H2:H{last},"Past due")'
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Calculate an Invoice Due Date From Payment Terms",
+        "",
+        "1. Due dates tab: type the invoice number, client, invoice date (C) and pick the terms from the dropdown in column D. Rows 2 to 20 have the formulas ready.",
+        "2. The terms table sits in J2:K6 (yellow). Each name has a number of days. Add or change terms by editing those cells; keep the names exactly as the dropdown shows them.",
+        "3. E2: =IF(D2=\"\",\"\",IFERROR(VLOOKUP(D2,$J$2:$K$6,2,FALSE),\"Check terms\")) looks up the days. A term that is not in the table shows Check terms.",
+        "4. F2: =IF(OR(C2=\"\",NOT(ISNUMBER(E2))),\"\",C2+E2) is the due date: the invoice date plus the days. Dates are plain numbers, so adding days works across month ends (08/20/2026 plus 60 days is 10/19/2026).",
+        "5. The short version of the whole sheet is =C2+VLOOKUP(D2,$J$2:$K$6,2,FALSE).",
+        "6. K8 is the as-of date. Type =TODAY() there to compare with the current day. G2 is the due date minus the as-of date (negative means days late). H2 says Past due, Due today or Open.",
+        "7. The due date is not moved for weekends or holidays, and it does not read terms such as 2/10 net 30 or end of month. Use WORKDAY if you want business days.",
+        "8. This is date arithmetic only. The terms on a real invoice come from your contract with the client.",
+        "",
+        "Invoices, clients and dates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-invoice-due-dates.xlsx")
+
+
+def sales_by_weekday():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Daily sales"
+    header(ws, ["Date", "Sales", "Weekday"], [13, 12, 11])
+    amounts = [42.00, 38.50, 51.25, 65.00, 148.00, 212.50, 96.00,
+               40.00, 35.00, 47.50, 70.25, 155.00, 230.00, 88.50,
+               44.50, 41.00, 55.00, 62.00, 162.75, 248.00, 101.00,
+               39.00, 36.25, 49.00, 68.00, 171.00, 226.50, 93.00]
+    last = 60
+    for i in range(2, last + 1):
+        if i - 2 < len(amounts):
+            ws.append([date(2026, 9, 1 + i - 2), amounts[i - 2]])
+        else:
+            ws.append([])
+        ws[f"A{i}"].number_format = US_DATE
+        ws[f"B{i}"].number_format = USD
+        ws[f"C{i}"] = f'=IF(A{i}="","",TEXT(A{i},"ddd"))'
+        ws[f"C{i}"].fill = FORMULA_FILL
+
+    s = wb.create_sheet("By weekday")
+    header(s, ["Weekday", "Days counted", "Total sales", "Average per day", "Share of sales", "Best day"],
+           [14, 14, 14, 17, 15, 12])
+    rng = "'Daily sales'!$C$2:$C$200"
+    for r, day in enumerate(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], start=2):
+        s.append([day, f"=COUNTIF({rng},A{r})",
+                  f"=SUMIF({rng},A{r},'Daily sales'!$B$2:$B$200)",
+                  f'=IF(B{r}=0,"",C{r}/B{r})',
+                  f'=IF($C$9=0,"",C{r}/$C$9)',
+                  f'=IF(D{r}="","",IF(D{r}=MAX($D$2:$D$8),"Best day",""))'])
+        s[f"C{r}"].number_format = s[f"D{r}"].number_format = USD
+        s[f"E{r}"].number_format = "0.0%"
+        for col in "BCDEF":
+            s[f"{col}{r}"].fill = FORMULA_FILL
+    s["A9"], s["B9"], s["C9"] = "Total", "=SUM(B2:B8)", "=SUM(C2:C8)"
+    s["A9"].font = Font(bold=True)
+    s["C9"].number_format = USD
+    s["A11"] = "Check: days counted match the Daily sales tab"
+    s["F11"] = "=IF(B9=COUNT('Daily sales'!A2:A200),\"OK\",\"CHECK\")"
+    s["A12"] = "Check: total matches the Daily sales tab"
+    s["F12"] = "=IF(ROUND(C9-SUM('Daily sales'!B2:B200),2)=0,\"OK\",\"CHECK\")"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Total Sales by Day of the Week",
+        "",
+        "1. Daily sales tab: one row per day, with the date in A and that day's sales in B. Column C names the weekday.",
+        "2. C2: =IF(A2=\"\",\"\",TEXT(A2,\"ddd\")) turns a date into Mon, Tue and so on. Fill it down as far as your data goes (it is ready to row 60).",
+        "3. By weekday tab, C2: =SUMIF('Daily sales'!$C$2:$C$200,A2,'Daily sales'!$B$2:$B$200) adds the sales for each weekday. B2 counts the days with COUNTIF.",
+        "4. D2: =IF(B2=0,\"\",C2/B2) is the average per day. The short form is =AVERAGEIF('Daily sales'!$C$2:$C$200,\"Sat\",'Daily sales'!$B$2:$B$200).",
+        "5. Compare averages, not totals, when some weekdays appear more often in your data. F2 marks the weekday with the highest average.",
+        "6. Dates should be real dates. A date stored as text may still get a weekday name in column C, but the COUNT of real dates skips it, so check cell F11 shows CHECK. Re-enter it as a date.",
+        "7. A day with $0.00 sales still counts as a day if it has a row. Days with no row are not counted.",
+        "8. The weekday names are English (Mon to Sun). They work the same for a US-English file in Excel and Google Sheets.",
+        "",
+        "Dates and sales are fictional (28 days from 09/01/2026). Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-sales-by-weekday.xlsx")
+
+
+def repeat_customers():
+    wb = Workbook()
+    o = wb.active
+    o.title = "Orders"
+    header(o, ["Order", "Customer", "Order date", "Total"], [10, 20, 13, 12])
+    orders = [
+        ("1001", "Ana Ruiz", date(2026, 8, 4), 42.00), ("1002", "Eli Brooks", date(2026, 8, 6), 18.00),
+        ("1003", "Ben Ortiz", date(2026, 8, 12), 65.50), ("1004", "Ana Ruiz", date(2026, 8, 20), 30.00),
+        ("1005", "Cara Lee", date(2026, 8, 25), 24.00), ("1006", "Eli Brooks", date(2026, 9, 2), 36.00),
+        ("1007", "Dev Patel", date(2026, 9, 9), 54.25), ("1008", "Fay Nolan", date(2026, 9, 14), 12.00),
+        ("1009", "Eli Brooks", date(2026, 9, 21), 28.75), ("1010", "Cara Lee", date(2026, 9, 28), 48.00),
+        ("1011", "Hana Cole", date(2026, 10, 1), 90.00), ("1012", "Ana Ruiz", date(2026, 10, 5), 22.50),
+        ("1013", "Eli Brooks", date(2026, 10, 9), 31.00),
+    ]
+    for r, row in enumerate(orders, start=2):
+        o.append(list(row))
+        o[f"C{r}"].number_format = US_DATE
+        o[f"D{r}"].number_format = USD
+
+    c = wb.create_sheet("Customers")
+    header(c, ["Customer", "Orders", "Type", "Total spent"], [20, 10, 12, 14])
+    names = ["Ana Ruiz", "Ben Ortiz", "Cara Lee", "Dev Patel", "Eli Brooks", "Fay Nolan", "Gus Hall", "Hana Cole"]
+    last = 31
+    for r in range(2, last + 1):
+        c.append([names[r - 2]] if r - 2 < len(names) else [])
+        c[f"B{r}"] = f'=IF(A{r}="","",COUNTIF(Orders!$B$2:$B$200,A{r}))'
+        c[f"C{r}"] = f'=IF(A{r}="","",IF(B{r}=0,"No orders",IF(B{r}=1,"One time","Repeat")))'
+        c[f"D{r}"] = f'=IF(A{r}="","",SUMIF(Orders!$B$2:$B$200,A{r},Orders!$D$2:$D$200))'
+        c[f"D{r}"].number_format = USD
+        for col in "BCD":
+            c[f"{col}{r}"].fill = FORMULA_FILL
+    c.column_dimensions["E"].width = 4
+    c.column_dimensions["F"].width = 36
+    c.column_dimensions["G"].width = 14
+    c["F1"] = "Summary"
+    c["F1"].font = Font(bold=True)
+    summary = [
+        ("Customers with at least one order", f'=COUNTIF(B2:B{last},">0")', "0"),
+        ("Repeat customers (2 or more orders)", f'=COUNTIF(B2:B{last},">=2")', "0"),
+        ("Repeat customer rate", '=IF(G2=0,"",G3/G2)', "0.0%"),
+        ("Orders counted above", f"=SUM(B2:B{last})", "0"),
+        ("Orders on the Orders tab", "=COUNTA(Orders!B2:B200)", "0"),
+        ("Check: every order matched a customer", '=IF(G5=G6,"OK","CHECK")', "General"),
+        ("Spent by repeat customers", f'=SUMIF(C2:C{last},"Repeat",D2:D{last})', USD),
+        ("Share of spending from repeat customers", f'=IF(SUM(D2:D{last})=0,"",G8/SUM(D2:D{last}))', "0.0%"),
+    ]
+    for r, (label, f, fmt) in enumerate(summary, start=2):
+        c[f"F{r}"], c[f"G{r}"] = label, f
+        c[f"G{r}"].number_format = fmt
+        c[f"G{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Repeat Customer Rate With COUNTIF",
+        "",
+        "1. Orders tab: one row per order, with the customer name in column B. Paste or type your orders under the sample rows.",
+        "2. Customers tab: list each customer once in column A . Rows 2 to 31 have formulas ready.",
+        "3. B2: =IF(A2=\"\",\"\",COUNTIF(Orders!$B$2:$B$200,A2)) counts that customer's orders. C2 labels them No orders, One time or Repeat. D2 adds up what they spent with SUMIF.",
+        "4. G2: =COUNTIF(B2:B31,\">0\") counts customers who ordered at all. G3: =COUNTIF(B2:B31,\">=2\") counts repeat customers.",
+        "5. G4: =IF(G2=0,\"\",G3/G2) is the repeat customer rate. The short form is =COUNTIF(B2:B9,\">=2\")/COUNTIF(B2:B9,\">0\").",
+        "6. G5 to G7 check that every order on the Orders tab matched a name on the Customers tab. A misspelled name or an extra space at the end of a cell makes G7 show CHECK.",
+        "7. COUNTIF ignores capital letters, so ana ruiz and Ana Ruiz are the same customer. It does not ignore spaces or different spellings.",
+        "8. The rate covers only the orders you pasted in. Choose the same date range for every rate you compare.",
+        "",
+        "Names, orders and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-repeat-customers.xlsx")
+
+
+def supplier_price_compare():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Compare"
+    header(ws, ["Supplier", "Package price", "Package size (oz)", "Shipping", "Cost per oz",
+                "Cost for amount needed", "Rank"], [24, 14, 14, 11, 13, 17, 8])
+    quotes = [
+        ("Pine Ridge Wax Co", 42.50, 160, 12.00),
+        ("Lakeside Supply", 27.99, 80, 9.50),
+        ("Harbor Craft Wholesale", 64.00, 240, 0.00),
+        ("Birchwood Candle Goods", 18.50, 48, 7.25),
+        ("Maple Lane Supply", 33.00, 100, 8.00),
+    ]
+    for r, q in enumerate(quotes, start=2):
+        ws.append(list(q))
+        ws[f"E{r}"] = f'=IF(OR(B{r}="",C{r}<=0),"",(B{r}+D{r})/C{r})'
+        ws[f"F{r}"] = f'=IF(E{r}="","",ROUND(E{r}*$I$2,2))'
+        ws[f"G{r}"] = f'=IF(E{r}="","",RANK(E{r},$E$2:$E$6,1))'
+        ws[f"B{r}"].number_format = ws[f"D{r}"].number_format = ws[f"F{r}"].number_format = USD
+        ws[f"E{r}"].number_format = '"$"0.0000'
+        for col in "EFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+    ws.column_dimensions["H"].width = 36
+    ws.column_dimensions["I"].width = 20
+    ws["H1"] = "Compare"
+    ws["H1"].font = Font(bold=True)
+    ws["H2"], ws["I2"] = "Amount you need (oz)", 200
+    ws["I2"].fill = INPUT_FILL
+    ws["H4"] = "Cheapest supplier per oz"
+    ws["I4"] = '=IFERROR(INDEX($A$2:$A$6,MATCH(MIN($E$2:$E$6),$E$2:$E$6,0)),"Enter prices")'
+    ws["H5"], ws["I5"] = "Lowest cost per oz", '=IF(COUNT(E2:E6)=0,"",MIN(E2:E6))'
+    ws["H6"], ws["I6"] = "Highest cost per oz", '=IF(COUNT(E2:E6)=0,"",MAX(E2:E6))'
+    ws["H7"], ws["I7"] = "Cost of amount needed, cheapest", '=IF(COUNT(F2:F6)=0,"",MIN(F2:F6))'
+    ws["H8"], ws["I8"] = "Extra paid with the priciest", '=IF(COUNT(F2:F6)=0,"",MAX(F2:F6)-MIN(F2:F6))'
+    for a in ("I5", "I6"):
+        ws[a].number_format = '"$"0.0000'
+    for a in ("I7", "I8"):
+        ws[a].number_format = USD
+    for a in ("I4", "I5", "I6", "I7", "I8"):
+        ws[a].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Find the Cheapest Supplier by Cost Per Ounce",
+        "",
+        "1. Compare tab: type each supplier's package price (B), package size in ounces (C) and shipping for that package (D). The yellow cells are inputs.",
+        "2. E2: =IF(OR(B2=\"\",C2<=0),\"\",(B2+D2)/C2) is the cost per ounce including shipping. A blank row or a size of 0 stays blank.",
+        "3. I4: =INDEX($A$2:$A$6,MATCH(MIN($E$2:$E$6),$E$2:$E$6,0)) returns the name of the supplier with the lowest cost per ounce. MIN finds the lowest number, MATCH finds its row, INDEX reads the name.",
+        "4. If two suppliers tie, the one listed first is returned. Column G (RANK) shows the tie.",
+        "5. I2 is how many ounces you need. F2 multiplies each supplier's cost per ounce by it, rounded to cents.",
+        "6. Use one unit for every row (all ounces, or all pounds). Mixing units gives a wrong answer without any error.",
+        "7. Shipping is counted once per package. If you buy several packages, or shipping is free above an order size, adjust the shipping cell yourself. Minimum order sizes and delivery times are not compared.",
+        "",
+        "Suppliers and prices are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-supplier-price-compare.xlsx")
+
+
+def split_sku_code():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "SKUs"
+    header(ws, ["SKU", "Units sold", "Category", "Style", "Size or color"], [20, 11, 12, 12, 15])
+    skus = [("CND-LAV-8OZ", 24), ("CND-LAV-16OZ", 9), ("CND-CED-8OZ", 18), ("SOP-OAT-4OZ", 31),
+            ("SOP-CHR-4OZ", 22), ("SOP-OAT-8OZ", 7), ("EAR-HOOP-GLD", 12), ("EAR-STUD-SLV", 15),
+            ("CRD-BDAY-A6", 40), ("CRD-THNX-A6", 28)]
+    last = 30
+    for r in range(2, last + 1):
+        ws.append(list(skus[r - 2]) if r - 2 < len(skus) else [])
+        ws[f"C{r}"] = f'=IF(A{r}="","",IFERROR(LEFT(A{r},FIND("-",A{r})-1),"Check SKU"))'
+        ws[f"D{r}"] = (f'=IF(A{r}="","",IFERROR(MID(A{r},FIND("-",A{r})+1,'
+                       f'FIND("-",A{r},FIND("-",A{r})+1)-FIND("-",A{r})-1),"Check SKU"))')
+        ws[f"E{r}"] = f'=IF(A{r}="","",IFERROR(MID(A{r},FIND("-",A{r},FIND("-",A{r})+1)+1,LEN(A{r})),"Check SKU"))'
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.column_dimensions["F"].width = 4
+    ws.column_dimensions["G"].width = 28
+    ws.column_dimensions["H"].width = 12
+    ws["G1"], ws["H1"] = "Category code", "Units sold"
+    for cell in (ws["G1"], ws["H1"]):
+        cell.fill, cell.font = HEADER_FILL, HEADER_FONT
+    for r, code in enumerate(["CND", "SOP", "EAR", "CRD"], start=2):
+        ws[f"G{r}"] = code
+        ws[f"G{r}"].fill = INPUT_FILL
+        ws[f"H{r}"] = f"=SUMIF($C$2:$C${last},G{r},$B$2:$B${last})"
+        ws[f"H{r}"].fill = FORMULA_FILL
+    ws["G6"], ws["H6"] = "Total of the categories", "=SUM(H2:H5)"
+    ws["G7"], ws["H7"] = "All units on the sheet", f"=SUM(B2:B{last})"
+    ws["G8"], ws["H8"] = "Check", '=IF(H6=H7,"OK","CHECK")'
+    ws["G6"].font = Font(bold=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Split a Product Code Into Parts With LEFT, MID and FIND",
+        "",
+        "1. SKUs tab: type or paste codes in column A. Each code has three parts joined by two hyphens, such as CND-LAV-8OZ (category, style, size or color).",
+        "2. C2: =IFERROR(LEFT(A2,FIND(\"-\",A2)-1),\"Check SKU\") takes everything before the first hyphen. FIND returns the position of the hyphen.",
+        "3. D2 takes the text between the first and second hyphen: =MID(A2,FIND(\"-\",A2)+1,FIND(\"-\",A2,FIND(\"-\",A2)+1)-FIND(\"-\",A2)-1). The second FIND starts looking just after the first hyphen.",
+        "4. E2: =MID(A2,FIND(\"-\",A2,FIND(\"-\",A2)+1)+1,LEN(A2)) takes everything after the second hyphen.",
+        "5. A code with fewer than two hyphens shows Check SKU. A code with a third hyphen keeps the extra part in column E (CND-LAV-8OZ-GIFT gives 8OZ-GIFT).",
+        "6. H2: =SUMIF($C$2:$C$30,G2,$B$2:$B$30) adds units sold for each category code. H8 compares the category total with all units: CHECK means a code did not land in any listed category.",
+        "7. A space before or after a code breaks the match. Clean pasted codes with TRIM first.",
+        "8. The formulas are ready to row 30; fill them further down if you have more codes.",
+        "",
+        "Codes and quantities are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-split-sku-code.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -2757,4 +3074,9 @@ if __name__ == "__main__":
     sumif_contains_text()
     invoice_installments()
     marketplace_net_payout()
+    invoice_due_dates()
+    sales_by_weekday()
+    repeat_customers()
+    supplier_price_compare()
+    split_sku_code()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

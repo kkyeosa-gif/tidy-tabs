@@ -446,3 +446,25 @@ Google 도움말 링크로 근거를 댄다.
 - 4 batch: 재료비 합계 $151.26, 개당 $6.30, 판매 가능 개당 $6.88. 판매 가능 0개면 공백, 포장당 수량 0 이면 #DIV/0!, 수량 칸 텍스트는 #VALUE!.
 - 5 percent: 상위 3개 83.0% (80% 를 넘기는 3번째 포함), 합계 100%. 정렬 안 하면 전부 Top sellers 로 잘못 표시, 매출 비면 #DIV/0!.
 - 상세 셀 주소: tasks/team-2026-10-12-handoff.md.
+
+## 2026-10-13 신규 주제 5개 (researcher)
+- 데이터: tasks/search-stats.md 없음 (데이터 없음). 검색량·경쟁도 수치 없음. 3-gate 기준만 적용.
+- 중복 확인: posts/ready, posts/published, tasks/topics-seed.md, tasks/team-topics-*.md 와 대조. 가까운 기존 글(receivables-aging-report, year-to-date-sales-total, count-orders-by-month, weighted-average-cost, vlookup-price-list, split-city-state-zip)과의 차이는 tasks/team-topics-2026-10-13.md 상단에 적음.
+- 주제 (좋은 순, 슬러그 앞에 2026-10-13-team-0N- 붙임):
+  1. invoice-due-date-payment-terms-excel-google-sheets: `=C2+VLOOKUP(D2,$J$2:$K$6,2,FALSE)`, 남은 일수와 Past due 표시
+  2. sales-by-day-of-week-sumif-excel-google-sheets: `=TEXT(A2,"ddd")` + SUMIF/AVERAGEIF, 요일별 합계·평균·Best day
+  3. repeat-customer-rate-countif-excel-google-sheets: `=COUNTIF(B2:B9,">=2")/COUNTIF(B2:B9,">0")`
+  4. cheapest-supplier-cost-per-ounce-index-match-excel-google-sheets: `=(B2+D2)/C2` + INDEX/MATCH/MIN
+  5. split-sku-code-into-parts-left-mid-find-excel-google-sheets: LEFT, MID, FIND 로 하이픈 기준 3분할
+- 세금·법률 판단 없음: 납기는 날짜 산술일 뿐이며 실제 조건은 계약서를 따르라고 안내. 공급업체 비교는 가격과 배송비만 (최소 주문량·품질 제외). 고객 수치는 주문 건수 비율일 뿐 원인은 설명하지 않음.
+
+## 2026-10-13 주제 5개 템플릿 빌드와 재계산 결과 (template-builder)
+- 환경: LibreOffice Calc 24.2 (Linux, headless). Excel, Google Sheets 에서는 열어 보지 않음. 샘플 데이터는 모두 가상. tasks/search-stats.md 없음.
+- 빌드: scripts/build-templates.py 에 함수 5개 추가 (invoice_due_dates, sales_by_weekday, repeat_customers, supplier_price_compare, split_sku_code), main 에 등록. 이번에는 importlib 로 새 함수 5개만 실행해서 기존 템플릿 .xlsx 는 건드리지 않음 (git status 에 새 xlsx 5개와 스크립트만). 시트마다 US Letter, 한 페이지 폭에 맞춤, PDF 로 Letter 크기 확인 (Daily sales 탭은 세로로 2쪽). 스크립트 상단 INPUT_FILL 상수를 새로 추가함.
+- 주의: 10-12 함수 5개 (compare_two_lists 등)가 현재 scripts/build-templates.py 에 없음. xlsx 는 templates/ 에 있지만 스크립트 전체를 돌려도 그 5개는 재생성되지 않음. 리드가 확인 필요.
+- 1 due dates: 8건 모두 Python 날짜 계산과 일치 (INV-1001 09/01 Net 30 = 10/01/2026, -12 Past due), 요약 Open 6 / Past due 2. "Net 20" 은 Check terms, 01/31 + 30일 = 03/02/2026, 소문자 net 30 도 찾음. 텍스트 날짜는 LibreOffice 가 변환해 계산함 (앱 의존).
+- 2 weekday: 28일 (09/01~09/28/2026), 요일당 4일. Sat 평균 $159.19, Sun $229.25 (Best day), 총 $2,716.50, Python 일치. 텍스트 날짜는 LibreOffice 가 요일을 붙이지만 F11 CHECK. 빈 시트는 0 / 공백.
+- 3 repeat: 13건, 고객 7명 주문, 반복 3명 = 42.9%, 반복 고객 지출 $280.25 (55.8%). 오타 "Ana Ruis" 와 끝 공백은 G7 CHECK, 대소문자는 무시. 주문 없음이면 비율 공백.
+- 4 supplier: 최저 Harbor Craft Wholesale $0.2667/oz, 200 oz 비용 $53.33, 최고가와 차이 $53.96. 크기 0 이나 빈 가격은 행이 빠짐, 동점이면 먼저 적힌 공급업체, 가격이 전부 비면 "Enter prices". 텍스트 "$64.00" 은 LibreOffice 가 변환함.
+- 5 sku: 10개 코드 모두 str.split 과 일치, 카테고리 합계 51/60/27/68 = 206 OK. 하이픈 1개는 Check SKU, 3개면 마지막 열에 "8OZ-GIFT", 앞 공백은 H8 CHECK, 소문자는 SUMIF 가 무시.
+- 상세 셀 주소: tasks/team-2026-10-13-handoff.md. 제목·첫 문단: tasks/hooks-2026-10-13.md.

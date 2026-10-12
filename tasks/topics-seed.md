@@ -65,3 +65,10 @@
 - How to Track Progress to a Monthly Sales Goal in Excel and Google Sheets - `monthly-sales-goal-progress-excel-google-sheets`
 - How to Calculate Cost Per Unit for a Handmade Batch in Excel and Google Sheets - `batch-cost-per-unit-excel-google-sheets`
 - How to Calculate Percent of Total Sales by Product in Excel and Google Sheets - `percent-of-total-product-sales-excel-google-sheets`
+
+## 2026-10-13 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, LibreOffice Calc 24.2 에서 수식 확인)
+- How to Calculate an Invoice Due Date From Payment Terms in Excel and Google Sheets - `invoice-due-date-payment-terms-excel-google-sheets`
+- How to Total Sales by Day of the Week in Excel and Google Sheets - `sales-by-day-of-week-sumif-excel-google-sheets`
+- How to Calculate Repeat Customer Rate in Excel and Google Sheets - `repeat-customer-rate-countif-excel-google-sheets`
+- How to Find the Cheapest Supplier by Cost Per Ounce in Excel and Google Sheets - `cheapest-supplier-cost-per-ounce-index-match-excel-google-sheets`
+- How to Split a Product Code Into Parts With LEFT, MID and FIND in Excel and Google Sheets - `split-sku-code-into-parts-left-mid-find-excel-google-sheets`

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeZM6WlGy6J
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-split-invoice-into-equal-monthly.html
 title: How to Split an Invoice Into Equal Monthly Payments in Excel and Google Sheets
 labels: excel-formulas, invoicing, freelancers
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the payment amounts and due dates were checked against Python math and the final balance was $0.00. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

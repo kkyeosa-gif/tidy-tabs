@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeZubwiGk2r
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-compare-two-lists-and-find.html
 title: How to Compare Two Lists and Find Missing Items in Excel and Google Sheets
 labels: excel-formulas, data-cleanup, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there on 10/11/2026 and every result was checked against hand math, including a trailing-space case and a wildcard case. Excel and Google Sheets were not opened; the one help link is from Microsoft Support.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeaDB0WH8xQ
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-tiered-sales.html
 title: How to Calculate Tiered Sales Commission in Excel and Google Sheets
 labels: excel-formulas, sales, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python math, including a boundary case, a one-cent case, a negative-sales case and a text-number case. Excel and Google Sheets were not opened; the help link is from Microsoft Support.

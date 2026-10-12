@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeX5sn4jm9p
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-sum-cells-that-contain-certain.html
 title: How to Sum Cells That Contain Certain Text With SUMIF Wildcards in Excel and Google Sheets
 labels: excel-formulas, expense-tracking, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against hand math, including the edge cases listed in the post. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

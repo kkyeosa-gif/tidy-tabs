@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeZgs9am_JD
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-net-payout-after.html
 title: How to Calculate Net Payout After Marketplace Fees in Excel and Google Sheets
 labels: excel-formulas, pricing, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was compared with hand or Python math, plus two edge cases run on edited copies. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

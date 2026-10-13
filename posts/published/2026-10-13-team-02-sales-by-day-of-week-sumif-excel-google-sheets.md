@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Decn1fpgdPk
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-total-sales-by-day-of-week-in.html
 title: How to Total Sales by Day of the Week in Excel and Google Sheets
 labels: excel-formulas, sales-tracking, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python math, including a date stored as text, a $0.00 day and an empty sheet. Excel and Google Sheets were not opened; the one help link is from Microsoft Support.

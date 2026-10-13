@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DecTPSpmiTn
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-invoice-due-date-from.html
 title: How to Calculate an Invoice Due Date From Payment Terms in Excel and Google Sheets
 labels: excel-formulas, invoicing, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python date math, including an unknown terms name, lowercase terms, a missing date and a moved as-of date. Excel and Google Sheets were not opened; the two help links are from Microsoft and Google.

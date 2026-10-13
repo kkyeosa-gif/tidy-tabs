@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DecFf7wG09e
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-percent-of-total-sales.html
 title: How to Calculate Percent of Total Sales by Product in Excel and Google Sheets
 labels: excel-formulas, sales-tracking, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python math, including an unsorted list and a blank-sales case. Excel and Google Sheets were not opened.

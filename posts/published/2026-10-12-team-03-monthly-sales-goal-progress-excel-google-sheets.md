@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeaegRYj4Lk
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-track-progress-to-monthly-sales.html
 title: How to Track Progress to a Monthly Sales Goal in Excel and Google Sheets
 labels: excel-formulas, sales-tracking, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was compared with Python math, including an as-of date on the last day, a goal already beaten and a new month with no sales. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

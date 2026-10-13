@@ -8,7 +8,7 @@ File > Import in Google Sheets. Re-run after editing; the files are
 committed so readers download exactly what was checked.
 """
 import csv
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -19,6 +19,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 OUT = Path("templates")
 USD = '"$"#,##0.00'
 US_DATE = "mm/dd/yyyy"
+US_DATETIME = "mm/dd/yyyy h:mm AM/PM"
 HEADER_FILL = PatternFill("solid", fgColor="2E5E4E")
 HEADER_FONT = Font(bold=True, color="FFFFFF")
 ALERT_FILL = PatternFill("solid", fgColor="F8D7DA")
@@ -2914,6 +2915,128 @@ def repeat_customers():
     wb.save(OUT / "tidy-tabs-repeat-customers.xlsx")
 
 
+def ounces_to_pounds_ounces():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Weights"
+    header(ws, ["Item", "Packed ounces", "Pounds", "Leftover ounces", "Label"], [26, 14, 9, 16, 16])
+    items = [("Lavender candle box", 50), ("Oat soap bundle", 16), ("Earring card", 3.5), ("Canvas tote bag", 22),
+             ("Ceramic mug pair", 41), ("Wax melt case", 96), ("Greeting card set", 12.25), ("Tea towel", 9),
+             ("Gift crate", 135), ("Print tube", 28)]
+    last = 30
+    for r in range(2, last + 1):
+        ws.append(list(items[r - 2]) if r - 2 < len(items) else [])
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"C{r}"] = f'=IF(B{r}="","",INT(B{r}/16))'
+        ws[f"D{r}"] = f'=IF(B{r}="","",MOD(B{r},16))'
+        ws[f"E{r}"] = f'=IF(B{r}="","",INT(B{r}/16)&" lb "&MOD(B{r},16)&" oz")'
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"D{r}"].number_format = "0.00"
+    ws.column_dimensions["F"].width = 4
+    ws.column_dimensions["G"].width = 34
+    ws.column_dimensions["H"].width = 16
+    ws["G1"] = "Whole shipment"
+    ws["G1"].font = Font(bold=True)
+    summary = [
+        ("Packages with a weight", f"=COUNT(B2:B{last})", "0"),
+        ("Total ounces", f"=ROUND(SUM(B2:B{last}),2)", "0.00"),
+        ("Total pounds", "=INT(H3/16)", "0"),
+        ("Leftover ounces", "=ROUND(MOD(H3,16),2)", "0.00"),
+        ("Total label", '=H4&" lb "&H5&" oz"', "General"),
+        ("Check: pounds and ounces add back up", f'=IF(ROUND(SUM(C2:C{last})*16+SUM(D2:D{last})-H3,6)=0,"OK","CHECK")', "General"),
+    ]
+    for r, (label, f, fmt) in enumerate(summary, start=2):
+        ws[f"G{r}"], ws[f"H{r}"] = label, f
+        ws[f"H{r}"].number_format = fmt
+        ws[f"H{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Ounces to Pounds and Ounces With INT and MOD",
+        "",
+        "1. Weights tab: type each item and its packed weight in ounces. Yellow cells are yours (B2:B30). Gray cells are formulas.",
+        "2. C2: =IF(B2=\"\",\"\",INT(B2/16)) gives the whole pounds. 16 ounces make 1 pound.",
+        "3. D2: =IF(B2=\"\",\"\",MOD(B2,16)) gives the ounces left over after the whole pounds.",
+        "4. E2: =IF(B2=\"\",\"\",INT(B2/16)&\" lb \"&MOD(B2,16)&\" oz\") joins them into text such as 3 lb 2 oz.",
+        "5. H3 to H6 do the same for the total of all packages (rounded to 2 decimals so totals do not show long decimals). H7 turns the pounds and ounces back into ounces and shows CHECK if they do not match the total.",
+        "6. The label in column E is text. Use columns C and D when you need numbers for a label printer or a carrier form.",
+        "7. A blank weight stays blank. A weight of 0 shows 0 lb 0 oz.",
+        "8. This only converts units. It does not look up a carrier rate or a weight limit. Read those on your carrier's own pages.",
+        "",
+        "Items and weights are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-ounces-to-pounds-ounces.xlsx")
+
+
+def listing_length_check():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Listings"
+    header(ws, ["Title", "Tags (separated by commas)", "Characters", "Tags", "Title check", "Tag check"],
+           [50, 52, 11, 8, 13, 12])
+    listings = [
+        ("Handmade Lavender Soy Candle 8 oz Gift for Her", "lavender candle, soy candle, gift for her, 8 oz candle"),
+        ("Cedar and Sage Soy Candle Small Batch 8 oz Hand Poured Gift", "cedar candle, sage candle, hand poured, soy wax, small batch, housewarming, gift, 8 oz"),
+        ("Oatmeal Goat Milk Soap Bar Handmade", "oatmeal soap, goat milk soap, handmade soap, gentle soap, bath gift, soap bar, natural soap, sensitive skin, farmers market"),
+        ("Brass Hoop Earrings Minimalist Gold Tone Everyday Jewelry for Women Gift Idea", "brass hoops, gold hoop earrings, minimalist, everyday earrings"),
+        ("Letterpress Birthday Card Blank Inside", "birthday card,letterpress,blank card"),
+        ("Charcoal Soap Bar Cold Process Vegan", ""),
+        ("Eucalyptus Mint Bath Salts 12 oz Jar", "bath salts, eucalyptus, spa gift,"),
+        ("Beeswax Taper Candles Pair Natural Unscented", "taper candles, beeswax, natural candle, dinner candles, unscented"),
+        ("Linen Wick Soy Candle Tin Travel Size 4 oz", "travel candle, tin candle, soy candle, stocking stuffer, 4 oz, gift, small candle, linen"),
+        ("Kraft Gift Box Set Soap and Candle Combo Birthday", "gift set, soap and candle, birthday gift, kraft box, self care"),
+    ]
+    last = 30
+    for r in range(2, last + 1):
+        ws.append(list(listings[r - 2]) if r - 2 < len(listings) else [])
+        ws[f"C{r}"] = f'=IF(A{r}="","",LEN(A{r}))'
+        ws[f"D{r}"] = (f'=IF(AND(A{r}="",B{r}=""),"",IF(TRIM(B{r})="",0,LEN(B{r})-LEN(SUBSTITUTE(B{r},",",""))+1'
+                       f'-(RIGHT(TRIM(B{r}),1)=",")))')
+        ws[f"E{r}"] = f'=IF(A{r}="","",IF(C{r}>$I$2,"Too long","OK"))'
+        ws[f"F{r}"] = f'=IF(AND(A{r}="",B{r}=""),"",IF(D{r}>$I$3,"Too many","OK"))'
+        for col in "CDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.conditional_formatting.add(f"E2:F{last}", FormulaRule(formula=['OR(E2="Too long",E2="Too many")'], fill=ALERT_FILL))
+    ws.column_dimensions["G"].width = 4
+    ws.column_dimensions["H"].width = 36
+    ws.column_dimensions["I"].width = 12
+    ws["H1"] = "Limits and summary"
+    ws["H1"].font = Font(bold=True)
+    rows = [
+        ("Title limit (characters), type yours", 60, "0"),
+        ("Tag limit, type yours", 8, "0"),
+        ("Listings checked", f'=COUNTA(A2:A{last})', "0"),
+        ("Titles too long", f'=COUNTIF(E2:E{last},"Too long")', "0"),
+        ("Listings with too many tags", f'=COUNTIF(F2:F{last},"Too many")', "0"),
+        ("Check: characters add up", f'=IF(SUM(C2:C{last})=SUMPRODUCT(LEN(A2:A{last})),"OK","CHECK")', "General"),
+    ]
+    for r, (label, v, fmt) in enumerate(rows, start=2):
+        ws[f"H{r}"], ws[f"I{r}"] = label, v
+        ws[f"I{r}"].number_format = fmt
+        ws[f"I{r}"].fill = INPUT_FILL if r in (2, 3) else FORMULA_FILL
+    ws["H9"] = "Sample limits only. Copy the real"
+    ws["H10"] = "numbers from your marketplace's help page."
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Count Characters and Tags in a Product Listing",
+        "",
+        "1. Listings tab: type or paste each title in column A and its tags in column B, separated by commas. Rows 2 to 30 have formulas ready.",
+        "2. I2 and I3 are yellow input cells. Type the title limit and the tag limit from your marketplace's own help page. The 60 and 8 in the sample are made-up numbers, not any marketplace's rules.",
+        "3. C2: =IF(A2=\"\",\"\",LEN(A2)) counts every character in the title, including spaces.",
+        "4. D2 counts the tags: =LEN(B2)-LEN(SUBSTITUTE(B2,\",\",\"\"))+1 counts the commas and adds 1. The template wraps it so an empty tags cell gives 0 and a comma left at the end is not counted as a tag.",
+        "5. E and F show OK, Too long or Too many. A title exactly at the limit is OK.",
+        "6. I7 adds up the character counts a second way. If it shows CHECK, a formula in column C was overwritten.",
+        "7. LEN counts spaces at the start and end of a cell. Spaces after commas do not change the tag count, but two commas in a row do (an empty tag is still counted).",
+        "",
+        "Listings are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-listing-length-check.xlsx")
+
+
 def supplier_price_compare():
     wb = Workbook()
     ws = wb.active
@@ -3027,6 +3150,211 @@ def split_sku_code():
     wb.save(OUT / "tidy-tabs-split-sku-code.xlsx")
 
 
+def last_number_in_column():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Log"
+    header(ws, ["Date", "Balance", "Note"], [13, 14, 30])
+    rows = {
+        2: (date(2026, 9, 1), 1000.00, "Opening cash"),
+        3: (date(2026, 9, 3), 1085.50, "Saturday market"),
+        5: (date(2026, 9, 8), 1210.25, "Online orders"),
+        6: (date(2026, 9, 12), 1148.00, "Supply order"),
+        9: (date(2026, 9, 19), 1320.40, "Saturday market"),
+        10: (date(2026, 9, 24), 1257.90, "Booth fee"),
+        12: (date(2026, 10, 2), 1402.75, "Online orders"),
+    }
+    for r in range(2, 31):
+        if r in rows:
+            d, b, n = rows[r]
+            ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = d, b, n
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"B{r}"].number_format = USD
+
+    s = wb.create_sheet("Summary")
+    s.column_dimensions["A"].width = 40
+    s.column_dimensions["B"].width = 20
+    s["A1"], s["B1"] = "Latest from the Log tab", "Result"
+    for c in s[1]:
+        c.fill, c.font = HEADER_FILL, HEADER_FONT
+    items = [
+        ("Latest balance", "=LOOKUP(9.99E+307,Log!B2:B200)", USD),
+        ("Latest date", "=LOOKUP(9.99E+307,Log!A2:A200)", US_DATE),
+        ("Entries in the balance column", "=COUNT(Log!B2:B200)", "0"),
+        ("Latest balance, safe for an empty log", '=IFERROR(LOOKUP(9.99E+307,Log!B2:B200),"No entries")', USD),
+        ("Latest date, safe for an empty log", '=IFERROR(LOOKUP(9.99E+307,Log!A2:A200),"No entries")', US_DATE),
+    ]
+    for r, (label, f, fmt) in enumerate(items, start=2):
+        s[f"A{r}"], s[f"B{r}"] = label, f
+        s[f"B{r}"].number_format = fmt
+        s[f"B{r}"].fill = FORMULA_FILL
+        s[f"B{r}"].alignment = Alignment(horizontal="right")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Get the Last Number in a Column",
+        "",
+        "1. Log tab: type each date in column A and the cash balance in column B. Blank rows between entries are fine. Column C is for notes.",
+        "2. Summary!B2: =LOOKUP(9.99E+307,Log!B2:B200) returns the last number in B2:B200. 9.99E+307 is bigger than any balance you will type, so LOOKUP settles on the last number in the range.",
+        "3. Summary!B3 does the same for the dates in column A (dates are numbers in a spreadsheet).",
+        "4. Summary!B4: =COUNT(Log!B2:B200) counts the numbers in the column. It ignores blank cells and text.",
+        "5. Summary!B5 and B6 wrap the formula in IFERROR. An empty column makes LOOKUP return #N/A, and these show No entries instead.",
+        "6. Text is ignored. A note typed in column B, or a number stored as text (it is usually left-aligned), is skipped, so the formula returns the number above it. Retype it as a real number.",
+        "7. A 0 as the last balance is still returned. The formula looks at B2:B200 only; use a longer range if your log grows past row 200.",
+        "8. This finds numbers and dates only. A text version needs a different formula.",
+        "",
+        "Dates and balances are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-last-number-in-column.xlsx")
+
+
+def time_zone_converter():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Calls"
+    header(ws, ["Client", "Client zone", "Your call time", "Hours difference", "Client time", "Day"],
+           [24, 14, 22, 12, 22, 13])
+    calls = [
+        ("Maple Street Bakery", "Eastern", datetime(2026, 10, 14, 9, 0)),
+        ("Harbor Yoga Studio", "Central", datetime(2026, 10, 14, 16, 30)),
+        ("Birch Design Co", "Mountain", datetime(2026, 10, 15, 10, 0)),
+        ("Lantern Print Shop", "Pacific", datetime(2026, 10, 14, 16, 30)),
+        ("Cedar Row Realty", "Pacific", datetime(2026, 10, 15, 1, 0)),
+        ("Willow Pet Care", "Central", datetime(2026, 10, 15, 0, 15)),
+        ("Granite Fitness", "Mountain", datetime(2026, 10, 16, 14, 45)),
+        ("Juniper Books", "Pacific", datetime(2026, 10, 16, 18, 0)),
+    ]
+    last = 20
+    for r in range(2, last + 1):
+        ws.append(list(calls[r - 2]) if r - 2 < len(calls) else [])
+        ws[f"C{r}"].number_format = US_DATETIME
+        ws[f"D{r}"] = (f'=IF(B{r}="","",IFERROR(VLOOKUP(B{r},Offsets!$A$2:$B$5,2,FALSE)'
+                       f'-VLOOKUP($I$2,Offsets!$A$2:$B$5,2,FALSE),"Check zone"))')
+        ws[f"E{r}"] = (f'=IF(OR(C{r}="",NOT(ISNUMBER(D{r}))),"",IF(ISNUMBER(C{r}),C{r}+D{r}/24,"Check time"))')
+        ws[f"F{r}"] = (f'=IF(NOT(ISNUMBER(E{r})),"",IF(INT(E{r})>INT(C{r}),"Next day",'
+                       f'IF(INT(E{r})<INT(C{r}),"Previous day","Same day")))')
+        ws[f"E{r}"].number_format = US_DATETIME
+        ws[f"D{r}"].number_format = "0.##;-0.##;0"
+        for col in "DEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    dv = DataValidation(type="list", formula1="=Offsets!$A$2:$A$5", allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add(f"B2:B{last}")
+    dv2 = DataValidation(type="list", formula1="=Offsets!$A$2:$A$5", allow_blank=False)
+    ws.add_data_validation(dv2)
+    dv2.add("I2")
+    ws.conditional_formatting.add(f"F2:F{last}", FormulaRule(formula=['OR(F2="Next day",F2="Previous day")'], fill=ALERT_FILL))
+    ws.column_dimensions["G"].width = 4
+    ws.column_dimensions["H"].width = 26
+    ws.column_dimensions["I"].width = 14
+    ws["H2"], ws["I2"] = "Your zone", "Eastern"
+    ws["H2"].font = Font(bold=True)
+    ws["I2"].fill = INPUT_FILL
+    ws["H4"] = "Calls on a different day"
+    ws["I4"] = f'=COUNTIF(F2:F{last},"Next day")+COUNTIF(F2:F{last},"Previous day")'
+    ws["H5"] = "Calls listed"
+    ws["I5"] = f"=COUNT(C2:C{last})"
+    ws["I4"].fill = ws["I5"].fill = FORMULA_FILL
+
+    o = wb.create_sheet("Offsets")
+    header(o, ["Zone", "Hours from Eastern"], [16, 20])
+    for r, (zone, h) in enumerate([("Eastern", 0), ("Central", -1), ("Mountain", -2), ("Pacific", -3)], start=2):
+        o[f"A{r}"], o[f"B{r}"] = zone, h
+        o[f"A{r}"].fill = o[f"B{r}"].fill = INPUT_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Convert Time Zones for Client Calls",
+        "",
+        "1. Calls tab: type the client, pick the client zone from the dropdown in B, and type your call date and time in C (for example 10/14/2026 4:30 PM). Rows 2 to 20 have the formulas ready.",
+        "2. I2 is your own zone (yellow). Pick Eastern, Central, Mountain or Pacific. The Offsets tab lists each zone as hours from Eastern (Central -1, Mountain -2, Pacific -3).",
+        "3. D2 subtracts your zone's offset from the client zone's offset, so Eastern to Pacific is -3 and Pacific to Eastern is 3.",
+        "4. E2: =C2+D2/24 is the client's time. One hour is 1/24 of a day, so adding hours divided by 24 moves the date and the time together.",
+        "5. F2 compares the dates: Next day, Previous day or Same day, so a call at 1:00 AM for you is not missed as the evening before for the client.",
+        "6. Offsets are fixed hours. Most of the US changes clocks on the same dates, so the differences between these four zones stay the same through the year. Arizona (most of it), Hawaii and other places that do not change clocks are not handled, and neither are zones outside these four. Check the current rules before you confirm a call.",
+        "7. Type the call time as a real date and time. A time stored as text shows Check time.",
+        "",
+        "Clients and times are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-time-zone-converter.xlsx")
+
+
+def count_weekdays_in_month():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Months"
+    header(ws, ["First day", "Last day", "Saturdays", "Sundays", "Day picked in I3", "Booth cost (Saturdays)"],
+           [13, 13, 11, 11, 17, 20])
+    last = 25
+    for r in range(2, last + 1):
+        ws.append([date(2026, r - 1, 1)] if r <= 13 else [])
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"B{r}"] = f'=IF(A{r}="","",EOMONTH(A{r},0))'
+        ws[f"C{r}"] = f'=IF(A{r}="","",NETWORKDAYS.INTL(A{r},B{r},"1111101"))'
+        ws[f"D{r}"] = f'=IF(A{r}="","",NETWORKDAYS.INTL(A{r},B{r},"1111110"))'
+        ws[f"E{r}"] = f'=IF(A{r}="","",NETWORKDAYS.INTL(A{r},B{r},$I$4))'
+        ws[f"F{r}"] = f'=IF(A{r}="","",C{r}*$I$2)'
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"F{r}"].number_format = USD
+        ws[f"A{r}"].fill = INPUT_FILL
+        for col in "BCDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.column_dimensions["G"].width = 4
+    ws.column_dimensions["H"].width = 34
+    ws.column_dimensions["I"].width = 14
+    ws.column_dimensions["K"].width = 8
+    ws["H1"] = "Settings and totals"
+    ws["H1"].font = Font(bold=True)
+    ws["H2"], ws["I2"] = "Booth fee per market day", 25
+    ws["I2"].number_format = USD
+    ws["H3"], ws["I3"] = "Day to count in column E", "Fri"
+    ws["H4"] = "Weekend string for that day"
+    ws["I4"] = '=REPT("1",MATCH(I3,$K$2:$K$8,0)-1)&"0"&REPT("1",7-MATCH(I3,$K$2:$K$8,0))'
+    ws["I4"].number_format = "@"
+    for a in ("I2", "I3"):
+        ws[a].fill = INPUT_FILL
+    ws["I4"].fill = FORMULA_FILL
+    ws["K1"] = "Days"
+    ws["K1"].font = Font(bold=True)
+    for r, d in enumerate(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], start=2):
+        ws[f"K{r}"] = d
+    dv = DataValidation(type="list", formula1="=$K$2:$K$8", allow_blank=False)
+    ws.add_data_validation(dv)
+    dv.add("I3")
+    ws["H6"], ws["I6"] = "Saturdays in the year", f"=SUM(C2:C{last})"
+    ws["H7"], ws["I7"] = "Sundays in the year", f"=SUM(D2:D{last})"
+    ws["H8"], ws["I8"] = "Booth cost for the year", f"=SUM(F2:F{last})"
+    ws["I8"].number_format = USD
+    ws["H9"] = "Check: Saturdays match one count over the whole span"
+    ws["I9"] = (f'=IF(COUNT(A2:A{last})=0,"",IF(I6=NETWORKDAYS.INTL(MIN(A2:A{last}),'
+                f'EOMONTH(MAX(A2:A{last}),0),"1111101"),"OK","CHECK"))')
+    for a in ("I6", "I7", "I8", "I9"):
+        ws[a].fill = FORMULA_FILL
+    ws["H9"].alignment = Alignment(wrap_text=True, vertical="top")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Count Market Saturdays in a Month With NETWORKDAYS.INTL",
+        "",
+        "1. Months tab: column A holds the first day of each month (yellow = input). Rows 2 to 13 are January to December 2026. Rows 14 to 25 are ready for more months.",
+        "2. B2: =EOMONTH(A2,0) gives the last day of that month.",
+        "3. C2: =NETWORKDAYS.INTL(A2,B2,\"1111101\") counts Saturdays. The string has seven digits for Monday to Sunday. 1 means skip that day, 0 means count it. Only the sixth digit (Saturday) is 0.",
+        "4. D2 uses \"1111110\" to count Sundays instead.",
+        "5. I3 picks any weekday from a dropdown. I4 builds its string with REPT, and E2 uses it: =NETWORKDAYS.INTL(A2,B2,$I$4).",
+        "6. F2: =C2*$I$2 multiplies the Saturdays by the booth fee per market day in I2. It counts calendar Saturdays only. Your real market days, holidays and fees are set by the market.",
+        "7. The first date counts too. If the start date is after the end date, the result is negative. The dates must be real dates, not text.",
+        "8. I9 checks that the monthly Saturdays add up to one count over the whole span.",
+        "",
+        "Dates and fees are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-count-weekdays-in-month.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -3079,4 +3407,9 @@ if __name__ == "__main__":
     repeat_customers()
     supplier_price_compare()
     split_sku_code()
+    listing_length_check()
+    ounces_to_pounds_ounces()
+    last_number_in_column()
+    time_zone_converter()
+    count_weekdays_in_month()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

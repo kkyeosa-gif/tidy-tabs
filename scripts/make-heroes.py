@@ -207,7 +207,24 @@ def heroes_2026_10_13():
          render(t + "tidy-tabs-split-sku-code.xlsx", "SKUs", name="sku"))
 
 
+def heroes_2026_10_14():
+    t = "templates/"
+    d = "images/2026-10-14-team-0%d-%s/"
+    save(d % (3, "count-listing-characters-tags-len-substitute-excel-google-sheets") + "listing-length-check-template.png",
+         render(t + "tidy-tabs-listing-length-check.xlsx", "Listings", name="listinglen"))
+    save(d % (1, "convert-ounces-to-pounds-and-ounces-int-mod-excel-google-sheets") + "ounces-to-pounds-and-ounces-template.png",
+         render(t + "tidy-tabs-ounces-to-pounds-ounces.xlsx", "Weights", name="ounces"))
+    save(d % (2, "convert-time-zones-client-calls-excel-google-sheets") + "time-zone-converter-client-calls-template.png",
+         render(t + "tidy-tabs-time-zone-converter.xlsx", "Calls", name="timezone"))
+    save(d % (4, "last-number-in-column-lookup-excel-google-sheets") + "last-number-in-column-lookup-template.png",
+         render(t + "tidy-tabs-last-number-in-column.xlsx", "Log", name="lastlog"),
+         render(t + "tidy-tabs-last-number-in-column.xlsx", "Summary", name="lastsum"))
+    save(d % (5, "count-market-saturdays-in-month-networkdays-intl-excel-google-sheets") + "count-market-saturdays-by-month-template.png",
+         render(t + "tidy-tabs-count-weekdays-in-month.xlsx", "Months", name="saturdays"))
+
+
 def main():
+    heroes_2026_10_14()
     heroes_2026_10_13()
     heroes_2026_10_12()
     heroes_2026_10_11()

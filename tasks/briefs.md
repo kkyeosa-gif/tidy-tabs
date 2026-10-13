@@ -468,3 +468,36 @@ Google 도움말 링크로 근거를 댄다.
 - 4 supplier: 최저 Harbor Craft Wholesale $0.2667/oz, 200 oz 비용 $53.33, 최고가와 차이 $53.96. 크기 0 이나 빈 가격은 행이 빠짐, 동점이면 먼저 적힌 공급업체, 가격이 전부 비면 "Enter prices". 텍스트 "$64.00" 은 LibreOffice 가 변환함.
 - 5 sku: 10개 코드 모두 str.split 과 일치, 카테고리 합계 51/60/27/68 = 206 OK. 하이픈 1개는 Check SKU, 3개면 마지막 열에 "8OZ-GIFT", 앞 공백은 H8 CHECK, 소문자는 SUMIF 가 무시.
 - 상세 셀 주소: tasks/team-2026-10-13-handoff.md. 제목·첫 문단: tasks/hooks-2026-10-13.md.
+
+## 2026-10-14 team-04 last number in a column (template + verify)
+- Added last_number_in_column() to scripts/build-templates.py (run alone via exec of the defs; only templates/tidy-tabs-last-number-in-column.xlsx written). Tabs: Log (A date, B balance, C note; 7 entries with blank rows between, rows 2 to 30 yellow), Summary (B2 latest balance, B3 latest date, B4 COUNT, B5/B6 IFERROR versions), How to use. US Letter, fit to width. Fictional data. LibreOffice Calc 24.2 (Linux, headless) only; Excel and Google Sheets not opened.
+- Recalculated: B2 $1,402.75, B3 10/02/2026, B4 7, B5/B6 same. Python last numeric value of the 7 balances = 1402.75, last date 10/02/2026: match.
+- Edges on copies, recalculated: text note in B14 ignored (still $1,402.75); "$1,500.00" typed as text in B14 with date 10/05/2026 in A14: balance stays $1,402.75 but latest date moves to 10/05/2026; 0 typed last: returns 0, count 8; new row at B20 1500.10: returned, count 8; lower value last (900): 900 returned (sort order does not matter); all cleared: B2 and B3 #N/A, B4 0, B5 and B6 "No entries".
+
+## 2026-10-14 team-05 count-market-saturdays 템플릿 (template-builder)
+- 환경: LibreOffice Calc 24.2 (Linux, headless) 에서만 재계산. Excel, Google Sheets 에서는 열어 보지 않음. 샘플 데이터 가상.
+- 빌드: scripts/build-templates.py 에 count_weekdays_in_month 추가 (main 호출 목록 끝), 이 함수만 실행. templates/tidy-tabs-count-weekdays-in-month.xlsx (Months, How to use), US Letter, 한 페이지 폭.
+- 2026 월별 토요일 5,4,4,4,5,4,4,5,4,5,4,4 (합 52), 일요일 4,4,5,4,5,4,4,5,4,4,5,4 (합 52), 금요일(I3) 5,4,4,4,5,4,5,4,4,5,4,4 모두 Python 일치. I9 OK, 부스비 $25 x 52 = $1,300.00.
+- Edge: 토요일에 시작하는 10/03/2026~10/31/2026 = 5 (시작일 포함), 시작일이 끝보다 늦으면 -5, 하루짜리 토요일 1 일요일 0, I3 를 Sun 으로 바꾸면 I4 1111110. 텍스트 날짜 "01/01/2026" 은 LibreOffice 가 변환해 5 를 반환 (앱 의존, 실제 날짜 입력 안내).
+
+## 2026-10-14 team-01 ounces to pounds and ounces (template + verify)
+- Environment: LibreOffice Calc 24.2 (Linux, headless recalculation into a scratch dir, read with openpyxl data_only). Not opened in Excel or Google Sheets. Sample data fictional.
+- Build: scripts/build-templates.py function ounces_to_pounds_ounces (run alone, other templates untouched) writes templates/tidy-tabs-ounces-to-pounds-ounces.xlsx (Weights, How to use). US Letter, fit to one page wide. Weights B2:B30 yellow inputs; C `=IF(B2="","",INT(B2/16))`, D `=IF(B2="","",MOD(B2,16))`, E label with &; summary H2:H7 (count, ROUND(SUM,2), INT, ROUND(MOD,2), label, CHECK).
+- Verified: 10 packages (50, 16, 3.5, 22, 41, 96, 12.25, 9, 135, 28 oz) match Python divmod(oz,16). Total 412.75 oz = 25 lb 12.75 oz, CHECK OK.
+- Edge: 0 gives 0 lb 0 oz; 15.99 gives 0 lb 15.99 oz; 0.5 gives 0 lb 0.5 oz; 1700 oz gives 106 lb 4 oz; 32 gives 2 lb 0 oz; 50.1 gives 3 lb 2.1 oz; -5 gives -1 lb 11 oz (negative, not meaningful). Number typed as text '20': converted, 1 lb 4 oz, but SUM skips it so H3 excludes it and H7 shows CHECK. Word 'abc': #VALUE! in C, D, E and H7. All weights cleared: blanks, totals 0, H7 OK. Without ROUND, a total of 2206.34 oz showed leftover 14.3399999999997 in LibreOffice, so the total cells round to 2 decimals.
+- Limits: unit conversion only; no carrier rates, weight limits or rounding-up rules.
+
+## 2026-10-14 team-03 listing length check (template-builder)
+- Template: templates/tidy-tabs-listing-length-check.xlsx (function listing_length_check in scripts/build-templates.py). Run alone, no other template rewritten. US Letter, fit to width. Sheets: Listings, How to use. LibreOffice Calc 24.2 (Linux, headless) only; not opened in Excel or Google Sheets. Sample data fictional.
+- Cells: Listings A2:B11 (10 listings), formulas C2:F30. C `=IF(A2="","",LEN(A2))`; D `=IF(TRIM(B2)="",0,LEN(B2)-LEN(SUBSTITUTE(B2,",",""))+1-(RIGHT(TRIM(B2),1)=","))`; E Too long / OK; F Too many / OK. I2 title limit 60, I3 tag limit 8 (typed samples, yellow); I4 listings 10, I5 too long 1, I6 too many 1, I7 check OK.
+- Verified: characters 46, 59, 35, 77, 38, 36, 36, 44, 42, 49 and tags 4, 8, 9, 4, 3, 0, 3, 5, 8, 5 match Python len and str.count.
+- Edge: title of exactly 60 chars OK, 61 Too long; 8 tags OK, 9 Too many; empty tags 0 (plain formula without IF returned 1); trailing comma 3 (plain formula returned 4); "a,,b" counts 3; spaces after commas do not change the count; trailing space in a title counts (26 vs 25 after TRIM); limit changed to 46 gives 3 Too long and the 46 char title stays OK; cleared sheet gives 0, 0, 0, OK; overwriting C3 with 5 turns I7 to CHECK.
+
+## 2026-10-14 team-02 convert-time-zones-client-calls 템플릿 (template-builder)
+- 환경: LibreOffice Calc 24.2 (Linux, headless) 에서만 재계산. Excel, Google Sheets 에서는 열어 보지 않음. 샘플 데이터 가상.
+- 빌드: scripts/build-templates.py 에 time_zone_converter 추가 (main 호출 목록 끝, US_DATETIME 상수와 datetime import 추가), 이 함수만 실행. templates/tidy-tabs-time-zone-converter.xlsx (Calls, Offsets, How to use), US Letter, 폭 맞춤.
+- 셀: Calls A2:C9 (고객, 고객 시간대, 내 통화 시간), D 시차 `=IF(B2="","",IFERROR(VLOOKUP(B2,Offsets!$A$2:$B$5,2,FALSE)-VLOOKUP($I$2,Offsets!$A$2:$B$5,2,FALSE),"Check zone"))`, E `=C2+D2/24` (IF 로 감쌈), F Next day / Previous day / Same day. I2 내 시간대(Eastern), I4 다른 날 통화 수, I5 통화 수. Offsets A2:B5 Eastern 0, Central -1, Mountain -2, Pacific -3.
+- 8건 모두 Python datetime + timedelta 와 일치 (Eastern 10/14/2026 4:30 PM 은 Pacific 1:30 PM). Previous day 2건 (Cedar Row 10/15 1:00 AM 은 10/14 10:00 PM, Willow Pet 12:15 AM 은 11:15 PM), I4 2, I5 8.
+- Edge (복사본 수정 후 재계산): I2 를 Pacific 으로 바꾸면 Eastern 10/14 10:30 PM 이 10/15 1:30 AM Next day, 같은 zone 은 0 시차, 시간 비움은 E, F 공백, 텍스트 시간 "10/14/2026 4:30 PM" 은 E "Check time", 목록에 없는 zone 은 D "Check zone". Eastern 에서 정각 자정 10/14 12:00 AM 은 Pacific 10/13 9:00 PM Previous day.
+- 한계: 고정 시간 오프셋만. 서머타임 규칙, 애리조나 대부분과 하와이 등 시간 변경 안 하는 지역, 4개 존 밖은 처리 안 함 (글에서 NIST 링크로 안내).
+- 히어로: scripts/make-heroes.py 에 heroes_2026_10_14 (team-02 항목) 추가, 이 항목만 렌더.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DefMnoRicIH
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-convert-time-zones-for-client.html
 title: How to Convert Time Zones for Client Calls in Excel and Google Sheets
 labels: excel-formulas, small-business, dates-and-times
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and 8 calls were checked against Python datetime math, plus a call that crosses midnight in both directions, a 0 hour difference, a blank time, a time typed as text and an unknown zone. Excel and Google Sheets were not opened; the links are Microsoft Support, Google Docs Help and NIST.

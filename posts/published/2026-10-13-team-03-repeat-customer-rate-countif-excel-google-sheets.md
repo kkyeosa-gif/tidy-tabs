@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DedDSh1lMH5
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-repeat-customer-rate.html
 title: How to Calculate Repeat Customer Rate in Excel and Google Sheets
 labels: excel-formulas, small-business, countif
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python math, including a typo case, an empty Orders tab and a new-customer case. Excel and Google Sheets were not opened; the two help links are from Microsoft Support and Google Docs Help.

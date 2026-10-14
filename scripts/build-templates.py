@@ -3355,6 +3355,348 @@ def count_weekdays_in_month():
     wb.save(OUT / "tidy-tabs-count-weekdays-in-month.xlsx")
 
 
+def days_to_get_paid():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Invoices"
+    header(ws, ["Invoice", "Client", "Invoice date", "Paid date", "Days to pay", "Status"],
+           [12, 24, 13, 13, 12, 12])
+    rows = [
+        ("INV-2001", "Maple Street Bakery", date(2026, 7, 1), date(2026, 7, 21)),
+        ("INV-2002", "Harbor Yoga Studio", date(2026, 7, 8), date(2026, 8, 12)),
+        ("INV-2003", "Birch Design Co", date(2026, 7, 15), date(2026, 7, 29)),
+        ("INV-2004", "Lantern Print Shop", date(2026, 7, 22), date(2026, 8, 26)),
+        ("INV-2005", "Cedar Row Realty", date(2026, 8, 3), date(2026, 8, 10)),
+        ("INV-2006", "Willow Pet Care", date(2026, 8, 10), date(2026, 9, 24)),
+        ("INV-2007", "Granite Fitness", date(2026, 8, 19), date(2026, 9, 8)),
+        ("INV-2008", "Juniper Books", date(2026, 9, 2), date(2026, 9, 30)),
+        ("INV-2009", "Maple Street Bakery", date(2026, 9, 16), None),
+        ("INV-2010", "Harbor Yoga Studio", date(2026, 10, 1), None),
+    ]
+    last = 30
+    for r in range(2, last + 1):
+        ws.append(list(rows[r - 2]) if r - 2 < len(rows) else [])
+        ws[f"E{r}"] = f'=IF(OR(C{r}="",D{r}=""),"",D{r}-C{r})'
+        ws[f"F{r}"] = f'=IF(C{r}="","",IF(D{r}="","Unpaid","Paid"))'
+        for col in "CD":
+            ws[f"{col}{r}"].number_format = US_DATE
+        ws[f"E{r}"].number_format = "0"
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "EF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.conditional_formatting.add(f"E2:E{last}", FormulaRule(formula=['AND(ISNUMBER(E2),E2>$J$2)'], fill=ALERT_FILL))
+    ws.column_dimensions["G"].width = 4
+    ws.column_dimensions["H"].width = 30
+    ws.column_dimensions["J"].width = 12
+    ws["H1"] = "Settings and results"
+    ws["H1"].font = Font(bold=True)
+    ws["H2"], ws["J2"] = "Your payment terms in days", 30
+    ws["J2"].fill = INPUT_FILL
+    results = [
+        ("Average days to get paid", f'=IFERROR(AVERAGE(E2:E{last}),"")', "0.0"),
+        ("Fastest payment (days)", f'=IF(COUNT(E2:E{last})=0,"",MIN(E2:E{last}))', "0"),
+        ("Slowest payment (days)", f'=IF(COUNT(E2:E{last})=0,"",MAX(E2:E{last}))', "0"),
+        ("Invoices paid", f"=COUNT(E2:E{last})", "0"),
+        ("Invoices still unpaid", f'=COUNTIF(F2:F{last},"Unpaid")', "0"),
+        ("Paid later than terms", f'=COUNTIF(E2:E{last},">"&J2)', "0"),
+        ("Check: paid + unpaid = invoices", f'=IF(J7+J8=COUNTA(A2:A{last}),"OK","CHECK")', "General"),
+    ]
+    for i, (label, f, fmt) in enumerate(results, start=4):
+        ws[f"H{i}"], ws[f"J{i}"] = label, f
+        ws[f"J{i}"].number_format = fmt
+        ws[f"J{i}"].fill = FORMULA_FILL
+        ws[f"J{i}"].alignment = Alignment(horizontal="right")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Calculate Average Days to Get Paid",
+        "",
+        "1. Invoices tab: type the invoice number, client, invoice date (A to C) and, once the client pays, the paid date in D. Leave D blank while an invoice is unpaid. Yellow cells are inputs; rows 2 to 30 have formulas ready.",
+        "2. E2: =D2-C2 is the days between the invoice date and the paid date. Dates are numbers, so subtracting gives days. A blank paid date leaves E blank.",
+        "3. J4: =AVERAGE(E2:E30) is the average days to get paid. AVERAGE skips blank cells, so unpaid invoices do not pull it down to zero.",
+        "4. J5 and J6 give the fastest and slowest payment with MIN and MAX. J7 and J8 count paid and unpaid invoices.",
+        "5. J2 is your payment terms in days (30 for Net 30). E turns red when an invoice took longer, and J9 counts them.",
+        "6. J10 checks that paid plus unpaid equals the number of invoices listed.",
+        "7. Enter real dates. A date stored as text (usually left-aligned) can give a wrong number or an error. A paid date earlier than the invoice date gives a negative number; fix the typo.",
+        "8. This looks back at invoices that were paid. It does not age open invoices; the receivables aging template does that.",
+        "",
+        "Clients, dates and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-days-to-get-paid.xlsx")
+
+
+def early_payment_discount():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Discounts"
+    header(ws, ["Invoice", "Client", "Invoice date", "Amount", "Paid date", "Discount deadline",
+                "Discount amount", "Pay by deadline", "Full amount due date", "Status"],
+           [11, 22, 12, 12, 12, 13, 12, 13, 13, 16])
+    rows = [
+        ("INV-3001", "Maple Street Bakery", date(2026, 9, 1), 1250.00, date(2026, 9, 9)),
+        ("INV-3002", "Harbor Yoga Studio", date(2026, 9, 3), 480.00, date(2026, 9, 20)),
+        ("INV-3003", "Birch Design Co", date(2026, 9, 8), 2200.00, date(2026, 9, 18)),
+        ("INV-3004", "Lantern Print Shop", date(2026, 9, 15), 835.50, date(2026, 9, 30)),
+        ("INV-3005", "Cedar Row Realty", date(2026, 9, 22), 960.00, date(2026, 9, 30)),
+        ("INV-3006", "Willow Pet Care", date(2026, 10, 1), 312.50, None),
+        ("INV-3007", "Granite Fitness", date(2026, 10, 5), 1480.00, None),
+        ("INV-3008", "Juniper Books", date(2026, 10, 9), 725.40, None),
+    ]
+    last = 25
+    for r in range(2, last + 1):
+        ws.append(list(rows[r - 2]) if r - 2 < len(rows) else [])
+        ws[f"F{r}"] = f'=IF(C{r}="","",C{r}+$M$3)'
+        ws[f"G{r}"] = f'=IF(OR(C{r}="",NOT(ISNUMBER(D{r}))),"",ROUND(D{r}*$M$2,2))'
+        ws[f"H{r}"] = f'=IF(G{r}="","",D{r}-G{r})'
+        ws[f"I{r}"] = f'=IF(C{r}="","",C{r}+$M$4)'
+        ws[f"J{r}"] = f'=IF(OR(C{r}="",G{r}=""),"",IF(E{r}="","Open",IF(E{r}<=F{r},"Discount earned","Full amount")))'
+        for col in "CEFI":
+            ws[f"{col}{r}"].number_format = US_DATE
+        for col in "DGH":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "FGHIJ":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.conditional_formatting.add(f"J2:J{last}", FormulaRule(formula=['J2="Full amount"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add(f"J2:J{last}", FormulaRule(formula=['J2="Discount earned"'], fill=DONE_FILL))
+    ws.column_dimensions["K"].width = 4
+    ws.column_dimensions["L"].width = 32
+    ws.column_dimensions["M"].width = 14
+    ws["L1"] = "Terms and totals"
+    ws["L1"].font = Font(bold=True)
+    ws["L2"], ws["M2"] = "Discount rate", 0.02
+    ws["L3"], ws["M3"] = "Discount days", 10
+    ws["L4"], ws["M4"] = "Net days (full amount due)", 30
+    ws["M2"].number_format = "0.0%"
+    for a in ("M2", "M3", "M4"):
+        ws[a].fill = INPUT_FILL
+    totals = [
+        ("Discounts taken by clients", f'=SUMIF(J2:J{last},"Discount earned",G2:G{last})', USD),
+        ("Discounts missed", f'=SUMIF(J2:J{last},"Full amount",G2:G{last})', USD),
+        ("Discount still available (open)", f'=SUMIF(J2:J{last},"Open",G2:G{last})', USD),
+        ("Open invoices", f'=COUNTIF(J2:J{last},"Open")', "0"),
+    ]
+    for i, (label, f, fmt) in enumerate(totals, start=6):
+        ws[f"L{i}"], ws[f"M{i}"] = label, f
+        ws[f"M{i}"].number_format = fmt
+        ws[f"M{i}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Calculate an Early Payment Discount (2/10 Net 30)",
+        "",
+        "1. Discounts tab: type the invoice, client, invoice date and amount (A to D). When a client pays, type the paid date in E; leave it blank while open. Rows 2 to 25 have formulas ready.",
+        "2. M2, M3 and M4 hold your terms: discount rate (2%), discount days (10) and net days (30). 2/10 net 30 means 2% off if paid within 10 days, otherwise the full amount in 30. Change them for terms like 1/15 net 45.",
+        "3. F2: =C2+$M$3 is the last day to pay and still take the discount.",
+        "4. G2: =ROUND(D2*$M$2,2) is the discount in dollars. H2: =D2-G2 is what the client pays by the deadline. I2: =C2+$M$4 is the date the full amount is due.",
+        "5. J2 compares the paid date with the deadline. A payment on the deadline day still earns the discount. Blank paid date shows Open.",
+        "6. M6 to M9 total the discounts taken, missed and still available.",
+        "7. Dates must be real dates, not text. The discount is calendar days, not business days.",
+        "8. This is arithmetic from the terms you type. The terms that count are the ones in your contract or invoice; the template does not decide what a client owes.",
+        "",
+        "Clients, dates and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-early-payment-discount.xlsx")
+
+
+def sell_through_rate():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Products"
+    header(ws, ["Product", "Units received", "Units sold", "Units left", "Sell through", "Status"],
+           [30, 14, 12, 12, 13, 14])
+    rows = [
+        ("Lavender soy candle, 8 oz", 48, 41),
+        ("Cedar soy candle, 8 oz", 48, 30),
+        ("Oatmeal goat milk soap", 120, 96),
+        ("Charcoal soap bar", 60, 21),
+        ("Brass hoop earrings", 30, 12),
+        ("Letterpress birthday card", 100, 78),
+        ("Linen tote bag", 25, 25),
+        ("Gift tag set", 80, 18),
+    ]
+    last = 30
+    for r in range(2, last + 1):
+        ws.append(list(rows[r - 2]) if r - 2 < len(rows) else [])
+        ws[f"D{r}"] = f'=IF(OR(B{r}="",C{r}=""),"",B{r}-C{r})'
+        ws[f"E{r}"] = f'=IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r}))),"",IF(B{r}<=0,"",C{r}/B{r}))'
+        ws[f"F{r}"] = (f'=IF(E{r}="","",IF(E{r}>1,"Check counts",IF(E{r}>=$I$2,"Strong",'
+                       f'IF(E{r}<$I$3,"Slow","OK"))))')
+        ws[f"E{r}"].number_format = "0.0%"
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "DEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.conditional_formatting.add(f"F2:F{last}", FormulaRule(formula=['F2="Slow"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add(f"F2:F{last}", FormulaRule(formula=['F2="Strong"'], fill=DONE_FILL))
+    ws.column_dimensions["G"].width = 4
+    ws.column_dimensions["H"].width = 30
+    ws.column_dimensions["I"].width = 12
+    ws["H1"] = "Settings and totals"
+    ws["H1"].font = Font(bold=True)
+    ws["H2"], ws["I2"] = "Strong at or above", 0.7
+    ws["H3"], ws["I3"] = "Slow below", 0.4
+    for a in ("I2", "I3"):
+        ws[a].number_format = "0%"
+        ws[a].fill = INPUT_FILL
+    totals = [
+        ("Units received", f"=SUM(B2:B{last})", "0"),
+        ("Units sold", f"=SUM(C2:C{last})", "0"),
+        ("Overall sell through", f'=IF(I5=0,"",I6/I5)', "0.0%"),
+        ("Products marked Slow", f'=COUNTIF(F2:F{last},"Slow")', "0"),
+        ("Units left on those", f'=SUMIF(F2:F{last},"Slow",D2:D{last})', "0"),
+    ]
+    for i, (label, f, fmt) in enumerate(totals, start=5):
+        ws[f"H{i}"], ws[f"I{i}"] = label, f
+        ws[f"I{i}"].number_format = fmt
+        ws[f"I{i}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Calculate Sell Through Rate",
+        "",
+        "1. Products tab: type the product, the units you received or made (B) and the units sold so far (C). Rows 2 to 30 have formulas ready.",
+        "2. D2: =B2-C2 is the units left.",
+        "3. E2: =C2/B2 is the sell through rate: units sold divided by units received. 41 of 48 candles sold is 85.4%. Format the cell as a percent.",
+        "4. E2 stays blank when units received is 0 or blank, so there is no divide by zero error.",
+        "5. I2 and I3 are your own cutoffs (yellow). F2 shows Strong at or above I2, Slow below I3, otherwise OK. The 70% and 40% are examples, not industry rules.",
+        "6. If units sold is more than units received, F2 shows Check counts. Fix a typo or add the missing stock.",
+        "7. I7 is the overall rate: total sold divided by total received, not the average of the row percents.",
+        "8. Compare products over the same time period. This sheet counts units, not dollars.",
+        "",
+        "Products and counts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-sell-through-rate.xlsx")
+
+
+def boxes_needed():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Item", "Units to ship", "Units per box", "Boxes needed", "Units in last box",
+                "Empty slots", "Box cost"],
+           [28, 12, 12, 12, 13, 11, 12])
+    rows = [
+        ("Soy candle 8 oz", 50, 12),
+        ("Soap bars", 30, 8),
+        ("Earring cards", 17, 20),
+        ("Ceramic mugs", 26, 6),
+        ("Linen tote bags", 48, 12),
+        ("Birthday cards", 130, 25),
+        ("Gift tag sets", 0, 40),
+    ]
+    last = 30
+    for r in range(2, last + 1):
+        ws.append(list(rows[r - 2]) if r - 2 < len(rows) else [])
+        ok = f'AND(ISNUMBER(B{r}),ISNUMBER(C{r}),C{r}>0)'
+        ws[f"D{r}"] = f'=IF({ok},ROUNDUP(B{r}/C{r},0),"")'
+        ws[f"E{r}"] = f'=IF(OR(D{r}="",B{r}=0),"",B{r}-(D{r}-1)*C{r})'
+        ws[f"F{r}"] = f'=IF(D{r}="","",D{r}*C{r}-B{r})'
+        ws[f"G{r}"] = f'=IF(D{r}="","",D{r}*$J$2)'
+        ws[f"G{r}"].number_format = USD
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "DEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.column_dimensions["H"].width = 4
+    ws.column_dimensions["I"].width = 28
+    ws.column_dimensions["J"].width = 12
+    ws["I1"] = "Cost and totals"
+    ws["I1"].font = Font(bold=True)
+    ws["I2"], ws["J2"] = "Cost per box", 1.45
+    ws["J2"].number_format = USD
+    ws["J2"].fill = INPUT_FILL
+    totals = [
+        ("Total boxes", f"=SUM(D2:D{last})", "0"),
+        ("Total box cost", f"=SUM(G2:G{last})", USD),
+        ("Total empty slots", f"=SUM(F2:F{last})", "0"),
+    ]
+    for i, (label, f, fmt) in enumerate(totals, start=4):
+        ws[f"I{i}"], ws[f"J{i}"] = label, f
+        ws[f"J{i}"].number_format = fmt
+        ws[f"J{i}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Calculate How Many Boxes You Need",
+        "",
+        "1. Orders tab: type the item, the units to ship (B) and how many fit in one box (C). Rows 2 to 30 have formulas ready.",
+        "2. D2: =ROUNDUP(B2/C2,0) is the boxes needed. ROUNDUP always rounds up, so 50 candles at 12 per box (4.17) needs 5 boxes. A plain ROUND would give 4 and leave candles without a box.",
+        "3. E2: =B2-(D2-1)*C2 is how many units go in the last box. When the units divide evenly the last box is simply full.",
+        "4. F2: =D2*C2-B2 is the empty slots across all boxes.",
+        "5. G2: =D2*$J$2 is the box cost. J2 is your price per box (yellow).",
+        "6. If units per box is 0, blank or text, D to G stay blank. If units to ship is 0, D shows 0 boxes.",
+        "7. Same size boxes only. It does not check weight, box dimensions or carrier rules, and one box size per row.",
+        "",
+        "Items, box sizes and prices are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-boxes-needed.xlsx")
+
+
+def median_order_value():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order", "Date", "Order total"], [12, 13, 14])
+    totals_list = [24.50, 38.00, 42.75, 18.00, 55.25, 31.50, 640.00, 27.00, 46.50, 35.25, 29.00, 62.00, 33.75]
+    last = 100
+    for r in range(2, last + 1):
+        i = r - 2
+        if i < len(totals_list):
+            ws.append([f"ORD-{4001 + i}", date(2026, 9, 1 + 2 * i), totals_list[i]])
+        else:
+            ws.append([])
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+    ws.column_dimensions["D"].width = 4
+    ws.column_dimensions["E"].width = 34
+    ws.column_dimensions["F"].width = 14
+    ws["E1"] = "Settings and results"
+    ws["E1"].font = Font(bold=True)
+    ws["E2"], ws["F2"] = "Ignore orders above (used in F9, F10)", 500
+    ws["F2"].number_format = USD
+    ws["F2"].fill = INPUT_FILL
+    res = [
+        ("Orders counted", f"=COUNT(C2:C{last})", "0"),
+        ("Average order value", f'=IFERROR(AVERAGE(C2:C{last}),"")', USD),
+        ("Median order value", f'=IFERROR(MEDIAN(C2:C{last}),"")', USD),
+        ("Average minus median", f'=IF(F5="","",F5-F6)', USD),
+        ("Largest order", f'=IF(F4=0,"",MAX(C2:C{last}))', USD),
+        ("Average without orders above F2", f'=IFERROR(AVERAGEIF(C2:C{last},"<="&F2),"")', USD),
+        ("Orders above F2", f'=COUNTIF(C2:C{last},">"&F2)', "0"),
+    ]
+    for i, (label, f, fmt) in enumerate(res, start=4):
+        ws[f"E{i}"], ws[f"F{i}"] = label, f
+        ws[f"F{i}"].number_format = fmt
+        ws[f"F{i}"].fill = FORMULA_FILL
+        ws[f"F{i}"].alignment = Alignment(horizontal="right")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Find the Median Order Value",
+        "",
+        "1. Orders tab: type the order number, date and order total in A to C (yellow). Totals can go down to row 100.",
+        "2. F5: =AVERAGE(C2:C100) adds every order and divides by the count. One big wholesale order pulls it up.",
+        "3. F6: =MEDIAN(C2:C100) is the middle order when the totals are sorted. With an even count it is the average of the two middle orders. A single large order barely moves it.",
+        "4. F7 shows how far the average sits above the median. A large gap means a few big orders are skewing the average.",
+        "5. F9 and F10 are optional: type a cutoff in F2 and F9 averages only orders at or below it, F10 counts the orders above it. The cutoff is your call; it is not a rule.",
+        "6. Blank cells and text are ignored by AVERAGE and MEDIAN. A total typed as text (usually left-aligned) is skipped, so retype it as a number. With no orders, F5 and F6 stay blank.",
+        "7. Order totals only. It does not remove refunds or tax; enter the totals you want to measure.",
+        "",
+        "Orders and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-median-order-value.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -3412,4 +3754,9 @@ if __name__ == "__main__":
     last_number_in_column()
     time_zone_converter()
     count_weekdays_in_month()
+    days_to_get_paid()
+    early_payment_discount()
+    sell_through_rate()
+    boxes_needed()
+    median_order_value()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

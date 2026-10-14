@@ -501,3 +501,18 @@ Google 도움말 링크로 근거를 댄다.
 - Edge (복사본 수정 후 재계산): I2 를 Pacific 으로 바꾸면 Eastern 10/14 10:30 PM 이 10/15 1:30 AM Next day, 같은 zone 은 0 시차, 시간 비움은 E, F 공백, 텍스트 시간 "10/14/2026 4:30 PM" 은 E "Check time", 목록에 없는 zone 은 D "Check zone". Eastern 에서 정각 자정 10/14 12:00 AM 은 Pacific 10/13 9:00 PM Previous day.
 - 한계: 고정 시간 오프셋만. 서머타임 규칙, 애리조나 대부분과 하와이 등 시간 변경 안 하는 지역, 4개 존 밖은 처리 안 함 (글에서 NIST 링크로 안내).
 - 히어로: scripts/make-heroes.py 에 heroes_2026_10_14 (team-02 항목) 추가, 이 항목만 렌더.
+
+## 2026-10-15 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, LibreOffice Calc 24.2 에서 확인)
+- How to Calculate Average Days to Get Paid in Excel and Google Sheets - `average-days-to-get-paid-excel-google-sheets`
+- How to Calculate a 2/10 Net 30 Early Payment Discount in Excel and Google Sheets - `early-payment-discount-2-10-net-30-excel-google-sheets`
+- How to Calculate Sell Through Rate in Excel and Google Sheets - `sell-through-rate-inventory-excel-google-sheets`
+- How to Calculate How Many Boxes You Need in Excel and Google Sheets - `how-many-boxes-needed-roundup-excel-google-sheets`
+- How to Find the Median Order Value in Excel and Google Sheets - `median-order-value-vs-average-excel-google-sheets`
+
+## 2026-10-15 template-builder results (LibreOffice Calc only, 10/14/2026)
+Environment: LibreOffice Calc (Linux, headless) recalculation of each built file into a scratch dir, read back with openpyxl data_only, compared with Python math. Not opened in Excel or Google Sheets. Sample data fictional. Functions added to scripts/build-templates.py and registered at the end of main(); only these five were run, no older template rewritten. Each template is US Letter, fit to one page wide, yellow input cells, a How to use sheet; PDF export gave one Letter page per tab. Full cell addresses and edge cases are in tasks/team-2026-10-15-handoff.md.
+- team-01 templates/tidy-tabs-days-to-get-paid.xlsx: E `=D2-C2`, J4 `=AVERAGE(E2:E30)`. Days 20, 35, 14, 35, 7, 45, 20, 28; average 25.5, fastest 7, slowest 45, 3 over 30 terms days, 2 unpaid, check OK. Edge: unpaid row given a paid date (average 23.1111), none paid (blank results), paid before invoice (-7, not flagged), paid date as text (LibreOffice converted it; app dependent), paid date without invoice date (CHECK).
+- team-02 templates/tidy-tabs-early-payment-discount.xlsx: G `=ROUND(D2*$M$2,2)`, F `=C2+$M$3`. Discounts $25.00, $9.60, $44.00, $16.71, $19.20, $6.25, $29.60, $14.51; taken $88.20, missed $26.31, still open $50.36, 3 open. Paid on the deadline day earns the discount, one day later does not. Edge: amount as text (row blank), terms 1/15 net 45 (12.50 on 1,250.00), empty sheet (all 0).
+- team-03 templates/tidy-tabs-sell-through-rate.xlsx: E `=C2/B2`. Rates 85.4%, 62.5%, 80.0%, 35.0%, 40.0%, 78.0%, 100.0%, 22.5%; totals 321 of 511 = 62.8%; 2 Slow, 101 units left on them. Edge: received 0 (blank rate), sold above received (Check counts), sold as text (row dropped from totals), sold blank, empty sheet.
+- team-04 templates/tidy-tabs-boxes-needed.xlsx: D `=ROUNDUP(B2/C2,0)`. Boxes 5, 4, 1, 5, 4, 6, 0 (total 25, $36.25 at $1.45, 39 empty slots). Edge: units per box 0 or blank (row blank), units as text (row blank), exact multiple 48/12 (4 boxes), decimal 10.5 units, empty sheet.
+- team-05 templates/tidy-tabs-median-order-value.xlsx: F6 `=MEDIAN(C2:C100)`. Average $83.35, median $35.25, difference $48.10, largest $640.00, average without orders above $500 $36.96, 1 order above. Edge: even count (median 36.625), blank row, $640.00 as text (skipped, 12 counted), one order, empty list (blank results).

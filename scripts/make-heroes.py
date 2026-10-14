@@ -223,7 +223,23 @@ def heroes_2026_10_14():
          render(t + "tidy-tabs-count-weekdays-in-month.xlsx", "Months", name="saturdays"))
 
 
+def heroes_2026_10_15():
+    t = "templates/"
+    d = "images/2026-10-15-team-0%d-%s/"
+    save(d % (1, "average-days-to-get-paid-excel-google-sheets") + "days-to-get-paid-template.png",
+         render(t + "tidy-tabs-days-to-get-paid.xlsx", "Invoices", name="daystopaid"))
+    save(d % (2, "early-payment-discount-2-10-net-30-excel-google-sheets") + "early-payment-discount-template.png",
+         render(t + "tidy-tabs-early-payment-discount.xlsx", "Discounts", name="earlydisc"))
+    save(d % (3, "sell-through-rate-inventory-excel-google-sheets") + "sell-through-rate-template.png",
+         render(t + "tidy-tabs-sell-through-rate.xlsx", "Products", name="sellthru"))
+    save(d % (4, "how-many-boxes-needed-roundup-excel-google-sheets") + "boxes-needed-template.png",
+         render(t + "tidy-tabs-boxes-needed.xlsx", "Orders", name="boxes"))
+    save(d % (5, "median-order-value-vs-average-excel-google-sheets") + "median-order-value-template.png",
+         render(t + "tidy-tabs-median-order-value.xlsx", "Orders", name="median"))
+
+
 def main():
+    heroes_2026_10_15()
     heroes_2026_10_14()
     heroes_2026_10_13()
     heroes_2026_10_12()

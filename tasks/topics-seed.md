@@ -72,3 +72,10 @@
 - How to Calculate Repeat Customer Rate in Excel and Google Sheets - `repeat-customer-rate-countif-excel-google-sheets`
 - How to Find the Cheapest Supplier by Cost Per Ounce in Excel and Google Sheets - `cheapest-supplier-cost-per-ounce-index-match-excel-google-sheets`
 - How to Split a Product Code Into Parts With LEFT, MID and FIND in Excel and Google Sheets - `split-sku-code-into-parts-left-mid-find-excel-google-sheets`
+
+## 2026-10-15 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, LibreOffice Calc 24.2 에서 확인)
+- How to Calculate Average Days to Get Paid in Excel and Google Sheets - `average-days-to-get-paid-excel-google-sheets`
+- How to Calculate a 2/10 Net 30 Early Payment Discount in Excel and Google Sheets - `early-payment-discount-2-10-net-30-excel-google-sheets`
+- How to Calculate Sell Through Rate in Excel and Google Sheets - `sell-through-rate-inventory-excel-google-sheets`
+- How to Calculate How Many Boxes You Need in Excel and Google Sheets - `how-many-boxes-needed-roundup-excel-google-sheets`
+- How to Find the Median Order Value in Excel and Google Sheets - `median-order-value-vs-average-excel-google-sheets`

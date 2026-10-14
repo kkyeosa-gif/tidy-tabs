@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dee4BiklO5c
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-convert-ounces-to-pounds-and.html
 title: How to Convert Ounces to Pounds and Ounces in Excel and Google Sheets
 labels: excel-formulas, shipping, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and 10 packages were checked against Python divmod, plus edge cases for 0, 16, 0.5 and 15.99 oz, a 1,700 oz package, a number typed as text, a word in the weight cell and an empty sheet. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Help.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeeWf9PIChK
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-cheapest-supplier-by-cost.html
 title: How to Find the Cheapest Supplier by Cost Per Ounce in Excel and Google Sheets
 labels: excel-formulas, handmade-business, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python math, including a zero package size, a blank price, a text price, a tie for lowest and an all-blank case. Excel and Google Sheets were not opened.

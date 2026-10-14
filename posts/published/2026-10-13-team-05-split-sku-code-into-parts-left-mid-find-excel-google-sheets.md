@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeeqSySFUVi
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-split-product-code-into-parts.html
 title: How to Split a Product Code Into Parts With LEFT, MID and FIND in Excel and Google Sheets
 labels: excel-formulas, handmade-business, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the results for all 10 sample codes were checked against Python str.split, including one-dash, no-dash, extra-dash, leading-space and lowercase cases. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

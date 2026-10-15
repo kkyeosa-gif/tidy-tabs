@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DehPFoclFrW
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-count-market-saturdays-in-month.html
 title: How to Count Market Saturdays in a Month With NETWORKDAYS.INTL in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the Saturday, Sunday and Friday counts for all 12 months of 2026 matched Python's calendar. Edge cases run on a copy: a month starting on a Saturday, a reversed date range, a one day range, a different picked day and a date typed as text. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Help.

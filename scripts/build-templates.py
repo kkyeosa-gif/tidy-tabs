@@ -3696,6 +3696,384 @@ def median_order_value():
     finish_letter(wb)
     wb.save(OUT / "tidy-tabs-median-order-value.xlsx")
 
+def week_ending_date():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Log"
+    header(ws, ["Date", "Client", "Hours", "Week ending"], [13, 24, 10, 14])
+    rows = [
+        (date(2026, 9, 28), "Maple Street Bakery", 3.5),
+        (date(2026, 9, 29), "Harbor Yoga Studio", 4.0),
+        (date(2026, 9, 30), "Maple Street Bakery", 2.5),
+        (date(2026, 10, 1), "Birch Design Co", 6.0),
+        (date(2026, 10, 2), "Birch Design Co", 5.5),
+        (date(2026, 10, 3), "Harbor Yoga Studio", 2.0),
+        (date(2026, 10, 4), "Lantern Print Shop", 1.5),
+        (date(2026, 10, 5), "Lantern Print Shop", 7.0),
+        (date(2026, 10, 7), "Maple Street Bakery", 4.25),
+        (date(2026, 10, 9), "Birch Design Co", 3.0),
+        (date(2026, 10, 12), "Harbor Yoga Studio", 5.0),
+        (date(2026, 10, 14), "Lantern Print Shop", 2.75),
+    ]
+    last = 60
+    for r in range(2, last + 1):
+        ws.append(list(rows[r - 2]) if r - 2 < len(rows) else [])
+        ws[f"D{r}"] = f'=IF(ISNUMBER(A{r}),A{r}+MOD($G$2-WEEKDAY(A{r},1),7),"")'
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = "0.00"
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"D{r}"].fill = FORMULA_FILL
+    ws.column_dimensions["E"].width = 4
+    ws.column_dimensions["F"].width = 34
+    ws.column_dimensions["G"].width = 12
+    ws["F1"] = "Setting"
+    ws["F1"].font = Font(bold=True)
+    ws["F2"], ws["G2"] = "Week ends on (1 Sun, 2 Mon ... 6 Fri, 7 Sat)", 6
+    ws["G2"].fill = INPUT_FILL
+    ws["F3"] = "Week ends on"
+    ws["G3"] = '=IF(AND(ISNUMBER(G2),G2>=1,G2<=7),CHOOSE(G2,"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"),"Enter 1 to 7")'
+    ws["G3"].fill = FORMULA_FILL
+    ws["F4"], ws["G4"] = "Total hours in log", f"=SUM(C2:C{last})"
+    ws["G4"].number_format = "0.00"
+    ws["G4"].fill = FORMULA_FILL
+    dv = DataValidation(type="whole", operator="between", formula1="1", formula2="7", allow_blank=False)
+    ws.add_data_validation(dv)
+    dv.add("G2")
+
+    wk = wb.create_sheet("Weeks")
+    header(wk, ["Week ending", "Hours"], [14, 10])
+    wlast = 27
+    for r in range(2, wlast + 1):
+        if r == 2:
+            wk["A2"] = f'=IF(COUNT(Log!D2:D{last})=0,"",MIN(Log!D2:D{last}))'
+        else:
+            wk[f"A{r}"] = f'=IF(A{r-1}="","",IF(A{r-1}+7>MAX(Log!D2:D{last}),"",A{r-1}+7))'
+        wk[f"B{r}"] = f'=IF(A{r}="","",SUMIFS(Log!C2:C{last},Log!D2:D{last},A{r}))'
+        wk[f"A{r}"].number_format = US_DATE
+        wk[f"B{r}"].number_format = "0.00"
+        wk[f"A{r}"].fill = FORMULA_FILL
+        wk[f"B{r}"].fill = FORMULA_FILL
+    wk.column_dimensions["C"].width = 4
+    wk.column_dimensions["D"].width = 34
+    wk.column_dimensions["E"].width = 12
+    wk["D1"] = "Check"
+    wk["D1"].font = Font(bold=True)
+    wk["D2"], wk["E2"] = "Hours on this tab", f"=SUM(B2:B{wlast})"
+    wk["D3"], wk["E3"] = "Hours in the log", f"=SUM(Log!C2:C{last})"
+    wk["D4"], wk["E4"] = "Check: they match", '=IF(ROUND(E2-E3,6)=0,"OK","CHECK")'
+    for a in ("E2", "E3"):
+        wk[a].number_format = "0.00"
+    for a in ("E2", "E3", "E4"):
+        wk[a].fill = FORMULA_FILL
+        wk[a].alignment = Alignment(horizontal="right")
+    wk.conditional_formatting.add("E4", FormulaRule(formula=['E4="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Find the Week Ending Date for Any Date",
+        "",
+        "1. Log tab: type the date, client and hours in A to C (yellow). Rows 2 to 60 have formulas ready.",
+        "2. G2 is the weekday that ends your week: 1 Sunday, 2 Monday, 3 Tuesday, 4 Wednesday, 5 Thursday, 6 Friday, 7 Saturday. It starts at 6 (Friday).",
+        "3. D2: =A2+MOD($G$2-WEEKDAY(A2,1),7). WEEKDAY(A2,1) gives 1 for Sunday to 7 for Saturday. MOD counts the days forward to the week ending day, from 0 to 6.",
+        "4. A date that already falls on the week ending day stays the same. The day after it jumps ahead 6 days.",
+        "5. Weeks tab: A2 is the earliest week ending in the log and each row below adds 7 days. B uses SUMIFS to add the hours whose week ending matches.",
+        "6. Weeks!E4 checks that the hours on the Weeks tab equal the hours in the log. CHECK means a row was left out, for example a date typed as text, or more weeks than the 26 rows listed.",
+        "7. Enter real dates. A date stored as text (usually left-aligned) gets no week ending, and its hours show up as CHECK. A blank date row stays blank.",
+        "8. Date math only. It does not apply pay period rules, overtime or time zones.",
+        "",
+        "Clients, dates and hours are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-week-ending-date.xlsx")
+
+
+def free_shipping_threshold():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order", "Subtotal", "Delivery", "Status", "Amount to add"], [12, 12, 12, 12, 14])
+    rows = [
+        ("ORD-5001", 32.50, "Ship"),
+        ("ORD-5002", 50.00, "Ship"),
+        ("ORD-5003", 49.99, "Ship"),
+        ("ORD-5004", 78.25, "Ship"),
+        ("ORD-5005", 24.00, "Pickup"),
+        ("ORD-5006", 45.00, "Ship"),
+        ("ORD-5007", 112.40, "Ship"),
+        ("ORD-5008", 18.75, "Ship"),
+        ("ORD-5009", 61.00, "Pickup"),
+        ("ORD-5010", 41.50, "Ship"),
+    ]
+    last = 31
+    for r in range(2, last + 1):
+        ws.append(list(rows[r - 2]) if r - 2 < len(rows) else [])
+        ws[f"D{r}"] = (f'=IF(OR(NOT(ISNUMBER(B{r})),C{r}=""),"",IF(C{r}="Pickup","Pickup",'
+                       f'IF(AND(C{r}="Ship",B{r}>=$I$2),"Free","Pay")))')
+        ws[f"E{r}"] = f'=IF(OR(D{r}="Pay",D{r}="Free"),MAX(0,ROUND($I$2-B{r},2)),"")'
+        ws[f"B{r}"].number_format = USD
+        ws[f"E{r}"].number_format = USD
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "DE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    dv = DataValidation(type="list", formula1='"Ship,Pickup"', allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add(f"C2:C{last}")
+    ws.conditional_formatting.add(f"D2:D{last}", FormulaRule(formula=['D2="Free"'], fill=DONE_FILL))
+    ws.column_dimensions["F"].width = 4
+    ws.column_dimensions["G"].width = 34
+    ws.column_dimensions["I"].width = 12
+    ws["G1"] = "Settings and results"
+    ws["G1"].font = Font(bold=True)
+    ws["G2"], ws["I2"] = "Free shipping at or above", 50
+    ws["G3"], ws["I3"] = "Close = within this much", 10
+    for a in ("I2", "I3"):
+        ws[a].number_format = USD
+        ws[a].fill = INPUT_FILL
+    res = [
+        ("Orders that qualify (Free)", f'=COUNTIF(D2:D{last},"Free")', "0"),
+        ("Orders that pay shipping", f'=COUNTIF(D2:D{last},"Pay")', "0"),
+        ("Pay orders within the close gap", f'=COUNTIFS(D2:D{last},"Pay",E2:E{last},"<="&I3)', "0"),
+        ("Pickup orders", f'=COUNTIF(D2:D{last},"Pickup")', "0"),
+        ("Check: all rows counted", f'=IF(I4+I5+I7=COUNTA(A2:A{last}),"OK","CHECK")', "General"),
+    ]
+    for i, (label, f, fmt) in enumerate(res, start=4):
+        ws[f"G{i}"], ws[f"I{i}"] = label, f
+        ws[f"I{i}"].number_format = fmt
+        ws[f"I{i}"].fill = FORMULA_FILL
+        ws[f"I{i}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("I8", FormulaRule(formula=['I8="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Check a Free Shipping Threshold",
+        "",
+        "1. Orders tab: type the order number, subtotal and delivery (Ship or Pickup) in A to C (yellow). Rows 2 to 31 have formulas ready.",
+        "2. I2 is your free shipping threshold. I3 is how close counts as close. Both are examples; type your own.",
+        "3. D2: =IF(AND(C2=\"Ship\",B2>=$I$2),\"Free\",\"Pay\"), wrapped so Pickup rows show Pickup. A subtotal exactly equal to I2 qualifies (>=); one cent under does not.",
+        "4. E2: =MAX(0,$I$2-B2) is how much more the customer must add to reach free shipping. It is 0 when the order already qualifies. ROUND(...,2) keeps cents exact.",
+        "5. I4 to I7 count Free, Pay, Pay orders within the close gap (the customers a nudge could convert) and Pickup rows.",
+        "6. I8 checks that Free + Pay + Pickup equals the number of order numbers listed. CHECK usually means a subtotal typed as text or a blank delivery cell.",
+        "7. A subtotal typed as text (usually left-aligned) or a blank subtotal gets no status.",
+        "8. Your own threshold only. It does not know carrier rates or marketplace rules.",
+        "",
+        "Orders and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-free-shipping-threshold.xlsx")
+
+
+def forecast_next_month():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    header(ws, ["Month number", "Month", "Sales"], [14, 12, 13])
+    sales = [1200, 1350, 1500, 1480, 1620, 1710, 1690, 1850]
+    last = 25
+    for r in range(2, last + 1):
+        i = r - 2
+        ws.append([i + 1, date(2026, 1 + i, 1), sales[i]] if i < len(sales) else [])
+        ws[f"B{r}"].number_format = "mmm yyyy"
+        ws[f"C{r}"].number_format = USD
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+    ws.column_dimensions["D"].width = 4
+    for col, w in (("E", 22), ("F", 14), ("G", 14)):
+        ws.column_dimensions[col].width = w
+    ws["E1"], ws["F1"], ws["G1"] = "Forecast", "Month", "Sales estimate"
+    for a in ("E1", "F1", "G1"):
+        ws[a].font = Font(bold=True)
+    X, Y = f"$A$2:$A${last}", f"$C$2:$C${last}"
+    for k in (1, 2, 3):
+        r = 1 + k
+        ws[f"E{r}"] = f'=IF(COUNT({X})=0,"",MAX({X})+{k})'
+        ws[f"F{r}"] = f'=IF(OR(E{r}="",COUNT($B$2:$B${last})=0),"",EDATE(MAX($B$2:$B${last}),E{r}-MAX({X})))'
+        ws[f"G{r}"] = f'=IF(OR(E{r}="",COUNT({Y})<2),"",FORECAST(E{r},{Y},{X}))'
+        ws[f"F{r}"].number_format = "mmm yyyy"
+        ws[f"G{r}"].number_format = USD
+        for col in "EFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"E{r}"].number_format = "0"
+    ws["E6"], ws["G6"] = "Trend per month (SLOPE)", f'=IF(COUNT({Y})<2,"",SLOPE({Y},{X}))'
+    ws["E7"], ws["G7"] = "Months of data", f"=COUNT({Y})"
+    ws["E8"], ws["G8"] = "Hand calculation, month 1", (
+        f'=IF(COUNT({Y})<2,"",(AVERAGE({Y})+(SUMPRODUCT({X},{Y})-COUNT({Y})*AVERAGE({X})*AVERAGE({Y}))'
+        f'/(SUMSQ({X})-COUNT({X})*AVERAGE({X})^2)*(E2-AVERAGE({X}))))')
+    ws["E9"], ws["G9"] = "Check: FORECAST matches", '=IF(G2="","",IF(ROUND(G2-G8,6)=0,"OK","CHECK"))'
+    ws["G6"].number_format = USD
+    ws["G8"].number_format = USD
+    ws["G7"].number_format = "0"
+    for r in range(6, 10):
+        ws[f"G{r}"].fill = FORMULA_FILL
+        ws[f"G{r}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("G9", FormulaRule(formula=['G9="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Forecast Next Month's Sales With FORECAST",
+        "",
+        "1. Sales tab: type a month number (1, 2, 3 ...), the month and the sales in A to C (yellow). Rows 2 to 25 are ready for up to 24 months. Keep the month numbers in order, with no gaps.",
+        "2. G2: =FORECAST(E2,$C$2:$C$25,$A$2:$A$25). E2 is the next month number (the last one plus 1). FORECAST fits a straight line through your past months and reads the sales value off that line. E3 and E4 give the next two months.",
+        "3. G6: =SLOPE($C$2:$C$25,$A$2:$A$25) is how many dollars the line rises or falls each month.",
+        "4. G8 repeats the first projection by the least squares formula typed out by hand, and G9 shows OK when FORECAST matches it. CHECK means the month numbers have gaps or text.",
+        "5. A straight line is only an estimate drawn from the past. It does not know about seasons, sales or promotions, and it is not a prediction. Use it as one input.",
+        "6. Rows with a blank or text month number or sales amount are skipped as a pair by LibreOffice Calc. Retype text as a number.",
+        "7. FORECAST needs at least 2 months; with fewer the results stay blank. If the two ranges are different sizes the formula returns an error (#VALUE! in LibreOffice Calc); make both ranges the same length.",
+        "8. FORECAST.LINEAR is the newer name in Excel and Google Sheets. This template uses the older FORECAST, which works in both.",
+        "",
+        "Months and sales are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-forecast-next-month.xlsx")
+
+
+def client_tenure():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Clients"
+    header(ws, ["Client", "First project date", "Years", "Months", "Time with you", "Total months"],
+           [26, 16, 8, 9, 14, 13])
+    rows = [
+        ("Maple Street Bakery", date(2021, 3, 15)),
+        ("Harbor Yoga Studio", date(2022, 11, 2)),
+        ("Birch Design Co", date(2024, 2, 29)),
+        ("Lantern Print Shop", date(2025, 8, 20)),
+        ("Cedar Row Realty", date(2023, 10, 16)),
+        ("Willow Pet Care", date(2019, 6, 30)),
+        ("Granite Fitness", date(2026, 1, 5)),
+        ("Juniper Books", date(2020, 12, 31)),
+        ("Copper Kettle Cafe", date(2026, 10, 1)),
+        ("Pine Hill Dental", date(2018, 4, 9)),
+    ]
+    last = 30
+    for r in range(2, last + 1):
+        ws.append(list(rows[r - 2]) if r - 2 < len(rows) else [])
+        ws[f"C{r}"] = (f'=IF(B{r}="","",IF(NOT(ISNUMBER(B{r})),"Check date",'
+                       f'IF(B{r}>$I$2,"Check date",DATEDIF(B{r},$I$2,"y"))))')
+        ws[f"D{r}"] = f'=IF(ISNUMBER(C{r}),DATEDIF(B{r},$I$2,"ym"),"")'
+        ws[f"E{r}"] = f'=IF(ISNUMBER(C{r}),C{r}&" yr "&D{r}&" mo","")'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(C{r}),C{r}*12+D{r},"")'
+        ws[f"B{r}"].number_format = US_DATE
+        for col in "AB":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "CDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.conditional_formatting.add(f"C2:C{last}", FormulaRule(formula=['C2="Check date"'], fill=ALERT_FILL))
+    ws.column_dimensions["G"].width = 4
+    ws.column_dimensions["H"].width = 34
+    ws.column_dimensions["I"].width = 12
+    ws["H1"] = "Settings and results"
+    ws["H1"].font = Font(bold=True)
+    ws["H2"], ws["I2"] = "As of date", date(2026, 10, 16)
+    ws["H3"], ws["I3"] = "Count clients with at least (years)", 3
+    ws["I2"].number_format = US_DATE
+    for a in ("I2", "I3"):
+        ws[a].fill = INPUT_FILL
+    res = [
+        ("Clients with a valid date", f"=COUNT(C2:C{last})", "0"),
+        ("Clients at or over I3 years", f'=COUNTIF(C2:C{last},">="&I3)', "0"),
+        ("Longest time (months)", f'=IF(COUNT(F2:F{last})=0,"",MAX(F2:F{last}))', "0"),
+        ("Rows to fix (Check date)", f'=COUNTIF(C2:C{last},"Check date")', "0"),
+        ("Check: all clients counted", f'=IF(I4+I7=COUNTA(A2:A{last}),"OK","CHECK")', "General"),
+    ]
+    for i, (label, f, fmt) in enumerate(res, start=4):
+        ws[f"H{i}"], ws[f"I{i}"] = label, f
+        ws[f"I{i}"].number_format = fmt
+        ws[f"I{i}"].fill = FORMULA_FILL
+        ws[f"I{i}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("I8", FormulaRule(formula=['I8="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: How Long Has a Client Been With You",
+        "",
+        "1. Clients tab: type the client and the first project date in A and B (yellow). Rows 2 to 30 have formulas ready.",
+        "2. I2 is the as of date. It is typed, not TODAY(), so the results do not change when you reopen the file. Replace it with =TODAY() if you want them to.",
+        "3. C2: =DATEDIF(B2,$I$2,\"y\") counts complete years. D2: =DATEDIF(B2,$I$2,\"ym\") counts the months left over after those years.",
+        "4. E2 joins them into text like 5 yr 7 mo, and F2 is the total months (years times 12 plus months).",
+        "5. DATEDIF counts complete months only: a start on the 20th is not a full month until the 20th of the next month.",
+        "6. DATEDIF is not listed in the Excel function picker, but it works when typed. Google Sheets lists it.",
+        "7. DATEDIF returns #NUM! when the start date is after the as of date. This sheet shows Check date instead, and so for a date typed as text. A blank date row stays blank.",
+        "8. I3 is a number of years you type; I5 counts the clients at or over it.",
+        "",
+        "Clients and dates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-client-tenure.xlsx")
+
+
+def incomplete_rows():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Customers"
+    header(ws, ["Name", "Email", "Phone", "Street", "ZIP", "Blank fields", "Status", "First missing"],
+           [22, 28, 15, 24, 8, 9, 11, 14])
+    rows = [
+        ("Ava Thompson", "ava.t@example.com", "617-555-0101", "12 Elm St", "02108"),
+        ("Ben Ortiz", "", "201-555-0142", "88 Pine Ave", "07030"),
+        ("Carla Nguyen", "carla.n@example.com", "", "5 Harbor Rd", "02210"),
+        ("Dev Patel", "dev.p@example.com", "973-555-0188", "", "07102"),
+        ("Erin Walsh", "erin.w@example.com", "617-555-0133", "41 Cedar Ln", ""),
+        ("Frank Lee", "", "", "9 Mill St", "01002"),
+        ("Gina Rossi", "gina.r@example.com", "201-555-0177", "230 Oak Dr", "07601"),
+        ("", "hal.k@example.com", "973-555-0120", "17 Birch Ct", "07042"),
+        ("Iris Chen", "iris.c@example.com", "617-555-0165", "63 Maple St", "02139"),
+        ("Jon Baker", "", "", "", ""),
+        ("Kim Alvarez", "kim.a@example.com", "201-555-0111", "70 River Rd", "07024"),
+        ("Liam Burke", "liam.b@example.com", "", "3 Lake Ave", "01851"),
+    ]
+    last = 30
+    for r in range(2, last + 1):
+        ws.append([v if v != "" else None for v in rows[r - 2]] if r - 2 < len(rows) else [])
+        ws[f"F{r}"] = f'=IF(COUNTA(A{r}:E{r})=0,"",COUNTBLANK(A{r}:E{r}))'
+        ws[f"G{r}"] = f'=IF(F{r}="","",IF(F{r}=0,"Complete","Missing"))'
+        ws[f"H{r}"] = (f'=IF(OR(F{r}="",F{r}=0),"",IF(A{r}="","Name",IF(B{r}="","Email",'
+                       f'IF(C{r}="","Phone",IF(D{r}="","Street","ZIP")))))')
+        ws[f"E{r}"].number_format = "@"
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "FGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.conditional_formatting.add(f"G2:G{last}", FormulaRule(formula=['G2="Missing"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add(f"G2:G{last}", FormulaRule(formula=['G2="Complete"'], fill=DONE_FILL))
+    ws.column_dimensions["I"].width = 4
+    ws.column_dimensions["J"].width = 30
+    ws.column_dimensions["K"].width = 12
+    ws["J1"] = "Totals"
+    ws["J1"].font = Font(bold=True)
+    res = [
+        ("Rows with data", f"=COUNT(F2:F{last})", "0"),
+        ("Complete rows", f'=COUNTIF(G2:G{last},"Complete")', "0"),
+        ("Rows missing something", f'=COUNTIF(G2:G{last},"Missing")', "0"),
+        ("Rows missing a ZIP", f'=SUMPRODUCT((F2:F{last}<>"")*(E2:E{last}=""))', "0"),
+        ("Check: blanks add up", f'=IF(SUM(F2:F{last})=COUNT(F2:F{last})*5-COUNTA(A2:E{last}),"OK","CHECK")', "General"),
+    ]
+    for i, (label, f, fmt) in enumerate(res, start=2):
+        ws[f"J{i}"], ws[f"K{i}"] = label, f
+        ws[f"K{i}"].number_format = fmt
+        ws[f"K{i}"].fill = FORMULA_FILL
+        ws[f"K{i}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("K6", FormulaRule(formula=['K6="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Find Rows With Missing Information",
+        "",
+        "1. Customers tab: paste or type name, email, phone, street and ZIP in A to E (yellow). Rows 2 to 30 have formulas ready. The ZIP column is formatted as text so 02108 keeps its leading zero.",
+        "2. F2: =COUNTBLANK(A2:E2) counts the empty cells in the row. A row with no data at all stays blank here, so unused rows do not show 5.",
+        "3. G2 shows Complete when F2 is 0 and Missing otherwise. H2 names the first empty field, checked in the order Name, Email, Phone, Street, ZIP.",
+        "4. K3 to K5 count complete rows, rows missing something and rows with no ZIP. K6 checks that the blanks counted per row add up to the cells actually filled.",
+        "5. COUNTBLANK counts cells that are really empty. A cell holding only a space is not empty, so it counts as filled. Use the TRIM and clean list template to remove stray spaces first.",
+        "6. A cell with a formula that returns \"\" counts as blank in LibreOffice Calc and Excel; K6 shows CHECK in that case because COUNTA treats the cell as filled.",
+        "7. This counts empty cells only. It does not check that an email or address is correct.",
+        "",
+        "Names, emails, phone numbers and addresses are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-incomplete-rows.xlsx")
+
 
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
@@ -3759,4 +4137,9 @@ if __name__ == "__main__":
     sell_through_rate()
     boxes_needed()
     median_order_value()
+    week_ending_date()
+    free_shipping_threshold()
+    forecast_next_month()
+    client_tenure()
+    incomplete_rows()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

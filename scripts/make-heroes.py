@@ -238,7 +238,34 @@ def heroes_2026_10_15():
          render(t + "tidy-tabs-median-order-value.xlsx", "Orders", name="median"))
 
 
+def short_log_copy(src, last_row=20):
+    """Temp copy of the week-ending Log tab with the empty rows below the data hidden (keeps the hero 16:9 readable)."""
+    wb = load_workbook(src)
+    ws = wb["Log"]
+    for r in range(last_row + 1, ws.max_row + 1):
+        ws.row_dimensions[r].hidden = True
+    path = f"{rp.TMP}/weekending-short.xlsx"
+    wb.save(path)
+    return path
+
+
+def heroes_2026_10_16():
+    t = "templates/"
+    d = "images/2026-10-16-team-0%d-%s/"
+    save(d % (1, "week-ending-friday-date-weekday-excel-google-sheets") + "week-ending-date-template.png",
+         render(short_log_copy(t + "tidy-tabs-week-ending-date.xlsx"), "Log", name="weekending"))
+    save(d % (2, "free-shipping-threshold-amount-to-add-if-and-excel-google-sheets") + "free-shipping-threshold-template.png",
+         render(t + "tidy-tabs-free-shipping-threshold.xlsx", "Orders", name="freeship"))
+    save(d % (3, "forecast-next-month-sales-forecast-linear-excel-google-sheets") + "forecast-next-month-sales-template.png",
+         render(t + "tidy-tabs-forecast-next-month.xlsx", "Sales", name="forecast"))
+    save(d % (4, "client-tenure-years-months-datedif-excel-google-sheets") + "client-tenure-years-months-template.png",
+         render(t + "tidy-tabs-client-tenure.xlsx", "Clients", name="tenure"))
+    save(d % (5, "find-incomplete-customer-rows-countblank-excel-google-sheets") + "incomplete-customer-rows-template.png",
+         render(t + "tidy-tabs-incomplete-rows.xlsx", "Customers", name="incomplete"))
+
+
 def main():
+    heroes_2026_10_16()
     heroes_2026_10_15()
     heroes_2026_10_14()
     heroes_2026_10_13()

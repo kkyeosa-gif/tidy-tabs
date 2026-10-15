@@ -79,3 +79,10 @@
 - How to Calculate Sell Through Rate in Excel and Google Sheets - `sell-through-rate-inventory-excel-google-sheets`
 - How to Calculate How Many Boxes You Need in Excel and Google Sheets - `how-many-boxes-needed-roundup-excel-google-sheets`
 - How to Find the Median Order Value in Excel and Google Sheets - `median-order-value-vs-average-excel-google-sheets`
+
+## 2026-10-16 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, LibreOffice Calc 24.2 에서 수식 확인)
+- How to Find the Week Ending Date for Any Date in Excel and Google Sheets - `week-ending-friday-date-weekday-excel-google-sheets`
+- How to Check a Free Shipping Threshold and Show the Amount to Add in Excel and Google Sheets - `free-shipping-threshold-amount-to-add-if-and-excel-google-sheets`
+- How to Forecast Next Month's Sales With FORECAST in Excel and Google Sheets - `forecast-next-month-sales-forecast-linear-excel-google-sheets`
+- How to Calculate How Long a Client Has Been With You in Years and Months in Excel and Google Sheets - `client-tenure-years-months-datedif-excel-google-sheets`
+- How to Find Rows With Missing Information in a Customer List in Excel and Google Sheets - `find-incomplete-customer-rows-countblank-excel-google-sheets`

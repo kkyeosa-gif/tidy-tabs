@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DefoFmpl8-G
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-count-characters-and-tags-in.html
 title: How to Count Characters and Tags in a Product Listing in Excel and Google Sheets
 labels: excel-formulas, small-business, text-functions
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and 10 listings were checked against Python len and str.count, plus a title exactly at the limit, an empty tags cell, a trailing comma, a double comma, a trailing space and a cleared sheet. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Help.

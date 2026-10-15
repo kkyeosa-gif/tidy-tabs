@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dehxa5vjzft
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-210-net-30-early.html
 title: How to Calculate a 2/10 Net 30 Early Payment Discount in Excel and Google Sheets
 labels: excel-formulas, small-business, invoicing
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python, including a payment on the deadline day, one day late, an amount typed as text, different terms and an empty sheet. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

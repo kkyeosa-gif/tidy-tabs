@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DekBnSCllV7
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-week-ending-date-for-any.html
 title: How to Find the Week Ending Date for Any Date in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python weekday math, including a date already on the week ending day, a year boundary, a Sunday week end, a date typed as text, hours typed as text and a blank date row. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google.

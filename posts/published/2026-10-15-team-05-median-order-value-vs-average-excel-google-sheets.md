@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dejz4h0FhLT
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-median-order-value-in-excel.html
 title: How to Find the Median Order Value in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python (mean, statistics.median and a filtered mean), including an even count, a blank row, a total typed as text, a single order and an empty list. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

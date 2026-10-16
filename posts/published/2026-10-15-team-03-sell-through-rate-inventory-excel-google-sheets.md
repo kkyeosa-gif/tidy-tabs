@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeiM4XRoE-a
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-sell-through-rate-in.html
 title: How to Calculate Sell Through Rate in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python, including a received count of 0, more sold than received, a sold count typed as text, a blank sold cell and an empty sheet. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

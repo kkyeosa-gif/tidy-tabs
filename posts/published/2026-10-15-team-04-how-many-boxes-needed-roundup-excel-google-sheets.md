@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DejgFiVGwYR
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-how-many-boxes-you.html
 title: How to Calculate How Many Boxes You Need in Excel and Google Sheets
 labels: excel-formulas, small-business, shipping
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python math.ceil, including an exact multiple, zero or blank units per box, units typed as text, a decimal quantity, a zero-unit order and an empty sheet. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

@@ -4075,6 +4075,364 @@ def incomplete_rows():
     wb.save(OUT / "tidy-tabs-incomplete-rows.xlsx")
 
 
+def overlapping_bookings():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Bookings"
+    header(ws, ["Booking ID", "Space", "Client", "Start date", "End date", "Conflicts", "Status", "Cross-check"],
+           [12, 11, 24, 12, 12, 10, 11, 11])
+    rows = [
+        ("BK-101", "Booth A", "Maple Street Bakery", date(2026, 10, 3), date(2026, 10, 5)),
+        ("BK-102", "Booth A", "Harbor Yoga Studio", date(2026, 10, 5), date(2026, 10, 7)),
+        ("BK-103", "Booth A", "Birch Design Co", date(2026, 10, 12), date(2026, 10, 20)),
+        ("BK-104", "Booth A", "Lantern Print Shop", date(2026, 10, 14), date(2026, 10, 16)),
+        ("BK-105", "Booth B", "Cedar Row Realty", date(2026, 10, 3), date(2026, 10, 5)),
+        ("BK-106", "Booth B", "Willow Pet Care", date(2026, 10, 10), date(2026, 10, 14)),
+        ("BK-107", "Booth B", "Granite Fitness", date(2026, 10, 13), date(2026, 10, 17)),
+        ("BK-108", "Booth B", "Juniper Books", date(2026, 10, 16), date(2026, 10, 19)),
+        ("BK-109", "Studio", "Copper Kettle Cafe", date(2026, 10, 8), date(2026, 10, 9)),
+        ("BK-110", "Studio", "Pine Hill Dental", date(2026, 10, 8), date(2026, 10, 9)),
+        ("BK-111", "Studio", "Maple Street Bakery", date(2026, 10, 21), date(2026, 10, 23)),
+        ("BK-112", "Studio", "Harbor Yoga Studio", date(2026, 10, 24), date(2026, 10, 24)),
+    ]
+    last = 40
+    sp, st, en = f"$B$2:$B${last}", f"$D$2:$D${last}", f"$E$2:$E${last}"
+    for r in range(2, last + 1):
+        ws.append(list(rows[r - 2]) if r - 2 < len(rows) else [])
+        ws[f"F{r}"] = (
+            f'=IF(A{r}="","",IF(OR(B{r}="",NOT(ISNUMBER(D{r})),NOT(ISNUMBER(E{r}))),"",IF(E{r}<D{r},"",'
+            f'IF($K$2="Yes",COUNTIFS({sp},B{r},{st},"<="&E{r},{en},">="&D{r})-1,'
+            f'COUNTIFS({sp},B{r},{st},"<"&E{r},{en},">"&D{r})-IF(E{r}>D{r},1,0)))))')
+        ws[f"G{r}"] = f'=IF(A{r}="","",IF(F{r}="","Check",IF(F{r}>0,"Conflict","OK")))'
+        ws[f"H{r}"] = (
+            f'=IF(F{r}="","",IF($K$2="Yes",SUMPRODUCT(({sp}=B{r})*({st}<=E{r})*({en}>=D{r}))-1,'
+            f'SUMPRODUCT(({sp}=B{r})*({st}<E{r})*({en}>D{r}))-IF(E{r}>D{r},1,0)))')
+        for col in "DE":
+            ws[f"{col}{r}"].number_format = US_DATE
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "FGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    dv = DataValidation(type="list", formula1='"Booth A,Booth B,Studio"', allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add(f"B2:B{last}")
+    dv2 = DataValidation(type="list", formula1='"Yes,No"', allow_blank=False)
+    ws.add_data_validation(dv2)
+    dv2.add("K2")
+    ws.conditional_formatting.add(f"G2:G{last}", FormulaRule(formula=['OR(G2="Conflict",G2="Check")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add(f"G2:G{last}", FormulaRule(formula=['G2="OK"'], fill=DONE_FILL))
+    ws.column_dimensions["I"].width = 4
+    ws.column_dimensions["J"].width = 42
+    ws.column_dimensions["K"].width = 10
+    ws["J1"] = "Settings and results"
+    ws["J1"].font = Font(bold=True)
+    ws["J2"], ws["K2"] = "Same-day handoff counts as a conflict (Yes/No)", "Yes"
+    ws["K2"].fill = INPUT_FILL
+    res = [
+        ("Bookings with a conflict", f'=COUNTIF(G2:G{last},"Conflict")', "0"),
+        ("Total bookings", f"=COUNTA(A2:A{last})", "0"),
+        ("Rows to fix (Check)", f'=COUNTIF(G2:G{last},"Check")', "0"),
+        ("Check: both counts agree", f'=IF(SUM(F2:F{last})=SUM(H2:H{last}),"OK","CHECK")', "General"),
+    ]
+    for i, (label, f, fmt) in enumerate(res, start=3):
+        ws[f"J{i}"], ws[f"K{i}"] = label, f
+        ws[f"K{i}"].number_format = fmt
+        ws[f"K{i}"].fill = FORMULA_FILL
+        ws[f"K{i}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("K6", FormulaRule(formula=['K6="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Find Overlapping Dates and Double Bookings",
+        "",
+        "1. Bookings tab: type the booking, the space, the client and the start and end dates in A to E (yellow). Rows 2 to 40 have formulas ready. Pick the space from the dropdown in B.",
+        "2. F2 counts the other bookings in the same space whose dates overlap this one: =COUNTIFS($B$2:$B$40,B2,$D$2:$D$40,\"<=\"&E2,$E$2:$E$40,\">=\"&D2)-1. Two ranges overlap when each one starts on or before the day the other ends. The -1 removes the row itself.",
+        "3. G2 shows Conflict when F2 is above 0, OK when it is 0, and Check when a date is missing, typed as text, or the end date is before the start date.",
+        "4. K2 switches how a same-day handoff is treated. Yes means an end date equal to the next start date is a conflict. No means it is allowed (the formula then uses < and > instead of <= and >=).",
+        "5. H2 counts the same thing with SUMPRODUCT. K6 shows OK when the two counts agree across all rows.",
+        "6. A date typed as text (left aligned, no date format) is ignored by COUNTIFS, so the other bookings do not see it. That row itself shows Check. Retype it as a date.",
+        "7. A booking with a conflict is flagged on every row involved. Three bookings that overlap at once show 2 on the middle one.",
+        "",
+        "Bookings and clients are fictional. This checks dates only: it does not know about leases, deposits or contract terms. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb.save(OUT / "tidy-tabs-overlapping-bookings.xlsx")
+
+
+def cash_drawer_count():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Count"
+    header(ws, ["Denomination", "Value", "Count", "Amount"], [20, 11, 9, 13])
+    dens = [
+        ("$100 bill", 100, 0), ("$50 bill", 50, 0), ("$20 bill", 20, 6), ("$10 bill", 10, 9),
+        ("$5 bill", 5, 14), ("$1 bill", 1, 23), ("Quarter", 0.25, 18), ("Dime", 0.10, 12),
+        ("Nickel", 0.05, 9), ("Penny", 0.01, 20),
+    ]
+    for r, (name, val, cnt) in enumerate(dens, start=2):
+        ws.append([name, val, cnt])
+        ws[f"D{r}"] = f'=IF(C{r}="","",IF(NOT(ISNUMBER(C{r})),"Check",IF(AND(C{r}>=0,C{r}=INT(C{r})),B{r}*C{r},"Check")))'
+        ws[f"B{r}"].number_format = USD
+        ws[f"D{r}"].number_format = USD
+        ws[f"C{r}"].fill = INPUT_FILL
+        ws[f"D{r}"].fill = FORMULA_FILL
+    ws["A12"], ws["C12"], ws["D12"] = "Total counted", "=SUM(C2:C11)", "=SUM(D2:D11)"
+    ws["D12"].number_format = USD
+    for a in ("A12", "C12", "D12"):
+        ws[a].font = Font(bold=True)
+        ws[a].fill = FORMULA_FILL
+    ws.conditional_formatting.add("D2:D11", FormulaRule(formula=['D2="Check"'], fill=ALERT_FILL))
+    ws.column_dimensions["E"].width = 30
+    ws.column_dimensions["F"].width = 14
+    ws["E1"] = "Closing numbers"
+    ws["E1"].font = Font(bold=True)
+    ws["E2"], ws["F2"] = "Starting float", 150
+    ws["E3"], ws["F3"] = "Cash sales for the day", 161.85
+    for a in ("F2", "F3"):
+        ws[a].fill = INPUT_FILL
+        ws[a].number_format = USD
+    res = [
+        ("Expected cash", "=F2+F3", USD),
+        ("Over (+) or short (-)", "=ROUND(D12-F4,2)", USD),
+        ("Status", '=IF(COUNTIF(D2:D11,"Check")>0,"Check counts",IF(F5=0,"Balanced",IF(F5>0,"Over","Short")))', "General"),
+        ("Check: SUMPRODUCT total", "=SUMPRODUCT(B2:B11,C2:C11)", USD),
+        ("Check: both totals agree", '=IF(ROUND(F7-D12,2)=0,"OK","CHECK")', "General"),
+    ]
+    for i, (label, f, fmt) in enumerate(res, start=4):
+        ws[f"E{i}"], ws[f"F{i}"] = label, f
+        ws[f"F{i}"].number_format = fmt
+        ws[f"F{i}"].fill = FORMULA_FILL
+        ws[f"F{i}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("F6", FormulaRule(formula=['OR(F6="Over",F6="Short",F6="Check counts")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("F6", FormulaRule(formula=['F6="Balanced"'], fill=DONE_FILL))
+    ws.conditional_formatting.add("F8", FormulaRule(formula=['F8="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Cash Drawer Count Over or Short",
+        "",
+        "1. Count tab: type how many of each bill and coin are in the drawer in C (yellow). A blank count is treated as none.",
+        "2. D2: =B2*C2 gives the amount for each row. D12 adds them: =SUM(D2:D11). C12 is the number of bills and coins.",
+        "3. F2 is the cash you started the day with (the float). F3 is the cash sales for the day from your own records. F4 adds them to give the cash you expect to find.",
+        "4. F5: =ROUND(D12-F4,2) is the difference. ROUND is there because decimals like 0.10 are stored in binary: a difference of one cent can otherwise come out as 0.00999999999999091, which is not equal to 0.01.",
+        "5. F6 shows Balanced, Over or Short. A count that is negative, a fraction or typed as text shows Check in D, and F6 says Check counts.",
+        "6. F7 totals the drawer a second way with SUMPRODUCT. F8 shows OK when it matches D12.",
+        "7. To count another drawer, save a copy of the file or clear column C and F3.",
+        "",
+        "Counts and sales are fictional. This is arithmetic only, not accounting advice. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-cash-drawer-count.xlsx")
+
+
+def nth_weekday_of_month():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Dates"
+    header(ws, ["Item", "Value"], [34, 18])
+    days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    ws["A2"], ws["B2"] = "Year", 2026
+    ws["A3"], ws["B3"] = "Month (1 to 12)", 11
+    ws["A4"], ws["B4"] = "Weekday", "Saturday"
+    ws["A5"], ws["B5"] = "Which one (1 to 5)", 2
+    for a in ("B2", "B3", "B4", "B5"):
+        ws[a].fill = INPUT_FILL
+        ws[a].alignment = Alignment(horizontal="right")
+    ws["A6"], ws["B6"] = "Weekday number (1 = Sunday)", '=IFERROR(MATCH(B4,$E$2:$E$8,0),"Check weekday")'
+    ws["A7"] = "Inputs OK?"
+    ws["B7"] = ('=IF(AND(ISNUMBER(B2),ISNUMBER(B3),ISNUMBER(B5),ISNUMBER(B6)),'
+                'IF(AND(B2>=1900,B2<=9999,B2=INT(B2),B3>=1,B3<=12,B3=INT(B3),B5>=1,B5<=5,B5=INT(B5)),"Yes","No"),"No")')
+    first = "DATE(B2,B3,1)"
+    nth = f"{first}+MOD(B6-WEEKDAY({first},1),7)+7*(B5-1)"
+    ws["A8"] = "Date of the Nth weekday"
+    ws["B8"] = f'=IF(B7<>"Yes","Check inputs",IF(MONTH({nth})=B3,{nth},"No such date"))'
+    eom = f"EOMONTH({first},0)"
+    ws["A9"] = "Date of the last such weekday"
+    ws["B9"] = f'=IF(B7<>"Yes","Check inputs",{eom}-MOD(WEEKDAY({eom},1)-B6,7))'
+    ws["A10"] = "Check: result falls on that weekday"
+    ws["B10"] = ('=IF(AND(ISNUMBER(B8),ISNUMBER(B9)),IF(AND(WEEKDAY(B8,1)=B6,WEEKDAY(B9,1)=B6),"OK","CHECK"),'
+                 'IF(ISNUMBER(B9),IF(WEEKDAY(B9,1)=B6,"OK","CHECK"),""))')
+    for a in ("B6", "B7", "B8", "B9", "B10"):
+        ws[a].fill = FORMULA_FILL
+        ws[a].alignment = Alignment(horizontal="right")
+    ws["B8"].number_format = US_DATE
+    ws["B9"].number_format = US_DATE
+    ws.conditional_formatting.add("B7:B9", FormulaRule(formula=['OR(B7="No",B7="Check inputs",B7="No such date")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("B10", FormulaRule(formula=['B10="CHECK"'], fill=ALERT_FILL))
+    dv = DataValidation(type="list", formula1="=$E$2:$E$8", allow_blank=False)
+    ws.add_data_validation(dv)
+    dv.add("B4")
+    ws.column_dimensions["C"].width = 4
+    ws.column_dimensions["D"].width = 4
+    ws.column_dimensions["E"].width = 14
+    ws["E1"] = "Weekday list"
+    ws["E1"].font = Font(bold=True)
+    for i, d in enumerate(days, start=2):
+        ws[f"E{i}"] = d
+
+    sc = wb.create_sheet("Schedule")
+    header(sc, ["Month", "Date", "Weekday"], [16, 16, 14])
+    ok = ('AND(ISNUMBER(Dates!$B$2),ISNUMBER(Dates!$B$5),ISNUMBER(Dates!$B$6),Dates!$B$2>=1900,Dates!$B$2<=9999,'
+          'Dates!$B$2=INT(Dates!$B$2),Dates!$B$5>=1,Dates!$B$5<=5,Dates!$B$5=INT(Dates!$B$5))')
+    for r in range(2, 14):
+        sc[f"A{r}"] = f"=IF({ok},DATE(Dates!$B$2,1,1),\"\")" if r == 2 else f'=IF(A{r-1}="","",EDATE(A{r-1},1))'
+        x = f"A{r}+MOD(Dates!$B$6-WEEKDAY(A{r},1),7)+7*(Dates!$B$5-1)"
+        sc[f"B{r}"] = f'=IF(A{r}="","",IF(MONTH({x})=MONTH(A{r}),{x},"No such date"))'
+        sc[f"C{r}"] = f'=IF(ISNUMBER(B{r}),Dates!$B$4,"")'
+        sc[f"A{r}"].number_format = "mmmm yyyy"
+        sc[f"B{r}"].number_format = US_DATE
+        for col in "ABC":
+            sc[f"{col}{r}"].fill = FORMULA_FILL
+        sc[f"B{r}"].alignment = Alignment(horizontal="right")
+    sc.conditional_formatting.add("B2:B13", FormulaRule(formula=['B2="No such date"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Date of the Nth Weekday of a Month",
+        "",
+        "1. Dates tab: type the year, the month number, pick the weekday from the dropdown and type which one you want (1 to 5) in B2 to B5 (yellow).",
+        "2. B6 turns the weekday name into a number with MATCH (1 = Sunday to 7 = Saturday, the WEEKDAY default).",
+        "3. B8: =DATE(B2,B3,1)+MOD(B6-WEEKDAY(DATE(B2,B3,1),1),7)+7*(B5-1). The first part finds the first wanted weekday on or after the 1st, the last part adds 7 days for each extra week.",
+        "4. B8 is wrapped in a MONTH check. If the result lands in the next month (for example a 5th Saturday that does not exist), it shows No such date.",
+        "5. B9 is the last such weekday of the month: =EOMONTH(DATE(B2,B3,1),0)-MOD(WEEKDAY(EOMONTH(DATE(B2,B3,1),0),1)-B6,7). It steps back from the last day of the month.",
+        "6. A month typed as 13 would roll into the next year inside DATE, so B7 checks the inputs first and the results show Check inputs. A year typed as text does the same.",
+        "7. Schedule tab: the same weekday and number for all 12 months of the year in B2. Change the yellow cells on Dates and it follows.",
+        "",
+        "This is date math only. It does not know about holidays or market rules. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-nth-weekday-of-month.xlsx")
+
+
+def format_phone_numbers():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Phones"
+    header(ws, ["Phone as typed", "Digits only", "Without leading 1", "Formatted"], [24, 16, 18, 18])
+    raw = ["(212) 555-0101", "212.555.0102", "+1 212-555-0103", 2125550104, "212 555 0105",
+           "1-212-555-0106", "(415)555-0107", "415.555.0108", "212-555-010",
+           "212-555-0111 x12", "21255501130", "call after 5"]
+    last = 40
+    for r in range(2, last + 1):
+        ws.append([raw[r - 2]] if r - 2 < len(raw) else [])
+        s = f'A{r}'
+        for ch in (" ", "-", "(", ")", ".", "+"):
+            s = f'SUBSTITUTE({s},"{ch}","")'
+        ws[f"B{r}"] = f'=IF(A{r}="","",{s})'
+        ws[f"C{r}"] = f'=IF(B{r}="","",IF(AND(LEN(B{r})=11,LEFT(B{r},1)="1"),MID(B{r},2,10),B{r}))'
+        digits = f'SUMPRODUCT(--ISNUMBER(FIND(MID(C{r},{{1,2,3,4,5,6,7,8,9,10}},1),"0123456789")))=10'
+        ws[f"D{r}"] = (f'=IF(A{r}="","",IF(AND(LEN(C{r})=10,{digits}),'
+                       f'"("&LEFT(C{r},3)&") "&MID(C{r},4,3)&"-"&RIGHT(C{r},4),"Check"))')
+        for col in "ABC":
+            ws[f"{col}{r}"].number_format = "@"
+        ws[f"A{r}"].fill = INPUT_FILL
+        for col in "BCD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.conditional_formatting.add(f"D2:D{last}", FormulaRule(formula=['D2="Check"'], fill=ALERT_FILL))
+    ws.column_dimensions["E"].width = 4
+    ws.column_dimensions["F"].width = 30
+    ws.column_dimensions["G"].width = 10
+    ws["F1"] = "Results"
+    ws["F1"].font = Font(bold=True)
+    res = [
+        ("Rows with a phone entry", f"=COUNTA(A2:A{last})", "0"),
+        ("Formatted", f"=SUMPRODUCT(--(LEN(D2:D{last})=14))", "0"),
+        ("Rows to check", f'=COUNTIF(D2:D{last},"Check")', "0"),
+        ("Check: formatted + check = rows", f'=IF(G3+G4=G2,"OK","CHECK")', "General"),
+    ]
+    for i, (label, f, fmt) in enumerate(res, start=2):
+        ws[f"F{i}"], ws[f"G{i}"] = label, f
+        ws[f"G{i}"].number_format = fmt
+        ws[f"G{i}"].fill = FORMULA_FILL
+        ws[f"G{i}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("G5", FormulaRule(formula=['G5="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Format Phone Numbers as (555) 123-4567",
+        "",
+        "1. Phones tab: paste or type the phone numbers in A (yellow). Rows 2 to 40 have formulas ready. Columns A to C are formatted as text so a leading zero is kept.",
+        "2. B2 strips the spaces, hyphens, parentheses, dots and plus signs with nested SUBSTITUTE: =SUBSTITUTE(SUBSTITUTE(...(A2,\" \",\"\"),\"-\",\"\"),...).",
+        "3. C2: =IF(AND(LEN(B2)=11,LEFT(B2,1)=\"1\"),MID(B2,2,10),B2) drops a leading 1 (the US country code) from an 11 digit number.",
+        "4. D2 rebuilds a 10 digit number as (555) 123-4567 with LEFT, MID and RIGHT. Anything else shows Check: too few or too many digits, letters, or an extension such as x12.",
+        "5. G2 to G4 count the rows with an entry, the formatted rows and the Check rows. G5 shows OK when formatted plus Check equals the rows with an entry.",
+        "6. Copy D and use Paste values only when you need the text without formulas, for example before importing contacts or printing labels.",
+        "7. This only fixes the format. It does not check that a number really exists or can be called. Extensions and numbers from other countries are left as Check.",
+        "",
+        "Phone numbers are fictional (555-01xx style). Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-format-phone-numbers.xlsx")
+
+
+def scale_recipe_batch():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Recipe"
+    for col, w in zip("ABCDE", [30, 14, 18, 14, 18]):
+        ws.column_dimensions[col].width = w
+    ws["A1"], ws["C1"] = "Base batch yield (jars)", 12
+    ws["A2"], ws["C2"] = "Target yield (jars)", 30
+    ws["A3"], ws["C3"] = "Scale factor", '=IF(AND(ISNUMBER(C1),C1>0),IF(ISNUMBER(C2),C2/C1,0),"")'
+    ws["A4"], ws["C4"] = "Check", ('=IF(C3="","Check base yield",IF(C3=0,"Check target yield",'
+                                  'IF(SUMPRODUCT((A6:A30<>"")*(1-ISNUMBER(B6:B30)))>0,"Check quantities","OK")))')
+    for a in ("C1", "C2"):
+        ws[a].fill = INPUT_FILL
+    for a in ("C3", "C4"):
+        ws[a].fill = FORMULA_FILL
+    ws["C3"].number_format = '0.00"x"'
+    for a in ("C1", "C2", "C3", "C4"):
+        ws[a].alignment = Alignment(horizontal="right")
+    for c in ("A1", "A2", "A3", "A4"):
+        ws[c].font = Font(bold=True)
+    names = ["Ingredient", "Base quantity", "Unit", "Scaled quantity", "Buy whole units"]
+    for col, n in zip("ABCDE", names):
+        c = ws[f"{col}5"]
+        c.value, c.fill, c.font = n, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+    items = [
+        ("Strawberries", 64, "oz"), ("Granulated sugar", 6, "cup"), ("Lemon juice", 0.25, "cup"),
+        ("Powdered pectin", 4, "tsp"), ("Lemons", 3, "each"), ("Vanilla extract", 1.5, "tsp"),
+        ("Salt", 0.25, "tsp"), ("Jar lids", 12, "each"),
+    ]
+    last = 30
+    for r in range(6, last + 1):
+        if r - 6 < len(items):
+            ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = items[r - 6]
+        ws[f"D{r}"] = f'=IF(OR(C$3="",NOT(ISNUMBER(B{r}))),"",ROUND(B{r}*$C$3,2))'
+        ws[f"E{r}"] = (f'=IF(D{r}="","",IF(C{r}="each",ROUNDUP(ROUND(B{r}*$C$3,6),0),ROUND(B{r}*$C$3,2)))')
+        ws[f"B{r}"].number_format = "0.##"
+        ws[f"D{r}"].number_format = "0.00"
+        ws[f"E{r}"].number_format = "0.00"
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "DE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    dv = DataValidation(type="list", formula1='"oz,cup,tsp,each"', allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add(f"C6:C{last}")
+    ws.conditional_formatting.add("C4", FormulaRule(formula=['C4<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A6"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Scale a Recipe or Batch Up or Down",
+        "",
+        "1. Recipe tab: type how many jars (or loaves, bars, candles) the recipe makes in C1 and how many you want in C2 (yellow).",
+        "2. C3: =C2/C1 is the scale factor, shown as a multiplier. 30 jars from a 12 jar recipe is 2.50x.",
+        "3. Type each ingredient, its base quantity and its unit in A to C. Write fractions as decimals: 1/3 cup is 0.33 and 1/4 cup is 0.25.",
+        "4. D6: =ROUND(B6*$C$3,2). The $ signs lock the factor to C3, so the formula can be copied down and still points at the same cell. B6 has no $ and moves to B7, B8 and so on.",
+        "5. E6 is for things you cannot buy in parts. When the unit is each, it rounds up to a whole number with ROUNDUP (3 lemons times 2.5 is 7.5, so 8). Other units are rounded to 2 decimals like D.",
+        "6. If C2 is blank or 0 the factor is 0 and every quantity becomes 0: C4 says Check target yield. If C1 is 0 or blank, C3 stays empty and C4 says Check base yield. A quantity typed as text is left out and C4 says Check quantities.",
+        "7. Rows 6 to 30 have formulas ready; copy the formula cells down for more.",
+        "",
+        "The jam recipe and quantities are fictional. Cooking times, baking chemistry, set points and food safety can change at larger sizes, and this sheet does not cover them. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Recipe"].print_title_rows = "5:5"
+    wb.save(OUT / "tidy-tabs-scale-recipe-batch.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -4142,4 +4500,9 @@ if __name__ == "__main__":
     forecast_next_month()
     client_tenure()
     incomplete_rows()
+    overlapping_bookings()
+    cash_drawer_count()
+    nth_weekday_of_month()
+    format_phone_numbers()
+    scale_recipe_batch()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

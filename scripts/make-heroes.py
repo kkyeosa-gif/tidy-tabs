@@ -264,7 +264,35 @@ def heroes_2026_10_16():
          render(t + "tidy-tabs-incomplete-rows.xlsx", "Customers", name="incomplete"))
 
 
+def short_sheet_copy(src, sheet, last_row, name):
+    """Temp copy of a template tab with the empty rows below the data hidden (keeps the hero 16:9 readable)."""
+    wb = load_workbook(src)
+    ws = wb[sheet]
+    for r in range(last_row + 1, ws.max_row + 1):
+        ws.row_dimensions[r].hidden = True
+    path = f"{rp.TMP}/{name}-short.xlsx"
+    wb.save(path)
+    return path
+
+
+def heroes_2026_10_17():
+    t = "templates/"
+    d = "images/2026-10-17-team-0%d-%s/"
+    save(d % (1, "find-overlapping-bookings-date-ranges-countifs-excel-google-sheets") + "overlapping-bookings-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-overlapping-bookings.xlsx", "Bookings", 14, "bookings"), "Bookings", name="bookings"))
+    save(d % (2, "cash-drawer-count-over-short-farmers-market-excel-google-sheets") + "cash-drawer-count-template.png",
+         render(t + "tidy-tabs-cash-drawer-count.xlsx", "Count", name="cashdrawer"))
+    save(d % (3, "date-of-nth-weekday-in-month-second-saturday-excel-google-sheets") + "nth-weekday-of-month-template.png",
+         render(t + "tidy-tabs-nth-weekday-of-month.xlsx", "Dates", name="nthweekday"),
+         render(t + "tidy-tabs-nth-weekday-of-month.xlsx", "Schedule", name="nthschedule"))
+    save(d % (4, "format-phone-numbers-substitute-left-mid-right-excel-google-sheets") + "format-phone-numbers-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-format-phone-numbers.xlsx", "Phones", 14, "phones"), "Phones", name="phones"))
+    save(d % (5, "scale-recipe-batch-quantities-absolute-references-excel-google-sheets") + "scale-recipe-batch-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-scale-recipe-batch.xlsx", "Recipe", 14, "recipe"), "Recipe", name="recipe"))
+
+
 def main():
+    heroes_2026_10_17()
     heroes_2026_10_16()
     heroes_2026_10_15()
     heroes_2026_10_14()

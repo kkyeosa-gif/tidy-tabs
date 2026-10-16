@@ -86,3 +86,10 @@
 - How to Forecast Next Month's Sales With FORECAST in Excel and Google Sheets - `forecast-next-month-sales-forecast-linear-excel-google-sheets`
 - How to Calculate How Long a Client Has Been With You in Years and Months in Excel and Google Sheets - `client-tenure-years-months-datedif-excel-google-sheets`
 - How to Find Rows With Missing Information in a Customer List in Excel and Google Sheets - `find-incomplete-customer-rows-countblank-excel-google-sheets`
+
+## 2026-10-17 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 토픽 1/3/4 수식은 LibreOffice Calc 24.2 에서 확인, 2/5 는 템플릿 빌드 때 확인)
+- How to Find Overlapping Dates and Double Bookings in Excel and Google Sheets - `find-overlapping-bookings-date-ranges-countifs-excel-google-sheets`
+- How to Count a Cash Drawer and Find Over or Short in Excel and Google Sheets - `cash-drawer-count-over-short-farmers-market-excel-google-sheets`
+- How to Find the Date of the 2nd Saturday (or Any Nth Weekday) of a Month in Excel and Google Sheets - `date-of-nth-weekday-in-month-second-saturday-excel-google-sheets`
+- How to Format Phone Numbers as (555) 123-4567 in Excel and Google Sheets - `format-phone-numbers-substitute-left-mid-right-excel-google-sheets`
+- How to Scale a Recipe or Batch Formula Up or Down in Excel and Google Sheets - `scale-recipe-batch-quantities-absolute-references-excel-google-sheets`

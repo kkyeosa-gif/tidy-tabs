@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DekWNdxD9R9
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-check-free-shipping-threshold.html
 title: How to Check a Free Shipping Threshold and Show the Amount to Add in Excel and Google Sheets
 labels: excel-formulas, small-business, ecommerce
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against a Python Decimal comparison, including a subtotal exactly at the threshold, a different threshold, a subtotal typed as text, a blank subtotal, a blank delivery cell and a pickup order above the threshold. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

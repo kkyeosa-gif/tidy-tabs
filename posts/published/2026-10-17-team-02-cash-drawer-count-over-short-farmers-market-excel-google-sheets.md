@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dem7AUcDyhK
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-count-cash-drawer-and-find-over.html
 title: How to Count a Cash Drawer and Find Over or Short in Excel and Google Sheets
 labels: excel-formulas, small-business, farmers-market
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and checked against Python Decimal arithmetic: the sample drawer, three more fictional drawers (balanced, one cent short, one cent over), blank counts, a float of $0.00, and counts typed as text, negative or fractional. The one cent over case was also run without ROUND. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

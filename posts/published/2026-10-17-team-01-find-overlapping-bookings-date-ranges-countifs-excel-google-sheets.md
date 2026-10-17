@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Demma6ymrRw
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-overlapping-dates-and.html
 title: How to Find Overlapping Dates and Double Bookings in Excel and Google Sheets
 labels: excel-formulas, small-business, scheduling
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against a Python pairwise overlap test, including a same-day handoff, a booking inside another, identical dates, three overlapping bookings, an end date before the start, a blank row in the table and a start date typed as text. Excel and Google Sheets were not opened; the help link is from Microsoft Support.

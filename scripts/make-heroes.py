@@ -10,6 +10,7 @@ Needs libreoffice-calc, openpyxl, pymupdf, pillow.
 """
 import io
 import os
+import sys
 
 import pymupdf
 from openpyxl import load_workbook
@@ -291,7 +292,27 @@ def heroes_2026_10_17():
          render(short_sheet_copy(t + "tidy-tabs-scale-recipe-batch.xlsx", "Recipe", 14, "recipe"), "Recipe", name="recipe"))
 
 
+def heroes_2026_10_18():
+    t = "templates/"
+    d = "images/2026-10-18-team-0%d-%s/"
+    save(d % (1, "lookup-with-two-criteria-index-match-sumifs-excel-google-sheets") + "lookup-two-criteria-price-lookup-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-lookup-two-criteria.xlsx", "Prices", 11, "twocritprices"), "Prices", hide_cols="E", name="twocritprices"),
+         render(t + "tidy-tabs-lookup-two-criteria.xlsx", "Lookup", name="twocritlookup"))
+    save(d % (2, "stock-on-hand-from-in-out-log-sumifs-excel-google-sheets") + "stock-on-hand-log-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-stock-on-hand-log.xlsx", "Stock", 10, "stockonhand"), "Stock", name="stockonhand"))
+    save(d % (3, "extract-domain-from-email-address-left-mid-find-excel-google-sheets") + "email-domain-split-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-email-domain-split.xlsx", "Emails", 16, "emaildomain"), "Emails", name="emaildomain"))
+    save(d % (4, "on-time-shipping-rate-promised-vs-shipped-date-excel-google-sheets") + "on-time-shipping-rate-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-on-time-shipping-rate.xlsx", "Orders", 16, "ontimeorders"), "Orders", name="ontimeorders"),
+         render(t + "tidy-tabs-on-time-shipping-rate.xlsx", "Summary", name="ontimesummary"))
+    save(d % (5, "price-per-square-foot-with-minimum-charge-excel-google-sheets") + "price-per-square-foot-quote-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-price-per-square-foot.xlsx", "Quote", 14, "sqftquote"), "Quote", name="sqftquote"))
+
+
 def main():
+    heroes_2026_10_18()
+    if "--new" in sys.argv:
+        return
     heroes_2026_10_17()
     heroes_2026_10_16()
     heroes_2026_10_15()

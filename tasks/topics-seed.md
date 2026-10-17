@@ -93,3 +93,10 @@
 - How to Find the Date of the 2nd Saturday (or Any Nth Weekday) of a Month in Excel and Google Sheets - `date-of-nth-weekday-in-month-second-saturday-excel-google-sheets`
 - How to Format Phone Numbers as (555) 123-4567 in Excel and Google Sheets - `format-phone-numbers-substitute-left-mid-right-excel-google-sheets`
 - How to Scale a Recipe or Batch Formula Up or Down in Excel and Google Sheets - `scale-recipe-batch-quantities-absolute-references-excel-google-sheets`
+
+## 2026-10-18 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice Calc 24.2 에서 확인)
+- How to Look Up a Value With Two Criteria in Excel and Google Sheets - `lookup-with-two-criteria-index-match-sumifs-excel-google-sheets`
+- How to Track Stock on Hand From a Log of Items In and Out in Excel and Google Sheets - `stock-on-hand-from-in-out-log-sumifs-excel-google-sheets`
+- How to Get the Domain or Username From an Email Address in Excel and Google Sheets - `extract-domain-from-email-address-left-mid-find-excel-google-sheets`
+- How to Calculate Your On-Time Shipping Rate in Excel and Google Sheets - `on-time-shipping-rate-promised-vs-shipped-date-excel-google-sheets`
+- How to Price a Custom Job by Square Foot With a Minimum Charge in Excel and Google Sheets - `price-per-square-foot-with-minimum-charge-excel-google-sheets`

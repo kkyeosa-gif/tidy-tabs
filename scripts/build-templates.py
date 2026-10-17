@@ -4433,6 +4433,457 @@ def scale_recipe_batch():
     wb.save(OUT / "tidy-tabs-scale-recipe-batch.xlsx")
 
 
+def lookup_two_criteria():
+    wb = Workbook()
+    pr = wb.active
+    pr.title = "Prices"
+    header(pr, ["Size", "Finish", "Price", "Key (Size|Finish)", "Row check"], [12, 12, 11, 20, 20])
+    rows = [
+        ("Small", "Matte", 12.00), ("Small", "Gloss", 14.00), ("Small", "Canvas", 32.00),
+        ("Medium", "Matte", 18.00), ("Medium", "Gloss", 21.00), ("Medium", "Canvas", 45.00),
+        ("Large", "Matte", 26.00), ("Large", "Gloss", 30.00), ("Large", "Canvas", 64.00),
+    ]
+    last = 30
+    for r in range(2, last + 1):
+        if r - 2 < len(rows):
+            pr[f"A{r}"], pr[f"B{r}"], pr[f"C{r}"] = rows[r - 2]
+        pr[f"D{r}"] = f'=IF(A{r}="","",A{r}&"|"&B{r})'
+        pr[f"E{r}"] = (f'=IF(A{r}="","",IF(NOT(ISNUMBER(C{r})),"Price not a number",'
+                       f'IF(COUNTIFS($A$2:$A${last},A{r},$B$2:$B${last},B{r})>1,"Duplicate","OK")))')
+        pr[f"C{r}"].number_format = USD
+        for col in "ABC":
+            pr[f"{col}{r}"].fill = INPUT_FILL
+        for col in "DE":
+            pr[f"{col}{r}"].fill = FORMULA_FILL
+    pr.conditional_formatting.add(f"E2:E{last}", FormulaRule(formula=['AND(E2<>"",E2<>"OK")'], fill=ALERT_FILL))
+
+    lk = wb.create_sheet("Lookup", 1)
+    lk.column_dimensions["A"].width = 46
+    lk.column_dimensions["B"].width = 20
+    p = f"Prices!$C$2:$C${last}"
+    a = f"Prices!$A$2:$A${last}"
+    b = f"Prices!$B$2:$B${last}"
+    k = f"Prices!$D$2:$D${last}"
+    blank = 'OR($B$1="",$B$2="")'
+    cells = [
+        ("A1", "Size", "B1", "Large"),
+        ("A2", "Finish", "B2", "Gloss"),
+        ("A4", "Price: INDEX/MATCH on the Key column", "B4",
+         f'=IF({blank},"",IFERROR(INDEX({p},MATCH(B1&"|"&B2,{k},0)),"Not on price list"))'),
+        ("A5", "Price: SUMIFS (numbers only, 0 if no match)", "B5",
+         f'=IF({blank},"",SUMIFS({p},{a},B1,{b},B2))'),
+        ("A6", "Price: INDEX/MATCH without a helper column", "B6",
+         f'=IF({blank},"",IFERROR(INDEX({p},MATCH(B1&"|"&B2,INDEX({a}&"|"&{b},0),0)),"Not on price list"))'),
+        ("A7", "Rows on the price list with this size and finish", "B7",
+         f'=IF({blank},"",COUNTIFS({a},B1,{b},B2))'),
+        ("A8", "Check: the three prices agree", "B8",
+         f'=IF({blank},"Pick a size and finish",IF(B7=0,"Not on price list",IF(B7>1,"Duplicate rows",'
+         'IF(AND(B4=B5,B6=B5),"OK","CHECK"))))'),
+    ]
+    for la, label, va, val in cells:
+        lk[la], lk[va] = label, val
+        lk[la].font = Font(bold=True)
+        lk[va].alignment = Alignment(horizontal="right")
+        lk[va].fill = INPUT_FILL if va in ("B1", "B2") else FORMULA_FILL
+    for va in ("B4", "B5", "B6"):
+        lk[va].number_format = USD
+    for va, lst in (("B1", '"Small,Medium,Large"'), ("B2", '"Matte,Gloss,Canvas"')):
+        dv = DataValidation(type="list", formula1=lst, allow_blank=True)
+        lk.add_data_validation(dv)
+        dv.add(va)
+    lk.conditional_formatting.add("B8", FormulaRule(formula=['B8<>"OK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Look Up a Price With Two Criteria (Size and Finish)",
+        "",
+        "1. Prices tab: one row per size and finish with its price in A to C (yellow). Rows 2 to 30 have formulas ready.",
+        "2. Prices!D2 builds a Key that joins the two criteria: =A2&\"|\"&B2 gives Large|Gloss. The | keeps pairs such as \"Large\" + \"Gloss\" apart from other text that would run together.",
+        "3. Lookup tab: pick a size in B1 and a finish in B2 (yellow dropdowns).",
+        "4. B4: =INDEX(Prices!C2:C30,MATCH(B1&\"|\"&B2,Prices!D2:D30,0)) finds the Key and returns the price on that row.",
+        "5. B5: =SUMIFS(Prices!C2:C30,Prices!A2:A30,B1,Prices!B2:B30,B2) adds the prices of every row that matches both. It works only for numbers and shows 0 when nothing matches.",
+        "6. B6 does the same as B4 without the Key column: INDEX(Prices!A2:A30&\"|\"&Prices!B2:B30,0) joins the two columns inside the formula, so no Ctrl+Shift+Enter is needed.",
+        "7. B7 counts how many rows match both criteria. B8 shows OK when the three prices agree. It shows Not on price list when no row matches, Duplicate rows when the same pair is listed twice (SUMIFS adds both, MATCH takes the first), and CHECK when a price is typed as text.",
+        "8. Matching ignores upper and lower case (large finds Large), but an extra space does not match: \"Large \" with a trailing space shows Not on price list.",
+        "9. Lookup only. The prices are fictional and are not pricing advice.",
+        "",
+        "Sample shop and prices are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-lookup-two-criteria.xlsx")
+
+
+def stock_on_hand_log():
+    wb = Workbook()
+    log = wb.active
+    log.title = "Log"
+    header(log, ["Date", "SKU", "Type", "Qty", "Note", "Row check"], [12, 12, 13, 8, 30, 11])
+    entries = [
+        ((9, 1), "SOAP-OAT", "Received", 48, "Cured batch"),
+        ((9, 1), "SOAP-LAV", "Received", 36, "Cured batch"),
+        ((9, 2), "CNDL-CED", "Received", 24, "Poured batch"),
+        ((9, 2), "CNDL-VAN", "Received", 24, "Poured batch"),
+        ((9, 3), "BALM-LIP", "Received", 60, "Filled tubes"),
+        ((9, 5), "SOAP-OAT", "Sold", 14, "Saturday farmers market"),
+        ((9, 5), "CNDL-CED", "Sold", 6, "Saturday farmers market"),
+        ((9, 5), "BALM-LIP", "Sold", 18, "Saturday farmers market"),
+        ((9, 8), "SOAP-LAV", "Sold", 9, "Etsy orders"),
+        ((9, 10), "CNDL-VAN", "Sold", 7, "Etsy orders"),
+        ((9, 12), "SOAP-OAT", "Sold", 11, "Saturday farmers market"),
+        ((9, 12), "SOAP-LAV", "Sold", 8, "Saturday farmers market"),
+        ((9, 12), "BALM-LIP", "Sold", 15, "Saturday farmers market"),
+        ((9, 14), "CNDL-CED", "Adjustment", -1, "Cracked jar"),
+        ((9, 15), "SOAP-OAT", "Received", 24, "Cured batch"),
+        ((9, 17), "CNDL-VAN", "Sold", 9, "Wholesale order, gift shop"),
+        ((9, 19), "SOAP-OAT", "Sold", 16, "Saturday farmers market"),
+        ((9, 19), "CNDL-CED", "Sold", 8, "Saturday farmers market"),
+        ((9, 19), "BALM-LIP", "Sold", 12, "Saturday farmers market"),
+        ((9, 22), "SOAP-LAV", "Adjustment", -2, "Recount"),
+        ((9, 24), "CNDL-CED", "Received", 12, "Poured batch"),
+        ((9, 26), "SOAP-OAT", "Sold", 13, "Saturday farmers market"),
+        ((9, 26), "SOAP-LAV", "Sold", 10, "Saturday farmers market"),
+        ((9, 26), "CNDL-VAN", "Sold", 5, "Saturday farmers market"),
+        ((9, 29), "BALM-LIP", "Adjustment", 3, "Recount found a box"),
+        ((10, 1), "BALM-LIP", "Sold", 9, "Etsy orders"),
+        ((10, 3), "SOAP-OAT", "Sold", 12, "Saturday farmers market"),
+        ((10, 3), "CNDL-CED", "Sold", 10, "Saturday farmers market"),
+        ((10, 3), "SOAP-LAV", "Sold", 4, "Saturday farmers market"),
+        ((10, 5), "CNDL-VAN", "Received", 12, "Poured batch"),
+    ]
+    llast = 500
+    slast = 20
+    for r in range(2, llast + 1):
+        if r - 2 < len(entries):
+            (m, d), sku, typ, qty, note = entries[r - 2]
+            log.append([date(2026, m, d), sku, typ, qty, note])
+        log[f"F{r}"] = (f'=IF(AND(A{r}="",B{r}="",C{r}="",D{r}=""),"",'
+                        f'IF(OR(B{r}="",NOT(ISNUMBER(D{r})),COUNTIF(Stock!$A$2:$A${slast},B{r})=0,'
+                        f'AND(C{r}<>"Received",C{r}<>"Sold",C{r}<>"Adjustment")),"Check","OK"))')
+        log[f"A{r}"].number_format = US_DATE
+        if r <= 60:
+            for col in "ABCDE":
+                log[f"{col}{r}"].fill = INPUT_FILL
+            log[f"F{r}"].fill = FORMULA_FILL
+    types = DataValidation(type="list", formula1='"Received,Sold,Adjustment"', allow_blank=True)
+    log.add_data_validation(types)
+    types.add(f"C2:C{llast}")
+    skus = DataValidation(type="list", formula1=f"=Stock!$A$2:$A${slast}", allow_blank=True)
+    log.add_data_validation(skus)
+    skus.add(f"B2:B{llast}")
+    log.conditional_formatting.add(f"F2:F{llast}", FormulaRule(formula=['F2="Check"'], fill=ALERT_FILL))
+
+    st = wb.create_sheet("Stock", 1)
+    header(st, ["SKU", "Received", "Sold", "Adjustments", "On hand", "Minimum", "Status"],
+           [12, 10, 9, 12, 10, 10, 10])
+    items = [("SOAP-OAT", 10), ("SOAP-LAV", 10), ("CNDL-CED", 6), ("CNDL-VAN", 6), ("BALM-LIP", 8)]
+    lb, lc, ld = (f"Log!${c}$2:${c}${llast}" for c in "BCD")
+    for r in range(2, slast + 1):
+        if r - 2 < len(items):
+            st[f"A{r}"], st[f"F{r}"] = items[r - 2]
+        st[f"B{r}"] = f'=IF(A{r}="","",SUMIFS({ld},{lb},A{r},{lc},"Received"))'
+        st[f"C{r}"] = f'=IF(A{r}="","",SUMIFS({ld},{lb},A{r},{lc},"Sold"))'
+        st[f"D{r}"] = f'=IF(A{r}="","",SUMIFS({ld},{lb},A{r},{lc},"Adjustment"))'
+        st[f"E{r}"] = f'=IF(A{r}="","",B{r}-C{r}+D{r})'
+        st[f"G{r}"] = (f'=IF(A{r}="","",IF(E{r}<0,"Check",IF(NOT(ISNUMBER(F{r})),"OK",'
+                       f'IF(E{r}<=F{r},"Reorder","OK"))))')
+        for col in "AF":
+            st[f"{col}{r}"].fill = INPUT_FILL
+        for col in "BCDEG":
+            st[f"{col}{r}"].fill = FORMULA_FILL
+    st.conditional_formatting.add(f"G2:G{slast}", FormulaRule(formula=['G2="Reorder"'], fill=ALERT_FILL))
+    st.conditional_formatting.add(f"G2:G{slast}", FormulaRule(formula=['G2="Check"'], fill=ALERT_FILL))
+    st.column_dimensions["H"].width = 4
+    st.column_dimensions["I"].width = 40
+    st.column_dimensions["J"].width = 11
+    st["I1"] = "Totals and check"
+    st["I1"].font = Font(bold=True)
+    res = [
+        ("Received in the whole log", f'=SUMIFS({ld},{lc},"Received")'),
+        ("Sold in the whole log", f'=SUMIFS({ld},{lc},"Sold")'),
+        ("Adjustments in the whole log", f'=SUMIFS({ld},{lc},"Adjustment")'),
+        ("Log total (received - sold + adjustments)", "=J2-J3+J4"),
+        ("On hand, all SKUs on this tab", f"=SUM(E2:E{slast})"),
+        ("Log rows to check", f'=COUNTIF(Log!$F$2:$F${llast},"Check")'),
+        ("SKUs to reorder", f'=COUNTIF(G2:G{slast},"Reorder")'),
+        ("Check: on hand = log total, nothing to check",
+         f'=IF(AND(J6=J5,J7=0,COUNTIF(G2:G{slast},"Check")=0),"OK","CHECK")'),
+    ]
+    for i, (label, f) in enumerate(res, start=2):
+        st[f"I{i}"], st[f"J{i}"] = label, f
+        st[f"J{i}"].fill = FORMULA_FILL
+        st[f"J{i}"].alignment = Alignment(horizontal="right")
+    st.conditional_formatting.add("J9", FormulaRule(formula=['J9="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Stock on Hand From a Log of Items In and Out",
+        "",
+        "1. Stock tab: list each SKU once in A and the count you want to reorder at in F (yellow). Rows 2 to 20 have formulas ready.",
+        "2. Log tab: add one row every time stock moves. Date, SKU (dropdown from the Stock tab), Type (Received, Sold or Adjustment), Qty and a note.",
+        "3. Type Received and Sold as positive numbers. Type an Adjustment with its sign: -2 for two broken bars, 3 for three found in a recount.",
+        "4. Stock!B2: =SUMIFS(Log!D2:D500,Log!B2:B500,A2,Log!C2:C500,\"Received\") adds every Received row for that SKU. C2 and D2 do the same for Sold and Adjustment.",
+        "5. On hand E2: =B2-C2+D2. Status G2 shows Reorder when On hand is at or below the Minimum and Check when On hand is below zero (more sold than received).",
+        "6. Log!F shows Check for a row with a blank SKU, a SKU that is not on the Stock tab (watch for a trailing space), a Type outside the list or a Qty typed as text. Those rows are left out of the Stock tab.",
+        "7. Stock!J9 shows OK when the on hand total equals received minus sold plus adjustments for the whole log, no log row needs checking and no SKU is below zero.",
+        "8. SKU matching ignores upper and lower case (soap-oat counts as SOAP-OAT). The Date column is not used in the totals; it keeps the history.",
+        "9. Counts only. This sheet does not value inventory or work out cost of goods sold.",
+        "10. The print area covers the first 40 log rows. Change the print area to print a longer log.",
+        "",
+        "Shop, SKUs and quantities are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Log"].print_area = "A1:F41"
+    wb["Stock"].print_area = f"A1:J{slast + 1}"
+    wb.save(OUT / "tidy-tabs-stock-on-hand-log.xlsx")
+
+
+def email_domain_split():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Emails"
+    header(ws, ["Email as typed", "Username", "Domain", "Domain (lower case)", "Shape"], [30, 18, 22, 22, 9])
+    emails = [
+        "Jane.Doe@Example.com", "sam@shop.example.org", "rosa.m+orders@example.net", "lee_k@example.com",
+        "BILL.R@EXAMPLE.ORG", "maria@@example.com", "tomexample.com", "ann lee@example.net",
+        "kim@example", "pat@example.com ", "dev.team@mail.example.com", "hello@example.org",
+        None, "orders@example.net", "chris.p@example.com",
+    ]
+    last = 200
+    for r in range(2, last + 1):
+        e = emails[r - 2] if r - 2 < len(emails) else None
+        ws.append([e])
+        ws[f"B{r}"] = f'=IF(A{r}="","",IFERROR(LEFT(A{r},FIND("@",A{r})-1),""))'
+        ws[f"C{r}"] = f'=IF(A{r}="","",IFERROR(MID(A{r},FIND("@",A{r})+1,LEN(A{r})),""))'
+        ws[f"D{r}"] = f'=IF(C{r}="","",LOWER(C{r}))'
+        ws[f"E{r}"] = (f'=IF(A{r}="","",IF(AND(LEN(A{r})-LEN(SUBSTITUTE(A{r},"@",""))=1,LEFT(A{r},1)<>"@",'
+                       f'ISNUMBER(FIND(".",A{r},FIND("@",A{r})+2)),RIGHT(A{r},1)<>".",'
+                       f'ISERROR(FIND(" ",A{r}))),"OK","Check"))')
+        ws[f"A{r}"].number_format = "@"
+        if r <= 60:
+            ws[f"A{r}"].fill = INPUT_FILL
+            for col in "BCDE":
+                ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.conditional_formatting.add(f"E2:E{last}", FormulaRule(formula=['E2="Check"'], fill=ALERT_FILL))
+
+    sm = wb.create_sheet("Summary", 1)
+    header(sm, ["Domain", "OK rows"], [26, 10])
+    doms = ["example.com", "example.org", "example.net"]
+    d = f"Emails!$D$2:$D${last}"
+    e = f"Emails!$E$2:$E${last}"
+    for r in range(2, 8):
+        if r - 2 < len(doms):
+            sm[f"A{r}"] = doms[r - 2]
+        sm[f"B{r}"] = f'=IF(A{r}="","",COUNTIFS({d},TRIM(A{r}),{e},"OK"))'
+        sm[f"A{r}"].fill = INPUT_FILL
+        sm[f"B{r}"].fill = FORMULA_FILL
+    sm["A8"], sm["B8"] = "Other domains", "=B11-SUM(B2:B7)"
+    sm["A10"], sm["B10"] = "Rows with an entry", f"=COUNTA(Emails!A2:A{last})"
+    sm["A11"], sm["B11"] = "OK rows", f'=COUNTIF({e},"OK")'
+    sm["A12"], sm["B12"] = "Rows to check", f'=COUNTIF({e},"Check")'
+    sm["A13"], sm["B13"] = "Check: OK + Check = rows", '=IF(B11+B12=B10,"OK","CHECK")'
+    for a in ("A8", "A10", "A11", "A12", "A13"):
+        sm[a].font = Font(bold=True)
+    for a in ("B8", "B10", "B11", "B12", "B13"):
+        sm[a].fill = FORMULA_FILL
+        sm[a].alignment = Alignment(horizontal="right")
+    sm.conditional_formatting.add("B13", FormulaRule(formula=['B13="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Split an Email Address Into Username and Domain",
+        "",
+        "1. Emails tab: paste the addresses in A (yellow). Rows 2 to 200 have formulas ready.",
+        "2. Username B2: =IFERROR(LEFT(A2,FIND(\"@\",A2)-1),\"\") keeps everything before the @.",
+        "3. Domain C2: =IFERROR(MID(A2,FIND(\"@\",A2)+1,LEN(A2)),\"\") keeps everything after the @. D2 is the same domain in lower case with LOWER, so Example.com and example.com count together.",
+        "4. Shape E2 shows OK when the address has exactly one @, something before it, a dot at least one character after it, no dot at the very end and no spaces. Anything else shows Check.",
+        "5. A trailing space after the address shows Check. Remove it with TRIM or retype the cell. A plus sign in the username (name+orders@...) stays OK.",
+        "6. Summary tab: type the domains you want to count in A2 to A7 (yellow). B counts the OK rows with that domain. Other domains is every other OK row.",
+        "7. Summary!B13 shows OK when OK rows plus Check rows equal the rows with an entry.",
+        "8. This checks the shape of the text only. It does not tell you whether a mailbox exists or whether a person agreed to get email from you.",
+        "9. Count each domain once on the Summary tab; a domain typed twice is counted twice and Other domains goes below zero. The print area covers the first 40 rows of the Emails tab.",
+        "",
+        "All addresses are fictional and use example.com, example.org and example.net. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Emails"].print_area = "A1:E41"
+    wb.save(OUT / "tidy-tabs-email-domain-split.xlsx")
+
+
+def on_time_shipping_rate():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order ID", "Order date", "Ship-by date", "Shipped date", "Days late", "Status"],
+           [11, 12, 13, 13, 10, 13])
+    # Shipped date relative to the ship-by date (negative = early); None = not shipped yet.
+    offsets = [-2, -1, 0, 0, 1, -1, -3, 0, 2, -1, 0, -2, -1, 4, 0,
+               -1, -2, 0, 1, -1, 0, -3, -1, 0, 3, -2, -1, 0, None, None]
+    last = 200
+    for r in range(2, last + 1):
+        i = r - 2
+        if i < len(offsets):
+            od = date(2026, 9, 1 + i)
+            sb = date.fromordinal(od.toordinal() + 3)
+            sh = None if offsets[i] is None else date.fromordinal(sb.toordinal() + offsets[i])
+            ws.append([f"#{2401 + i}", od, sb, sh])
+        ws[f"F{r}"] = (f'=IF(A{r}="","",IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r}))),"Check",'
+                       f'IF(D{r}="","Not shipped",IF(NOT(ISNUMBER(D{r})),"Check",'
+                       f'IF(OR(D{r}<B{r},C{r}<B{r}),"Check",IF(D{r}<=C{r},"On time","Late"))))))')
+        ws[f"E{r}"] = f'=IF(F{r}="Late",D{r}-C{r},IF(F{r}="On time",0,""))'
+        for col in "BCD":
+            ws[f"{col}{r}"].number_format = US_DATE
+        ws[f"E{r}"].number_format = "0"
+        if r <= 60:
+            for col in "ABCD":
+                ws[f"{col}{r}"].fill = INPUT_FILL
+            for col in "EF":
+                ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.conditional_formatting.add(f"A2:F{last}", FormulaRule(formula=['$F2="Late"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add(f"F2:F{last}", FormulaRule(formula=['$F2="Check"'], fill=ALERT_FILL))
+
+    sm = wb.create_sheet("Summary", 1)
+    sm.column_dimensions["A"].width = 46
+    sm.column_dimensions["B"].width = 12
+    s = f"Orders!$F$2:$F${last}"
+    res = [
+        ("Orders listed", f"=COUNTA(Orders!A2:A{last})", "0"),
+        ("Orders with a shipped date", f"=COUNT(Orders!D2:D{last})", "0"),
+        ("Shipped on time (on or before ship-by)", f'=COUNTIF({s},"On time")', "0"),
+        ("Shipped late", f'=COUNTIF({s},"Late")', "0"),
+        ("Not shipped yet (left out of the rate)", f'=COUNTIF({s},"Not shipped")', "0"),
+        ("Rows to check", f'=COUNTIF({s},"Check")', "0"),
+        ("On-time shipping rate", '=IF(B4+B5=0,"",B4/(B4+B5))', "0.0%"),
+        ("Average days late (late orders only)", f'=IFERROR(AVERAGEIF(Orders!E2:E{last},">0"),0)', "0.0"),
+        ("Most days late", f"=MAX(Orders!E2:E{last})", "0"),
+        ("Check: on time + late = shipped, no rows to check", '=IF(AND(B4+B5=B3,B7=0),"OK","CHECK")', "General"),
+    ]
+    for i, (label, f, fmt) in enumerate(res, start=2):
+        sm[f"A{i}"], sm[f"B{i}"] = label, f
+        sm[f"A{i}"].font = Font(bold=True)
+        sm[f"B{i}"].number_format = fmt
+        sm[f"B{i}"].fill = FORMULA_FILL
+        sm[f"B{i}"].alignment = Alignment(horizontal="right")
+    sm["A1"] = "Shipping summary"
+    sm["A1"].font = Font(bold=True, size=13)
+    sm.conditional_formatting.add("B11", FormulaRule(formula=['B11="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: On-Time Shipping Rate From Ship-By and Shipped Dates",
+        "",
+        "1. Orders tab: paste or type Order ID, Order date, Ship-by date and Shipped date in A to D (yellow). Rows 2 to 200 have formulas ready. Leave Shipped date blank for orders not shipped yet.",
+        "2. Status F2 compares the dates: On time when Shipped date is on or before Ship-by date, Late when it is after, Not shipped when it is blank.",
+        "3. F2 shows Check when a date is typed as text, or when the shipped or ship-by date is before the order date. Check rows stay out of the counts.",
+        "4. Days late E2 is Shipped date minus Ship-by date for late orders and 0 for on-time orders. Late rows are colored.",
+        "5. Summary tab: B8 is the on-time rate, on time divided by (on time + late). Orders not shipped yet are left out. With no shipped orders the rate stays blank instead of #DIV/0!.",
+        "6. B9 is the average days late among late orders (0 when none are late) and B10 is the longest delay.",
+        "7. B11 shows OK when on time plus late equals the orders with a shipped date and no row needs checking.",
+        "8. Dates must be real dates. A date typed as text (usually left-aligned) shows Check. Times of day are not used.",
+        "9. Marketplaces set and measure their own shipping targets. Use their seller help pages for the official numbers; this sheet only compares your own dates.",
+        "10. The print area covers the first 40 orders. Change the print area to print more.",
+        "",
+        "Orders and dates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_area = "A1:F41"
+    wb.save(OUT / "tidy-tabs-on-time-shipping-rate.xlsx")
+
+
+def price_per_square_foot():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Quote"
+    for col, w in zip("ABCDEFGHIJK", [30, 12, 12, 8, 13, 12, 11, 18, 4, 30, 12]):
+        ws.column_dimensions[col].width = w
+    settings = [
+        ("A1", "Rate per sq ft", "B1", 2.50, USD),
+        ("A2", "Minimum charge per line", "B2", 25.00, USD),
+        ("A3", "Setup fee (once per quote)", "B3", 15.00, USD),
+        ("A4", "Settings OK?", "B4",
+         '=IF(AND(ISNUMBER(B1),ISNUMBER(B2),ISNUMBER(B3)),IF(AND(B1>0,B2>=0,B3>=0),"OK","Check settings"),"Check settings")',
+         "General"),
+    ]
+    for la, label, va, val, fmt in settings:
+        ws[la], ws[va] = label, val
+        ws[la].font = Font(bold=True)
+        ws[va].number_format = fmt
+        ws[va].alignment = Alignment(horizontal="right")
+        ws[va].fill = FORMULA_FILL if va == "B4" else INPUT_FILL
+    names = ["Job", "Width (in)", "Height (in)", "Qty", "Area per piece (sq ft)", "Line price",
+             "Minimum applied", "Size check"]
+    for col, n in zip("ABCDEFGH", names):
+        c = ws[f"{col}5"]
+        c.value, c.fill, c.font = n, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+    ws.row_dimensions[5].height = 30
+    jobs = [
+        ("Vinyl banner", 36, 72, 1), ("Yard signs", 18, 24, 10), ("Window decals", 12, 12, 2),
+        ("Poster", 24, 36, 1), ("Canvas prints", 30, 40, 2), ("Table banner", 24, 60, 1),
+        ("Door signs", 11, 17, 3), ("Feather flags", 30, 96, 2),
+    ]
+    first, last = 6, 25
+    for r in range(first, last + 1):
+        if r - first < len(jobs):
+            ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"] = jobs[r - first]
+        ws[f"H{r}"] = (f'=IF(A{r}&B{r}&C{r}&D{r}="","",IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r})),'
+                       f'NOT(ISNUMBER(D{r}))),"Check",IF(OR(B{r}<=0,C{r}<=0,D{r}<=0,D{r}<>INT(D{r})),"Check",'
+                       f'IF(B{r}*C{r}<36,"Under 36 sq in: feet?","OK"))))')
+        ws[f"E{r}"] = f'=IF(OR(H{r}="",H{r}="Check"),"",ROUND(B{r}*C{r}/144,2))'
+        ws[f"F{r}"] = f'=IF(OR(E{r}="",$B$4<>"OK"),"",MAX($B$2,ROUND(E{r}*D{r}*$B$1,2)))'
+        ws[f"G{r}"] = f'=IF(F{r}="","",IF(ROUND(E{r}*D{r}*$B$1,2)<$B$2,"Yes","No"))'
+        ws[f"E{r}"].number_format = "0.00"
+        ws[f"F{r}"].number_format = USD
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "EFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    rg = lambda c: f"{c}{first}:{c}{last}"
+    ws.conditional_formatting.add(rg("H"), FormulaRule(formula=[f'AND(H{first}<>"",H{first}<>"OK")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("B4", FormulaRule(formula=['B4<>"OK"'], fill=ALERT_FILL))
+    ws["J1"] = "Quote"
+    ws["J1"].font = Font(bold=True)
+    res = [
+        ("Lines subtotal", f"=SUM({rg('F')})", USD),
+        ("Setup fee", '=IF(K6=0,0,B3)', USD),
+        ("Quote total", "=K2+K3", USD),
+        ("Lines at the minimum", f'=COUNTIF({rg("G")},"Yes")', "0"),
+        ("Lines priced", f"=COUNT({rg('F')})", "0"),
+        ("Rows to check", f'=COUNTIF({rg("H")},"Check")', "0"),
+        ("Recomputed: lines above minimum + minimum x lines at it",
+         f'=SUMPRODUCT(--({rg("G")}="No"),{rg("E")},{rg("D")})*B1+B2*K5', USD),
+        ("Check: subtotal = recomputed (half a cent per line)",
+         '=IF(B4<>"OK","CHECK",IF(ABS(K2-K8)<=0.005*K6+0.000001,"OK","CHECK"))', "General"),
+    ]
+    for i, (label, f, fmt) in enumerate(res, start=2):
+        ws[f"J{i}"], ws[f"K{i}"] = label, f
+        ws[f"J{i}"].alignment = Alignment(wrap_text=True, vertical="top")
+        ws[f"K{i}"].number_format = fmt
+        ws[f"K{i}"].fill = FORMULA_FILL
+        ws[f"K{i}"].alignment = Alignment(horizontal="right", vertical="top")
+    ws["J4"].font = Font(bold=True)
+    ws.conditional_formatting.add("K9", FormulaRule(formula=['K9="CHECK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A6"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Price a Custom Job by Square Foot With a Minimum Charge",
+        "",
+        "1. Quote tab: type your rate per square foot in B1, the minimum charge per line in B2 and a setup fee in B3 (yellow). B4 shows OK when the rate is above 0 and all three are numbers.",
+        "2. Type each job with its width and height in inches and the quantity in A to D (yellow). Rows 6 to 25 have formulas ready.",
+        "3. Area per piece E6: =ROUND(B6*C6/144,2). There are 144 square inches in a square foot, so 12 x 12 in is 1.00 sq ft and 24 x 36 in is 6.00 sq ft.",
+        "4. Line price F6: =MAX($B$2,ROUND(E6*D6*$B$1,2)). MAX returns the minimum charge when area x quantity x rate comes to less.",
+        "5. Minimum applied G6 shows Yes when the minimum raised the price. A line that comes to exactly the minimum shows No (the price is the same either way).",
+        "6. Size check H6 shows Check when a width, height or quantity is blank, 0, negative, a fraction of a piece, or typed as text. Those rows get no price. Under 36 sq in: feet? warns that a size may have been typed in feet instead of inches (3 x 6 typed for a 3 x 6 ft banner is only 18 square inches); the row is still priced.",
+        "7. K2 to K4 add the lines and the setup fee (the setup fee is added only when at least one line is priced). K9 recomputes the subtotal another way and shows OK when it matches within half a cent per line and B4 is OK.",
+        "8. Arithmetic only. Sales tax, discounts and how to set your rate are not included.",
+        "",
+        "Shop, jobs and rates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Quote"].print_title_rows = "5:5"
+    wb.save(OUT / "tidy-tabs-price-per-square-foot.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -4505,4 +4956,9 @@ if __name__ == "__main__":
     nth_weekday_of_month()
     format_phone_numbers()
     scale_recipe_batch()
+    lookup_two_criteria()
+    stock_on_hand_log()
+    email_domain_split()
+    on_time_shipping_rate()
+    price_per_square_foot()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

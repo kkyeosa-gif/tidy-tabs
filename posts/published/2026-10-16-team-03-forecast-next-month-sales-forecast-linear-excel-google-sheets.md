@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DekxrpIoITv
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-forecast-next-months-sales-with.html
 title: How to Forecast Next Month's Sales With FORECAST in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the forecasts and slope were checked against a Python least squares fit, including flat sales, falling sales, two months only, a month number typed as text, a blank cell and a mismatched range. Excel and Google Sheets were not opened; the help links are from Microsoft and Google.

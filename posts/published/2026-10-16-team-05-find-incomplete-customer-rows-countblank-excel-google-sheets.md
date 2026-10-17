@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DemYq4-FLuN
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-rows-with-missing.html
 title: How to Find Rows With Missing Information in a Customer List in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against a Python blank count, including a space-only cell, a cell holding ="", an all-blank row in the middle and an empty list. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

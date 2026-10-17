@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DemE4IzkV7-
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-how-long-client-has.html
 title: How to Calculate How Long a Client Has Been With You in Years and Months in Excel and Google Sheets
 labels: excel-formulas, small-business, clients
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every result was checked against Python month math, including a Feb 29 start, a start day later in the month than the as of day, a start date after the as of date, a date typed as text and a changed years threshold. Excel and Google Sheets were not opened; the help link is from Microsoft Support.

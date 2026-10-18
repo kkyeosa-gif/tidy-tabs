@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DepLM3pFXAN
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-look-up-value-with-two-criteria.html
 title: How to Look Up a Value With Two Criteria in Excel and Google Sheets
 labels: excel-formulas, small-business, lookup
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and all 9 size and finish pairs were checked against a Python dictionary lookup, plus a pair not on the list, a duplicate pair, a trailing space, lower case text, a price typed as text and a blank size. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google.

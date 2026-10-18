@@ -309,7 +309,28 @@ def heroes_2026_10_18():
          render(short_sheet_copy(t + "tidy-tabs-price-per-square-foot.xlsx", "Quote", 14, "sqftquote"), "Quote", name="sqftquote"))
 
 
+def heroes_2026_10_19():
+    t = "templates/"
+    d = "images/2026-10-19-team-0%d-%s/"
+    save(d % (1, "highlight-expiring-dates-next-30-days-conditional-formatting-excel-google-sheets") + "expiring-dates-status-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-expiring-dates.xlsx", "Items", 21, "expiring"), "Items", name="expiring"))
+    save(d % (2, "stop-duplicate-invoice-numbers-data-validation-custom-excel-google-sheets") + "validation-rules-invoice-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-validation-rules.xlsx", "Entries", 13, "valentries"), "Entries", name="valentries"),
+         render(short_sheet_copy(t + "tidy-tabs-validation-rules.xlsx", "Rules check", 13, "valrules"), "Rules check", hide_cols="FGH", name="valrules"))
+    save(d % (3, "sum-with-or-condition-two-channels-sumproduct-excel-google-sheets") + "sum-with-or-two-channels-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-sum-with-or.xlsx", "Orders", 25, "oror"), "Orders", name="oror"),
+         render(t + "tidy-tabs-sum-with-or.xlsx", "Totals", name="ortotals", widths={"A": 70}))
+    save(d % (4, "fill-blank-cells-with-value-above-excel-google-sheets") + "fill-blanks-vendor-report-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-fill-blanks-above.xlsx", "Report", 16, "fillrep"), "Report", name="fillrep"),
+         render(short_sheet_copy(t + "tidy-tabs-fill-blanks-above.xlsx", "Filled", 16, "fillfilled"), "Filled", hide_cols="BEFGHI", name="fillfilled"))
+    save(d % (5, "mailing-labels-3-across-from-address-list-index-row-column-excel-google-sheets") + "mailing-labels-3-across-template.png",
+         render(t + "tidy-tabs-mailing-labels.xlsx", "Labels", hide_cols="DEF", name="labels"))
+
+
 def main():
+    heroes_2026_10_19()
+    if "--new" in sys.argv:
+        return
     heroes_2026_10_18()
     if "--new" in sys.argv:
         return

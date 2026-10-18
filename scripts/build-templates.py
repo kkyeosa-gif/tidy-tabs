@@ -4884,6 +4884,469 @@ def price_per_square_foot():
     wb.save(OUT / "tidy-tabs-price-per-square-foot.xlsx")
 
 
+def expiring_dates():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Items"
+    header(ws, ["Item", "Type", "Expires", "Days left", "Status"], [30, 22, 13, 11, 11])
+    names = [
+        ("Oat milk lotion 8 oz", "Lotion"), ("Lavender hand lotion", "Lotion"),
+        ("Soy wax flakes 10 lb", "Candle wax"), ("Beeswax pellets 5 lb", "Candle wax"),
+        ("Fall market banner", "Booth banner order"), ("Holiday market banner", "Booth banner order"),
+        ("Vendor ID card, Ana", "Market vendor ID card"), ("Vendor ID card, Ben", "Market vendor ID card"),
+        ("Shea butter lotion", "Lotion"), ("Cedar candle wax 25 lb", "Candle wax"),
+        ("Spring market banner", "Booth banner order"), ("Vendor ID card, Cleo", "Market vendor ID card"),
+        ("Cucumber face lotion", "Lotion"), ("Paraffin blend wax", "Candle wax"),
+        ("Pop-up shop banner", "Booth banner order"), ("Vendor ID card, Dev", "Market vendor ID card"),
+        ("Unscented body lotion", "Lotion"), ("Pillar candle wax 5 lb", "Candle wax"),
+        ("Gift fair banner", "Booth banner order"), ("Vendor ID card, Eli", "Market vendor ID card"),
+    ]
+    offsets = [-1, 0, 30, 31, 12, -30, 5, 90, 21, 29, 45, 8, 120, 14, 365, 2, 60, 33, 180, -12]
+    asof = date(2026, 10, 19)
+    last = 60
+    for r in range(2, last + 1):
+        if r - 2 < len(names):
+            ws[f"A{r}"], ws[f"B{r}"] = names[r - 2]
+            ws[f"C{r}"] = date.fromordinal(asof.toordinal() + offsets[r - 2])
+        ws[f"D{r}"] = (f'=IF(OR(C{r}="",NOT(ISNUMBER(C{r})),NOT(ISNUMBER(Summary!$B$1))),"",'
+                       f'C{r}-Summary!$B$1)')
+        ws[f"E{r}"] = (f'=IF(C{r}="","",IF(OR(NOT(ISNUMBER(D{r})),NOT(ISNUMBER(Summary!$B$2))),"Check",'
+                       f'IF(D{r}<0,"Expired",IF(D{r}<=Summary!$B$2,"Soon","OK"))))')
+        ws[f"C{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = "0"
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "DE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    # Rules read the Status text, so they work without cross-sheet references.
+    red = PatternFill("solid", bgColor="F8D7DA", fgColor="F8D7DA")
+    amber = PatternFill("solid", bgColor="FFE699", fgColor="FFE699")
+    ws.conditional_formatting.add(f"A2:E{last}", FormulaRule(formula=['$E2="Expired"'], fill=red, font=Font(bold=True, color="9C0006")))
+    ws.conditional_formatting.add(f"A2:E{last}", FormulaRule(formula=['$E2="Soon"'], fill=amber))
+    ws.conditional_formatting.add(f"E2:E{last}", FormulaRule(formula=['$E2="Check"'], fill=ALERT_FILL))
+
+    sm = wb.create_sheet("Summary", 1)
+    sm.column_dimensions["A"].width = 52
+    sm.column_dimensions["B"].width = 14
+    rng = f"Items!$C$2:$C${last}"
+    st = f"Items!$E$2:$E${last}"
+    res = [
+        ("As-of date (type today's date)", date(2026, 10, 19), US_DATE),
+        ("Warning window (days)", 30, "0"),
+        ("Items expired (before the as-of date)", f'=COUNTIF({st},"Expired")', "0"),
+        ("Items expiring soon (0 to the window)", f'=COUNTIF({st},"Soon")', "0"),
+        ("Items OK (past the window)", f'=COUNTIF({st},"OK")', "0"),
+        ("Rows to check (date typed as text)", f'=COUNTIF({st},"Check")', "0"),
+        ("Rows with an Expires entry", f"=COUNTA({rng})", "0"),
+        ("Dates from the as-of date through the window (COUNTIFS)",
+         f'=IF(AND(ISNUMBER(B1),ISNUMBER(B2)),COUNTIFS({rng},">="&B1,{rng},"<="&B1+B2),"")', "0"),
+        ("Check: Expired + Soon + OK = real dates, COUNTIFS = Soon, nothing to check",
+         f'=IF(NOT(AND(ISNUMBER(B1),ISNUMBER(B2))),"Check settings",IF(AND(B3+B4+B5=COUNT({rng}),B6=0,B4=B8),"OK","CHECK"))', "General"),
+    ]
+    for i, (label, v, fmt) in enumerate(res, start=1):
+        sm[f"A{i}"], sm[f"B{i}"] = label, v
+        sm[f"A{i}"].font = Font(bold=True)
+        sm[f"B{i}"].number_format = fmt
+        sm[f"B{i}"].alignment = Alignment(horizontal="right")
+        sm[f"B{i}"].fill = INPUT_FILL if i <= 2 else FORMULA_FILL
+    sm.conditional_formatting.add("B9", FormulaRule(formula=['B9<>"OK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Highlight Dates That Are Coming Up Soon",
+        "",
+        "1. Summary tab: type the as-of date in B1 (yellow) and how many days ahead to warn in B2. The sheet does not use TODAY, so type a new date when you open it.",
+        "2. Items tab: one row per item with its Expires date in C (yellow). Rows 2 to 60 have formulas ready.",
+        "3. Days left D2: =C2-Summary!$B$1. Negative means the date has passed.",
+        "4. Status E2: Expired when Days left is below 0, Soon when it is 0 up to the warning window, OK after that. An item that expires on the as-of date is Soon; one that expires the day before is Expired.",
+        "5. Colors: the rows are colored by conditional formatting rules that read the Status text (red for Expired, amber for Soon). The Status words also print in black and white.",
+        "6. To build the rule yourself: select A2:E60, then Home > Conditional Formatting > New Rule > Use a formula, and type =$E2=\"Soon\". In Google Sheets use Format > Conditional formatting > Custom formula is. Microsoft and Google help pages describe the dialogs.",
+        "7. A date typed as text (usually left-aligned) shows Check and is left out of the counts. A blank date has no status.",
+        "8. Summary B8 counts dates from the as-of date through the window with COUNTIFS. B9 shows OK when Expired + Soon + OK equals the real dates, B8 equals the Soon count and no row needs checking.",
+        "9. Dates only. This sheet does not know shelf life, safety or regulatory rules for any product.",
+        "10. The print area covers the first 40 rows. Change the print area to print more.",
+        "",
+        "Items and dates are fictional. The sheet's formulas and the rule text were checked in LibreOffice Calc only; the colors were not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Items"].print_area = "A1:E41"
+    wb.save(OUT / "tidy-tabs-expiring-dates.xlsx")
+
+
+def validation_rules():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Entries"
+    header(ws, ["Invoice #", "Date", "Qty"], [14, 14, 10])
+    rows = [
+        ("INV-1001", (10, 1), 4), ("INV-1002", (10, 2), 1), ("INV-1003", (10, 2), 12),
+        ("INV-1004", (10, 5), 3), ("INV-1005", (10, 6), 6), ("INV-1006", (10, 7), 2),
+        ("INV-1007", (10, 8), 8), ("INV-1008", (10, 9), 2.5), ("INV-1009", (10, 12), 5),
+        ("INV-1006", (10, 13), 1), ("INV-1010", (10, 14), 20), ("INV-1011", (10, 15), 7),
+    ]
+    last = 200
+    for r in range(2, last + 1):
+        if r - 2 < len(rows):
+            inv, (m, d), q = rows[r - 2]
+            ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = inv, date(2026, m, d), q
+        ws[f"B{r}"].number_format = US_DATE
+        if r <= 60:
+            for col in "ABC":
+                ws[f"{col}{r}"].fill = INPUT_FILL
+    rules = [
+        ("A", f"COUNTIF($A$2:$A${last},A2)=1", "Duplicate invoice number",
+         "This invoice number is already in the list. Type a new one.", "Invoice number", "Type a number not used yet, such as INV-1012."),
+        ("B", "AND(ISNUMBER(B2),B2>=DATE(2026,1,1),B2<=DATE(2026,12,31))", "Not a 2026 date",
+         "Type a real date from 01/01/2026 to 12/31/2026, such as 10/19/2026.", "Date", "MM/DD/YYYY, in 2026."),
+        ("C", "IF(ISNUMBER(C2),AND(C2>0,C2=INT(C2)),FALSE)", "Not a whole quantity",
+         "Type a whole number above 0, such as 3.", "Qty", "A whole number above 0."),
+    ]
+    for col, f, etitle, emsg, ptitle, pmsg in rules:
+        dv = DataValidation(type="custom", formula1=f, allow_blank=True, errorStyle="stop",
+                            showErrorMessage=True, showInputMessage=True,
+                            errorTitle=etitle, error=emsg, promptTitle=ptitle, prompt=pmsg)
+        ws.add_data_validation(dv)
+        dv.add(f"{col}2:{col}{last}")
+
+    rc = wb.create_sheet("Rules check", 1)
+    header(rc, ["Invoice #", "Invoice # unique?", "Date in 2026?", "Qty whole, above 0?", "Row result"],
+           [14, 17, 14, 19, 12])
+    for r in range(2, last + 1):
+        empty = f'AND(Entries!A{r}="",Entries!B{r}="",Entries!C{r}="")'
+        rc[f"A{r}"] = f'=IF({empty},"",IF(Entries!A{r}="","(blank)",Entries!A{r}))'
+        rc[f"B{r}"] = f'=IF({empty},"",AND(Entries!A{r}<>"",COUNTIF(Entries!$A$2:$A${last},Entries!A{r})=1))'
+        rc[f"C{r}"] = (f'=IF({empty},"",AND(ISNUMBER(Entries!B{r}),Entries!B{r}>=DATE(2026,1,1),'
+                       f'Entries!B{r}<=DATE(2026,12,31)))')
+        rc[f"D{r}"] = f'=IF({empty},"",IF(ISNUMBER(Entries!C{r}),AND(Entries!C{r}>0,Entries!C{r}=INT(Entries!C{r})),FALSE))'
+        rc[f"E{r}"] = f'=IF({empty},"",IF(AND(B{r},C{r},D{r}),"OK","Fix"))'
+        for col in "ABCDE":
+            rc[f"{col}{r}"].fill = FORMULA_FILL
+            rc[f"{col}{r}"].alignment = Alignment(horizontal="center")
+    rc.conditional_formatting.add(f"A2:E{last}", FormulaRule(formula=['$E2="Fix"'], fill=ALERT_FILL))
+    rc.column_dimensions["F"].width = 4
+    rc.column_dimensions["G"].width = 46
+    rc.column_dimensions["H"].width = 10
+    rc["G1"] = "Counts and check"
+    rc["G1"].font = Font(bold=True)
+    res = [
+        ("Rows with an entry", f"=SUMPRODUCT(--(E2:E{last}<>\"\"))"),
+        ("Rows that pass all three rules", f'=COUNTIF(E2:E{last},"OK")'),
+        ("Rows to fix", f'=SUMPRODUCT(--(E2:E{last}="Fix"))'),
+        ("Rows failing the invoice rule", f"=COUNTIF(B2:B{last},FALSE)"),
+        ("Rows failing the date rule", f"=COUNTIF(C2:C{last},FALSE)"),
+        ("Rows failing the qty rule", f"=COUNTIF(D2:D{last},FALSE)"),
+        ("Rows sharing an invoice number (second count)",
+         f'=SUMPRODUCT((Entries!A2:A{last}<>"")*(COUNTIF(Entries!A2:A{last},Entries!A2:A{last})>1))'),
+        ("Check: OK + Fix = rows, duplicate counts agree",
+         '=IF(AND(H3+H4=H2,H8=SUMPRODUCT(--(B2:B' + str(last) + '=FALSE),--(Entries!A2:A' + str(last) + '<>""))),"OK","CHECK")'),
+    ]
+    for i, (label, f) in enumerate(res, start=2):
+        rc[f"G{i}"], rc[f"H{i}"] = label, f
+        rc[f"H{i}"].fill = FORMULA_FILL
+        rc[f"H{i}"].alignment = Alignment(horizontal="right")
+    rc.conditional_formatting.add("H9", FormulaRule(formula=['H9="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Block Duplicate Invoice Numbers and Bad Dates",
+        "",
+        "1. Entries tab: type Invoice #, Date and Qty in A to C (yellow). Rows 2 to 200 have the three validation rules.",
+        "2. Select a column, then Data > Data Validation > Allow: Custom. The rules here are: A2 =COUNTIF($A$2:$A$200,A2)=1 (no repeats), B2 =AND(ISNUMBER(B2),B2>=DATE(2026,1,1),B2<=DATE(2026,12,31)) (a real 2026 date), C2 =IF(ISNUMBER(C2),AND(C2>0,C2=INT(C2)),FALSE) (a whole number above 0).",
+        "3. Each rule is written for the first cell (A2, B2, C2). The cell references without $ shift down for every row. $A$2:$A$200 stays fixed.",
+        "4. Each rule has a Stop error message and an input prompt, shown when you select the cell and when a bad value is typed.",
+        "5. Validation only checks what you type. Pasting over a cell skips the rule, and values already in the cells are not checked. Rows 7 and 11 repeat INV-1006 and row 9 has a quantity of 2.5 on purpose, so you can see them on the Rules check tab.",
+        "6. Rules check tab: the same three tests as TRUE or FALSE for every row, a Row result (OK or Fix) and counts. Rows to fix (H4) is the number to clean up after a paste. Both rows of a duplicated invoice number fail the invoice test.",
+        "7. H9 shows OK when OK rows plus Fix rows equal the rows with an entry and two counts of duplicate rows agree.",
+        "8. COUNTIF ignores upper and lower case (inv-1006 repeats INV-1006) and does not ignore spaces. The date rule allows 2026 only and a date with a time of day on 12/31/2026 fails; edit the DATE(...) parts for other years.",
+        "9. To change a rule, select the column, open Data Validation again and edit the formula.",
+        "",
+        "Invoice numbers, dates and quantities are fictional. The rule formulas and the Rules check tab were checked in LibreOffice Calc only; the blocking itself, typing a bad value, was not tried in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx. In Sheets use Data > Data validation and the Custom formula is option.",
+    ])
+    finish_letter(wb)
+    wb["Entries"].print_area = "A1:C41"
+    wb["Rules check"].print_area = "A1:H41"
+    wb.save(OUT / "tidy-tabs-validation-rules.xlsx")
+
+
+def sum_with_or():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Date", "Order ID", "Channel", "Amount"], [12, 11, 17, 12])
+    ch = ["Etsy", "Shopify", "Farmers market", "Wholesale"]
+    rows = [
+        ((10, 1), "Etsy", 18.00), ((10, 1), "Shopify", 42.50), ((10, 2), "Farmers market", 26.00),
+        ((10, 2), "Etsy", 64.00), ((10, 3), "Wholesale", 240.00), ((10, 3), "Shopify", 31.00),
+        ((10, 4), "Farmers market", 55.00), ((10, 5), "Etsy", 22.50), ((10, 5), "Shopify", 75.00),
+        ((10, 6), "Farmers market", 18.00), ((10, 7), "Wholesale", 180.00), ((10, 7), "Etsy", 49.00),
+        ((10, 8), "Shopify", 28.00), ((10, 9), "Farmers market", 62.00), ((10, 9), "Etsy", 36.00),
+        ((10, 10), "Shopify", 90.00), ((10, 11), "Wholesale", 120.00), ((10, 12), "Etsy", 15.50),
+        ((10, 12), "Farmers market", 33.00), ((10, 13), "Shopify", 24.00), ((10, 14), "Etsy", 52.00),
+        ((10, 14), "Wholesale", 95.00), ((10, 15), "Shopify", 58.00), ((10, 15), "Farmers market", 41.00),
+    ]
+    last = 200
+    for r in range(2, last + 1):
+        if r - 2 < len(rows):
+            (m, d), c, a = rows[r - 2]
+            ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"] = date(2026, m, d), f"#{3101 + r - 2}", c, a
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = USD
+        if r <= 60:
+            for col in "ABCD":
+                ws[f"{col}{r}"].fill = INPUT_FILL
+    dvc = DataValidation(type="list", formula1='"' + ",".join(ch) + '"', allow_blank=True)
+    ws.add_data_validation(dvc)
+    dvc.add(f"C2:C{last}")
+
+    t = wb.create_sheet("Totals", 1)
+    t.column_dimensions["A"].width = 58
+    t.column_dimensions["B"].width = 16
+    C, D = f"Orders!$C$2:$C${last}", f"Orders!$D$2:$D${last}"
+    pick = '(' + C + '=$B$1)*($B$1<>"")+(' + C + '=$B$2)*($B$2<>"")>0'
+    res = [
+        ("A1", "Channel 1", "B1", "Etsy", None),
+        ("A2", "Channel 2", "B2", "Shopify", None),
+        ("A3", "Large order threshold (amount over)", "B3", 50, USD),
+        ("A5", "Total: SUMIFS for channel 1 + SUMIFS for channel 2", "B5",
+         f"=SUMIFS({D},{C},B1)+SUMIFS({D},{C},B2)", USD),
+        ("A6", 'Total: SUM(SUMIFS(...,{"Etsy","Shopify"})), names typed in the formula', "B6",
+         f'=SUM(SUMIFS({D},{C},{{"Etsy","Shopify"}}))', USD),
+        ("A7", "Total: SUMPRODUCT, a row counts once", "B7", f"=SUMPRODUCT(--({pick}),{D})", USD),
+        ("A8", "Orders: COUNTIF + COUNTIF", "B8", f"=COUNTIF({C},B1)+COUNTIF({C},B2)", "0"),
+        ("A9", "Orders: SUMPRODUCT, a row counts once", "B9", f"=SUMPRODUCT(--({pick}))", "0"),
+        ("A10", "All other channels (not channel 1 or 2)", "B10",
+         f'=SUMIFS({D},{C},"<>"&B1,{C},"<>"&B2)', USD),
+        ("A11", "Everything minus the other channels", "B11", f"=SUM({D})-B10", USD),
+        ("A12", "Either channel AND amount over the threshold", "B12",
+         f"=SUMPRODUCT(--({pick}),--({D}>B3),{D})", USD),
+        ("A13", "Check: the four totals agree",
+         "B13", '=IF(OR(B1="",B2=""),"Pick two channels",IF(B1=B2,"Same channel twice",'
+         'IF(AND(ABS(B5-B6)<0.005,ABS(B7-B6)<0.005,ABS(B11-B6)<0.005,B8=B9),"OK","CHECK")))', "General"),
+    ]
+    for la, label, va, v, fmt in res:
+        t[la], t[va] = label, v
+        t[la].font = Font(bold=True)
+        t[va].alignment = Alignment(horizontal="right")
+        t[va].fill = INPUT_FILL if va in ("B1", "B2", "B3") else FORMULA_FILL
+        if fmt:
+            t[va].number_format = fmt
+    for va in ("B1", "B2"):
+        dv = DataValidation(type="list", formula1='"' + ",".join(ch) + '"', allow_blank=True)
+        t.add_data_validation(dv)
+        dv.add(va)
+    t.conditional_formatting.add("B13", FormulaRule(formula=['B13<>"OK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Sum Sales From Either of Two Channels (OR Logic)",
+        "",
+        "1. Orders tab: Date, Order ID, Channel and Amount in A to D (yellow). Formulas read rows 2 to 200.",
+        "2. Totals tab: pick the two channels in B1 and B2 (yellow dropdowns). B3 is the amount used in B12.",
+        "3. SUMIFS cannot take two values for one column, so B5 adds two SUMIFS: =SUMIFS(Orders!D2:D200,Orders!C2:C200,B1)+SUMIFS(Orders!D2:D200,Orders!C2:C200,B2).",
+        "4. B6 sends both names in one array constant: =SUM(SUMIFS(Orders!D2:D200,Orders!C2:C200,{\"Etsy\",\"Shopify\"})). The names are typed inside the formula, so edit them there if you change B1 or B2.",
+        "5. B7 uses SUMPRODUCT: =SUMPRODUCT(--((Orders!C2:C200=B1)*(B1<>\"\")+(Orders!C2:C200=B2)*(B2<>\"\")>0),Orders!D2:D200). The --( ) turns TRUE and FALSE into 1 and 0. Each row counts once. The (B1<>\"\") parts stop empty channel cells from matching the empty rows below your data.",
+        "6. B8 and B9 count the orders the same two ways. B10 totals the other channels, so B11 (everything minus the others) should equal B5 to B7.",
+        "7. B12 adds an AND to the OR: either channel, and an amount over B3.",
+        "8. If channel 1 and channel 2 are the same, B5 adds that channel twice, while B7 and B6's names do not. B13 says Same channel twice.",
+        "9. Matching ignores upper and lower case but not spaces: \"Etsy \" with a trailing space matches nothing. An amount typed as text is skipped by all methods.",
+        "10. Sums and counts only. The print area on the Orders tab covers the first 40 rows.",
+        "",
+        "Shop, orders and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_area = "A1:D41"
+    wb.save(OUT / "tidy-tabs-sum-with-or.xlsx")
+
+
+def fill_blanks_above():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Report"
+    header(ws, ["Vendor", "Product", "Amount"], [24, 26, 12])
+    groups = [
+        ("Pine Hollow Candles", [("Cedar candle", 54.00), ("Balsam candle", 48.00), ("Wick refill pack", 18.50)]),
+        ("Salt Marsh Soap", [("Sea salt bar", 30.00), ("Oat bar", 27.50), ("Gift set", 66.00), ("Soap dish", 21.00)]),
+        ("Willow & Wick", [("Birch candle", 40.00), ("Match box", 12.00)]),
+        ("Bramble Jam Co.", [("Blackberry jam", 36.00), ("Peach jam", 33.00), ("Jam sampler", 45.00)]),
+        ("Sunny Creek Pottery", [("Mug", 64.00), ("Bowl", 52.00), ("Vase", 85.00)]),
+    ]
+    flat = []
+    for v, items in groups:
+        for i, (p, a) in enumerate(items):
+            flat.append((v if i == 0 else None, p, a))
+    last = 60
+    for r in range(2, last + 1):
+        if r - 2 < len(flat):
+            ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = flat[r - 2]
+        ws[f"C{r}"].number_format = USD
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+
+    fl = wb.create_sheet("Filled", 1)
+    header(fl, ["Vendor (fill down)", "Vendor (fill down, spaces too)", "Product", "Amount"], [22, 24, 24, 12])
+    for r in range(2, last + 1):
+        empty = f'AND(Report!A{r}="",Report!B{r}="",Report!C{r}="")'
+        if r == 2:
+            fl[f"A{r}"] = f'=IF({empty},"",IF(Report!A{r}="","",Report!A{r}))'
+            fl[f"B{r}"] = f'=IF({empty},"",TRIM(Report!A{r}))'
+        else:
+            fl[f"A{r}"] = f'=IF({empty},"",IF(Report!A{r}="",A{r - 1},Report!A{r}))'
+            fl[f"B{r}"] = f'=IF({empty},"",IF(TRIM(Report!A{r})="",B{r - 1},TRIM(Report!A{r})))'
+        fl[f"C{r}"] = f'=IF(Report!B{r}="","",Report!B{r})'
+        fl[f"D{r}"] = f'=IF(Report!C{r}="","",Report!C{r})'
+        fl[f"D{r}"].number_format = USD
+        for col in "ABCD":
+            fl[f"{col}{r}"].fill = FORMULA_FILL
+    fl.column_dimensions["E"].width = 4
+    for col, w in (("F", 24), ("G", 16), ("H", 16), ("I", 16)):
+        fl.column_dimensions[col].width = w
+    for col, n in zip("FGHI", ["Vendor (type names)", "Total on Report", "Total, fill down", "Total, spaces too"]):
+        c = fl[f"{col}1"]
+        c.value, c.fill, c.font = n, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+    vendors = [g[0] for g in groups]
+    for r in range(2, 9):
+        fl[f"F{r}"] = vendors[r - 2] if r - 2 < len(vendors) else None
+        fl[f"F{r}"].fill = INPUT_FILL
+        fl[f"G{r}"] = f'=IF(F{r}="","",SUMIFS(Report!$C$2:$C${last},Report!$A$2:$A${last},F{r}))'
+        fl[f"H{r}"] = f'=IF(F{r}="","",SUMIFS($D$2:$D${last},$A$2:$A${last},F{r}))'
+        fl[f"I{r}"] = f'=IF(F{r}="","",SUMIFS($D$2:$D${last},$B$2:$B${last},F{r}))'
+        for col in "GHI":
+            fl[f"{col}{r}"].fill = FORMULA_FILL
+            fl[f"{col}{r}"].number_format = USD
+    used = f'(((Report!$B$2:$B${last}<>"")+(Report!$C$2:$C${last}<>""))>0)'
+    chk = [
+        ("Rows with a product or amount", f"=SUMPRODUCT(--{used})", "0"),
+        ("Rows still blank in the vendor column (fill down)", f'=SUMPRODUCT(--{used},--($A$2:$A${last}=""))', "0"),
+        ("Rows still blank (spaces too)", f'=SUMPRODUCT(--{used},--($B$2:$B${last}=""))', "0"),
+        ("Total on Report", f"=SUM(Report!C2:C{last})", USD),
+        ("Total on Filled", f"=SUM(D2:D{last})", USD),
+        ("Check: no blanks left, totals equal",
+         '=IF(AND(I11=0,I12=0,ABS(I13-I14)<0.005),"OK","CHECK")', "General"),
+    ]
+    for i, (label, f, fmt) in enumerate(chk, start=10):
+        fl[f"F{i}"], fl[f"I{i}"] = label, f
+        fl[f"F{i}"].font = Font(bold=True)
+        fl[f"I{i}"].number_format = fmt
+        fl[f"I{i}"].fill = FORMULA_FILL
+        fl[f"I{i}"].alignment = Alignment(horizontal="right")
+    fl["F9"] = "Checks"
+    fl["F9"].font = Font(bold=True, size=12)
+    fl.conditional_formatting.add("I15", FormulaRule(formula=['I15="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Fill Blank Cells With the Value Above",
+        "",
+        "1. Report tab: paste or type the report in A to C (yellow). Vendor is typed on the first row of each group only, like many exports.",
+        "2. Filled tab, column A: =IF(Report!A3=\"\",A2,Report!A3) takes the vendor from the row above when the Report cell is blank. The first row is =IF(Report!A2=\"\",\"\",Report!A2) because there is no row above it (a bare =Report!A2 would show 0 for an empty cell).",
+        "3. Column B does the same but treats a cell that holds only a space as blank, and trims stray spaces: =IF(TRIM(Report!A3)=\"\",B2,TRIM(Report!A3)).",
+        "4. Both columns return blank for a row where the vendor, product and amount are all empty. A fully blank row ends a group: the next row needs its own vendor name.",
+        "5. A blank in the very first data row stays blank. Fix it on the Report tab.",
+        "6. Columns F to I: type vendor names in F (yellow). G is the total on the Report tab (the blank-labeled rows count for nobody), H and I are the totals from the filled columns.",
+        "7. I15 shows OK when no used row is blank in either filled column and the amount totals are equal.",
+        "8. To keep the result and drop the formulas: select Filled!A2:D60, Copy, then Paste Special > Values only.",
+        "9. Menu route in Excel, no formulas: select the range, Home > Find & Select > Go To Special > Blanks, type = and the cell above, then press Ctrl+Enter. The steps are from Microsoft help and were not run by us.",
+        "10. The Filled tab reads Report rows 2 to 60. Copy the formula row down for more.",
+        "",
+        "Vendors, products and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Report"].print_area = "A1:C41"
+    wb["Filled"].print_area = "A1:I41"
+    wb.save(OUT / "tidy-tabs-fill-blanks-above.xlsx")
+
+
+def mailing_labels():
+    wb = Workbook()
+    ad = wb.active
+    ad.title = "Addresses"
+    header(ad, ["Name", "Street", "City", "State", "ZIP"], [22, 26, 18, 7, 9])
+    people = [
+        ("Maya Alvarez", "14 Beacon Row", "Boston", "MA", "02108"),
+        ("Tom Brennan", "220 Willow Ave, Apt 3", "Hoboken", "NJ", "07030"),
+        ("Priya Shah", "9 Orchard Lane", "Portland", "ME", "04101"),
+        ("Jordan Lee", "1800 Maple Street", "Austin", "TX", "78701"),
+        ("Dana Whitfield", "75 Harbor View Road", "Providence", "RI", "02903"),
+        ("Carlos Ortega", "412 Elm Court", "Tucson", "AZ", "85701"),
+        ("Ellen Park", "33 Mill Street", "Burlington", "VT", "05401"),
+        ("Sam Okafor", "6 Cedar Hollow Drive", "Madison", "WI", "53703"),
+        ("Rosa Delgado", "501 Pine Street", "Seattle", "WA", "98101"),
+        ("Ben Kowalski", "88 River Road", "Pittsburgh", "PA", "15222"),
+        ("Hannah Cho", "27 Lakeshore Boulevard, Suite 12", "Chicago", "IL", "60601"),
+        ("Leo Martin", "3 Fairview Terrace", "Newark", "NJ", "07102"),
+        ("Grace Nguyen", "640 Oak Avenue", "Denver", "CO", "80202"),
+        ("Miles Foster", "19 Quarry Lane", "Concord", "NH", "03301"),
+        ("Aisha Rahman", "250 Summit Street", "Hartford", "CT", "06103"),
+        ("Pete Sullivan", "71 Bay Street", "Savannah", "GA", "31401"),
+        ("Nora Jensen", "12 Prairie Way", "Omaha", "NE", "68102"),
+        ("Victor Reyes", "905 Canal Street", "New Orleans", "LA", "70130"),
+    ]
+    for r in range(2, 41):
+        if r - 2 < len(people):
+            for col, v in zip("ABCDE", people[r - 2]):
+                ad[f"{col}{r}"] = v
+        ad[f"E{r}"].number_format = "@"
+        for col in "ABCDE":
+            ad[f"{col}{r}"].fill = INPUT_FILL
+
+    lb = wb.create_sheet("Labels", 1)
+    from openpyxl.styles import Border, Side
+    dot = Side(style="hair", color="999999")
+    for col in "ABC":
+        lb.column_dimensions[col].width = 32
+    for r in range(1, 7):
+        lb.row_dimensions[r].height = 100
+        for c in range(1, 4):
+            n = f"((ROW()-1)*3+COLUMN())"
+            parts = [f"INDEX(Addresses!${x}$2:${x}$19,{n})" for x in "ABCDE"]
+            cell = lb.cell(row=r, column=c)
+            cell.value = (f'=IFERROR(IF({parts[0]}&{parts[1]}&{parts[2]}="","",'
+                          f'{parts[0]}&CHAR(10)&{parts[1]}&CHAR(10)&{parts[2]}&", "&{parts[3]}&" "&{parts[4]}),"")')
+            cell.alignment = Alignment(wrap_text=True, vertical="center", horizontal="left", indent=1)
+            cell.border = Border(left=dot, right=dot, top=dot, bottom=dot)
+    lb.column_dimensions["D"].width = 3
+    lb.column_dimensions["E"].width = 44
+    lb.column_dimensions["F"].width = 10
+    res = [
+        ("Addresses listed (rows 2 to 19)", '=SUMPRODUCT(--(Addresses!A2:A19&Addresses!B2:B19&Addresses!C2:C19<>""))', "0"),
+        ("Label cells filled", '=COUNTIF(A1:C6,"?*")', "0"),
+        ("Addresses past row 19 (not on this sheet)", '=SUMPRODUCT(--(Addresses!A20:A200&Addresses!B20:B200&Addresses!C20:C200<>""))', "0"),
+        ("Check: every address has a label", '=IF(AND(F2=F3,F4=0),"OK","CHECK")', "General"),
+    ]
+    lb["E1"] = "Counts and check (not printed)"
+    lb["E1"].font = Font(bold=True)
+    for i, (label, f, fmt) in enumerate(res, start=2):
+        lb[f"E{i}"], lb[f"F{i}"] = label, f
+        lb[f"E{i}"].alignment = Alignment(wrap_text=False, vertical="center")
+        lb[f"F{i}"].alignment = Alignment(horizontal="right", vertical="center")
+        lb[f"F{i}"].fill = FORMULA_FILL
+    lb.conditional_formatting.add("F5", FormulaRule(formula=['F5="CHECK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Mailing Labels From an Address List",
+        "",
+        "1. Addresses tab: Name, Street, City, State and ZIP in A to E (yellow), one person per row. The ZIP column is formatted as text so 02108 keeps its zero. If you paste ZIPs that already lost the zero, retype them.",
+        "2. Labels tab: 3 labels across by 6 down on one US Letter page (18 labels), margins 0.5 in. Label 1 is the top left, then across, then the next row.",
+        "3. Each label cell holds the same formula, copied across the grid. A1 picks address number (ROW()-1)*3+COLUMN() with INDEX: =INDEX(Addresses!$A$2:$A$19,(ROW()-1)*3+COLUMN()) and joins Name, Street and City, State ZIP with CHAR(10) (a line break). Wrap text is on.",
+        "4. When the list has fewer than 18 addresses, the cells past the end are blank. A blank row on the Addresses tab leaves its label blank.",
+        "5. Only rows 2 to 19 of the Addresses tab are used. With more than 18 addresses the extra ones are not shown: Labels!F4 counts them and F5 says CHECK. Print 18, then move the next 18 up to rows 2 to 19.",
+        "6. Print on plain paper first. Hold it over the label sheet against a window to see if the grid lines up. Sheets from different brands have different layouts and this grid is not an Avery or other brand template. Change column widths and row heights on the Labels tab to adjust.",
+        "7. Labels!F5 shows OK when the label cells filled equal the addresses listed and none are past row 19. The counts are outside the print area (A1:C6).",
+        "8. Layout only. For addressing rules, see the USPS help pages.",
+        "",
+        "Names and addresses are fictional. Checked in LibreOffice Calc only (formulas and PDF export); not opened in Excel or Google Sheets, and not printed on label paper.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    lb.print_title_rows = None
+    lb.print_area = "A1:C6"
+    lb.page_margins.left = lb.page_margins.right = lb.page_margins.top = lb.page_margins.bottom = 0.5
+    lb.print_options.horizontalCentered = True
+    wb["Addresses"].print_area = "A1:E41"
+    wb.save(OUT / "tidy-tabs-mailing-labels.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -4961,4 +5424,9 @@ if __name__ == "__main__":
     email_domain_split()
     on_time_shipping_rate()
     price_per_square_foot()
+    expiring_dates()
+    validation_rules()
+    sum_with_or()
+    fill_blanks_above()
+    mailing_labels()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

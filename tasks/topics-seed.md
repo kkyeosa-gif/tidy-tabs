@@ -100,3 +100,10 @@
 - How to Get the Domain or Username From an Email Address in Excel and Google Sheets - `extract-domain-from-email-address-left-mid-find-excel-google-sheets`
 - How to Calculate Your On-Time Shipping Rate in Excel and Google Sheets - `on-time-shipping-rate-promised-vs-shipped-date-excel-google-sheets`
 - How to Price a Custom Job by Square Foot With a Minimum Charge in Excel and Google Sheets - `price-per-square-foot-with-minimum-charge-excel-google-sheets`
+
+## 2026-10-19 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice Calc 24.2 에서 확인)
+- How to Highlight Dates That Are Coming Up in the Next 30 Days in Excel and Google Sheets - `highlight-expiring-dates-next-30-days-conditional-formatting-excel-google-sheets`
+- How to Stop Duplicate Invoice Numbers and Bad Dates From Being Typed in Excel and Google Sheets - `stop-duplicate-invoice-numbers-data-validation-custom-excel-google-sheets`
+- How to Sum Sales From Either of Two Channels (OR Logic) in Excel and Google Sheets - `sum-with-or-condition-two-channels-sumproduct-excel-google-sheets`
+- How to Fill Blank Cells With the Value Above in Excel and Google Sheets - `fill-blank-cells-with-value-above-excel-google-sheets`
+- How to Make Mailing Labels From an Address List in Excel and Google Sheets - `mailing-labels-3-across-from-address-list-index-row-column-excel-google-sheets`

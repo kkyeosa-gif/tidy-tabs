@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Deo9eJ-m6Hc
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-scale-recipe-up-or-down-in-excel.html
 title: How to Scale a Recipe Up or Down in Excel and Google Sheets
 labels: excel-formulas, small-business, food-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the 8 sample ingredients were checked against a Python Decimal calculation at factors 0.5, 1, 2.5, 5 and 10, plus a 1.1 factor, a blank or zero target, a zero base yield and a quantity typed as text. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

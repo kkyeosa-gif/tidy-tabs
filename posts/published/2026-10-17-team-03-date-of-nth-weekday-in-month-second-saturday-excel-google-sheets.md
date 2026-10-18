@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DenWehrmcg6
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-date-of-2nd-saturday-or-any.html
 title: How to Find the Date of the 2nd Saturday (or Any Nth Weekday) of a Month in Excel and Google Sheets
 labels: excel-formulas, dates, small-business
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there. The Nth weekday and last weekday formulas were run for 2026, 2027 and 2028, all 12 months, all 7 weekdays and n = 1 to 5 (1,260 combinations) with 0 mismatches against the Python calendar module, and the Schedule tab was checked for 96 more cells. Excel and Google Sheets were not opened; the help links are from Microsoft Support.

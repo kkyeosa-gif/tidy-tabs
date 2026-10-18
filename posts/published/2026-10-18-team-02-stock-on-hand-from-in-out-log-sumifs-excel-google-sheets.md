@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Depfzm2gTAB
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-track-stock-on-hand-from-log-of.html
 title: How to Track Stock on Hand From a Log of Items In and Out in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the 5 sample SKUs were checked against a Python per-SKU tally, plus edge cases such as an unused SKU, more sold than received, a lower case SKU, a SKU with a trailing space, a quantity typed as text, a blank SKU and a Type outside the list. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

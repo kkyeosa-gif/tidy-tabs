@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DerOeEdG2Ih
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-your-on-time-shipping.html
 title: How to Calculate Your On Time Shipping Rate in Excel and Google Sheets
 labels: excel-formulas, small-business, shipping
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the 30 sample orders were checked against a Python date comparison, plus edge cases: shipped before the order date, a shipped date typed as text, an order date typed as text, all orders late, no orders shipped and a blank row inside the list. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

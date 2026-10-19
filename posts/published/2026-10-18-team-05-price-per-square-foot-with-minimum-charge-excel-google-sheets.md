@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeriCkIldar
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-price-custom-job-by-square-foot.html
 title: How to Price a Custom Job by Square Foot With a Minimum Charge in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the 8 sample jobs were checked against a Python Decimal calculation (round half up), plus rates of $3.35 and $2.75, a quantity of 0 or blank, a width typed as text, a fractional quantity, a rate of 0 or text, and sizes typed in feet. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

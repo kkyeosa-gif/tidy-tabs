@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DesEmcdAWf5
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-stop-duplicate-invoice-numbers.html
 title: How to Stop Duplicate Invoice Numbers and Bad Dates From Being Typed in Excel and Google Sheets
 labels: excel-formulas, small-business, data-validation
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the Rules check formulas (the same tests the validation rules use) were compared with a Python model on 12 sample rows and about 10 edited variants, with no error values. The three rules were read back from the saved .xlsx file. The live Stop alert and the input prompts were not exercised in any app, because headless LibreOffice does not evaluate them. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

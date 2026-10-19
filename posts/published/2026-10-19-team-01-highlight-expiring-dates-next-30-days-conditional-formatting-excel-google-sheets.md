@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DerwABdmvZT
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-highlight-dates-that-are-coming.html
 title: How to Highlight Dates That Are Coming Up in the Next 30 Days in Excel and Google Sheets
 labels: excel-formulas, small-business, conditional-formatting
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and every Days left and Status value was checked against a Python date calculation, plus edge cases (expires on the as-of date, exactly 30 and 31 days out, yesterday, a blank date, a date typed as text, a window of 0, and a text as-of date). The conditional formatting rules were read back from the saved .xlsx and the colors were seen only in the LibreOffice PDF export. Nothing was applied by hand in Excel or Google Sheets, and the highlighting was not watched live in any app.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dep7RKzmK6p
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-get-domain-or-username-from.html
 title: How to Get the Domain or Username From an Email Address in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and 28 fictional addresses were checked against Python string splitting, including two @ signs, no @, spaces, a missing dot and upper case. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

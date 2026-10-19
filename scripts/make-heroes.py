@@ -327,7 +327,38 @@ def heroes_2026_10_19():
          render(t + "tidy-tabs-mailing-labels.xlsx", "Labels", hide_cols="DEF", name="labels"))
 
 
+def hide_rows_copy(src, sheet, rows, name):
+    """Temp copy of a template tab with the given row numbers hidden."""
+    wb = load_workbook(src)
+    ws = wb[sheet]
+    for r in rows:
+        ws.row_dimensions[r].hidden = True
+    path = f"{rp.TMP}/{name}-short.xlsx"
+    wb.save(path)
+    return path
+
+
+def heroes_2026_10_20():
+    t = "templates/"
+    d = "images/2026-10-20-team-0%d-%s/"
+    save(d % (1, "months-to-pay-off-equipment-balance-nper-excel-google-sheets") + "months-to-pay-off-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-months-to-pay-off.xlsx", "Payoff", 10, "payoff"), "Payoff", hide_cols="C", name="payoff"),
+         render(short_sheet_copy(t + "tidy-tabs-months-to-pay-off.xlsx", "Schedule", 15, "payoffsched"), "Schedule", name="payoffsched"))
+    save(d % (2, "sum-same-cell-across-monthly-sheets-3d-sum-indirect-excel-google-sheets") + "sum-across-monthly-sheets-template.png",
+         render(hide_rows_copy(t + "tidy-tabs-sum-across-monthly-sheets.xlsx", "Summary", [5, 6, 7] + list(range(13, 21)) + list(range(22, 25)), "sumsheets"), "Summary", name="sumsheets", widths={"A": 26}))
+    save(d % (3, "find-outlier-order-amounts-quartile-iqr-excel-google-sheets") + "outlier-order-amounts-template.png",
+         render(hide_rows_copy(t + "tidy-tabs-outlier-order-amounts.xlsx", "Orders", list(range(2, 10)) + list(range(25, 101)), "outliers"), "Orders", name="outliers"),
+         render(short_sheet_copy(t + "tidy-tabs-outlier-order-amounts.xlsx", "Fences", 7, "fences"), "Fences", hide_cols="C", name="fences"))
+    save(d % (4, "return-on-ad-spend-roas-break-even-excel-google-sheets") + "roas-calculator-template.png",
+         render(hide_rows_copy(t + "tidy-tabs-roas-calculator.xlsx", "Campaigns", [13, 14, 15, 16, 18, 19], "roas"), "Campaigns", name="roas"))
+    save(d % (5, "pareto-80-20-top-products-cumulative-percent-excel-google-sheets") + "pareto-top-products-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-pareto-top-products.xlsx", "Products", 16, "pareto"), "Products", name="pareto"))
+
+
 def main():
+    if "--only-2026-10-20" in sys.argv:
+        heroes_2026_10_20()
+        return
     heroes_2026_10_19()
     if "--new" in sys.argv:
         return

@@ -5347,6 +5347,438 @@ def mailing_labels():
     wb.save(OUT / "tidy-tabs-mailing-labels.xlsx")
 
 
+def months_to_pay_off():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Payoff"
+    ws.column_dimensions["A"].width = 36
+    ws.column_dimensions["B"].width = 18
+    ws.column_dimensions["C"].width = 60
+    rows = [
+        (1, "Balance", 5000, USD, True, "Typed. A kiln or laptop balance (fictional)."),
+        (2, "Yearly interest rate", 0.08, "0.00%", True, "Type 0% if there is no interest."),
+        (3, "Monthly payment", 400, USD, True, ""),
+        (4, "First payment date", date(2026, 11, 1), US_DATE, True, "Typed. The sheet does not use TODAY."),
+        (5, "Months to pay off",
+         '=IF(OR(NOT(ISNUMBER(B1)),NOT(ISNUMBER(B2)),NOT(ISNUMBER(B3)),NOT(ISNUMBER(B4))),"Check inputs",'
+         'IF(OR(B1<=0,B2<0,B3<=0),"Check inputs",IF(B3<=B1*B2/12,"Payment too low",'
+         'ROUNDUP(NPER(B2/12,-B3,B1),0))))', "0", False, "Formula: =ROUNDUP(NPER(B2/12,-B3,B1),0), plus guards"),
+        (6, "Last payment date", '=IF(ISNUMBER(B5),EDATE(B4,B5-1),"")', US_DATE, False, ""),
+        (7, "Last payment", '=IF(ISNUMBER(B5),IF(B5<=60,INDEX(Schedule!D2:D61,B5),"Over 60 months"),"")', USD, False,
+         "The part month: smaller than the regular payment."),
+        (8, "Total paid", '=IF(ISNUMBER(B7),B3*(B5-1)+B7,"")', USD, False, ""),
+        (9, "Interest paid", '=IF(ISNUMBER(B8),ROUND(B8-B1,2),"")', USD, False, ""),
+        (10, "Check: schedule agrees with NPER",
+         '=IF(NOT(ISNUMBER(B5)),"No result",IF(B5>60,"Over 60 months",'
+         'IF(AND(COUNT(Schedule!D2:D61)=B5,INDEX(Schedule!E2:E61,B5)=0),"OK","CHECK")))', "General", False,
+         "OK when the Schedule tab has exactly that many payments and ends at $0.00."),
+        (12, "Save for a goal", None, "General", False, ""),
+        (13, "Goal amount", 3000, USD, True, "A booth deposit (fictional)."),
+        (14, "Monthly deposit", 250, USD, True, ""),
+        (15, "Yearly rate on savings", 0.02, "0.00%", True, "Type 0% for none."),
+        (16, "Months to reach the goal",
+         '=IF(OR(NOT(ISNUMBER(B13)),NOT(ISNUMBER(B14)),NOT(ISNUMBER(B15))),"Check inputs",'
+         'IF(OR(B13<=0,B14<=0,B15<0),"Check inputs",ROUNDUP(NPER(B15/12,-B14,0,B13),0)))', "0", False,
+         "Formula: =ROUNDUP(NPER(B15/12,-B14,0,B13),0)"),
+        (17, "Check: FV reaches the goal in that month, not before",
+         '=IF(ISNUMBER(B16),IF(AND(FV(B15/12,B16,-B14)>=B13-0.005,FV(B15/12,B16-1,-B14)<B13),"OK","CHECK"),"")',
+         "General", False, "Deposits at the end of each month."),
+    ]
+    for r, label, v, fmt, inp, note in rows:
+        ws[f"A{r}"] = label
+        ws[f"A{r}"].font = Font(bold=True, size=12 if r == 12 else 11)
+        if v is not None:
+            ws[f"B{r}"] = v
+            ws[f"B{r}"].number_format = fmt
+            ws[f"B{r}"].fill = INPUT_FILL if inp else FORMULA_FILL
+            ws[f"B{r}"].alignment = Alignment(horizontal="right")
+        if note:
+            ws[f"C{r}"] = note
+    for r in (10, 17):
+        ws.conditional_formatting.add(f"B{r}", FormulaRule(formula=[f'AND(B{r}<>"OK",B{r}<>"")'], fill=ALERT_FILL))
+    for r in (5, 16):
+        ws.conditional_formatting.add(f"B{r}", FormulaRule(formula=[f'NOT(ISNUMBER(B{r}))'], fill=ALERT_FILL))
+
+    sc = wb.create_sheet("Schedule", 1)
+    header(sc, ["Month", "Starting balance", "Interest", "Payment", "Ending balance", "Payment date"],
+           [8, 16, 12, 12, 16, 14])
+    ok = "ISNUMBER(Payoff!$B$5)"
+    for n in range(1, 61):
+        r = n + 1
+        sc[f"A{r}"] = n
+        if n == 1:
+            sc[f"B{r}"] = f'=IF(NOT({ok}),"",Payoff!$B$1)'
+        else:
+            sc[f"B{r}"] = f'=IF(E{r - 1}="","",IF(E{r - 1}<=0,"",E{r - 1}))'
+        sc[f"C{r}"] = f'=IF(B{r}="","",ROUND(B{r}*Payoff!$B$2/12,2))'
+        sc[f"D{r}"] = f'=IF(B{r}="","",MIN(Payoff!$B$3,ROUND(B{r}+C{r},2)))'
+        sc[f"E{r}"] = f'=IF(B{r}="","",ROUND(B{r}+C{r}-D{r},2))'
+        sc[f"F{r}"] = f'=IF(B{r}="","",EDATE(Payoff!$B$4,A{r}-1))'
+        for col in "BCDE":
+            sc[f"{col}{r}"].number_format = USD
+        sc[f"F{r}"].number_format = US_DATE
+        for col in "ABCDEF":
+            sc[f"{col}{r}"].fill = FORMULA_FILL
+
+    notes_sheet(wb, [
+        "Tidy Tabs: How Many Months to Pay Off a Balance",
+        "",
+        "1. Payoff tab: type the balance (B1), the yearly interest rate (B2), the monthly payment (B3) and the first payment date (B4). They are yellow.",
+        "2. B5 is =ROUNDUP(NPER(B2/12,-B3,B1),0). NPER wants the monthly rate (yearly rate divided by 12), the payment as a negative number, and the balance as the present value. ROUNDUP is there because a part month still needs a payment.",
+        "3. If the payment is not bigger than one month of interest (B1*B2/12), the balance never goes down and NPER returns #NUM!. B5 shows Payment too low instead. A blank or text input, a rate below 0, or a balance or payment of 0 or less shows Check inputs.",
+        "4. B6 is the last payment date, =EDATE(B4,B5-1). B7 is the last payment, taken from the Schedule tab. B8 is B3*(B5-1)+B7. B9 is B8-B1.",
+        "5. Schedule tab: 60 rows. Each month: interest = balance x yearly rate / 12 rounded to cents, payment = the smaller of your payment and balance plus interest, ending balance = balance + interest - payment. B10 on the Payoff tab shows OK when the schedule has exactly the NPER month count and ends at $0.00.",
+        "6. Longer than 60 months: B5 still works, but the Schedule tab stops at row 61 and B7 to B10 say Over 60 months. Copy the last Schedule row down to extend it.",
+        "7. Save for a goal (B13 to B17): =ROUNDUP(NPER(B15/12,-B14,0,B13),0) is the number of monthly deposits to reach the goal, with the first deposit at the end of month 1. B17 checks it with FV: the goal is reached in that month and not the month before.",
+        "8. The schedule rounds each month's interest to cents, so a real lender's statement can differ by cents or a month in rare cases. Arithmetic only: this is not borrowing advice and it does not follow any lender's APR rules.",
+        "",
+        "The balance, rates and dates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Payoff"].print_title_rows = None
+    wb["Schedule"].print_area = "A1:F61"
+    wb.save(OUT / "tidy-tabs-months-to-pay-off.xlsx")
+
+
+def sum_across_monthly_sheets():
+    wb = Workbook()
+    months = {
+        "Jan": (3150.00, 820.40, 252.00),
+        "Feb": (2875.50, 640.25, 230.04),
+        "Mar": (3980.00, 1105.80, 318.40),
+        "Apr": (4410.75, 960.10, 352.86),
+    }
+    first = True
+    for name, vals in months.items():
+        ws = wb.active if first else wb.create_sheet(name)
+        ws.title = name
+        first = False
+        header(ws, ["Line", "Amount"], [16, 14])
+        for i, (label, v) in enumerate(zip(["Sales", "Supplies", "Fees"], vals), start=2):
+            ws[f"A{i}"], ws[f"B{i}"] = label, v
+            ws[f"B{i}"].number_format = USD
+            ws[f"B{i}"].fill = INPUT_FILL
+
+    sm = wb.create_sheet("Summary")
+    header(sm, ["Line", "Plus version", "3D SUM (Excel)", "INDIRECT version"], [50, 18, 18, 18])
+    for i, label in enumerate(["Sales", "Supplies", "Fees"], start=2):
+        sm[f"A{i}"] = label
+        sm[f"B{i}"] = f"=Jan!B{i}+Feb!B{i}+Mar!B{i}+Apr!B{i}"
+        sm[f"C{i}"] = f"=SUM(Jan:Apr!B{i})"
+        sm[f"D{i}"] = f"={'BCD'[i - 2]}21"
+        for col in "BCD":
+            sm[f"{col}{i}"].number_format = USD
+            sm[f"{col}{i}"].fill = FORMULA_FILL
+    sm["A6"] = "The plus version has no 3D reference, so use it in Google Sheets. 3D SUM is for Excel and LibreOffice."
+    sm["A6"].font = Font(italic=True)
+    sm["A7"] = "Months by tab name (INDIRECT)"
+    sm["A7"].font = Font(bold=True, size=12)
+    for col, t in zip("ABCD", ["Tab name (type it)", "Sales", "Supplies", "Fees"]):
+        c = sm[f"{col}8"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+    for r in range(9, 21):
+        sm[f"A{r}"].fill = INPUT_FILL
+        if r - 9 < 4:
+            sm[f"A{r}"] = list(months)[r - 9]
+        for col, src in zip("BCD", (2, 3, 4)):
+            ref = f'INDIRECT("\'"&$A{r}&"\'!B{src}")'
+            sm[f"{col}{r}"] = f'=IF($A{r}="","",IF(ISERROR({ref}),"Check sheet name",{ref}))'
+            sm[f"{col}{r}"].number_format = USD
+            sm[f"{col}{r}"].fill = FORMULA_FILL
+    sm["A21"] = "Total"
+    sm["A21"].font = Font(bold=True)
+    for col in "BCD":
+        sm[f"{col}21"] = f"=SUM({col}9:{col}20)"
+        sm[f"{col}21"].number_format = USD
+        sm[f"{col}21"].font = Font(bold=True)
+        sm[f"{col}21"].fill = FORMULA_FILL
+    sm["A23"] = "Check: plus version equals INDIRECT totals"
+    sm["B23"] = ('=IFERROR(IF(AND(COUNT(B9:D20)=3*COUNTA(A9:A20),ABS(B2-D2)<0.005,'
+                 'ABS(B3-D3)<0.005,ABS(B4-D4)<0.005),"OK","CHECK"),"CHECK")')
+    sm["A24"] = "Check: 3D SUM equals plus version (Excel, LibreOffice)"
+    sm["B24"] = ('=IF(ISERROR(C2+C3+C4),"Not supported here",IFERROR(IF(AND(ABS(B2-C2)<0.005,'
+                 'ABS(B3-C3)<0.005,ABS(B4-C4)<0.005),"OK","CHECK"),"CHECK"))')
+    for r in (23, 24):
+        sm[f"A{r}"].font = Font(bold=True)
+        sm[f"B{r}"].fill = FORMULA_FILL
+        sm[f"B{r}"].alignment = Alignment(horizontal="right")
+    sm.conditional_formatting.add("B23", FormulaRule(formula=['B23<>"OK"'], fill=ALERT_FILL))
+    sm.conditional_formatting.add("B24", FormulaRule(formula=['AND(B24<>"OK",B24<>"Not supported here")'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Add the Same Cell Across Monthly Sheets",
+        "",
+        "1. Jan, Feb, Mar and Apr tabs have the same layout: Sales in B2, Supplies in B3, Fees in B4 (yellow). Keep every month in the same cells.",
+        "2. Summary B2: =Jan!B2+Feb!B2+Mar!B2+Apr!B2. This plain version works in Excel, Google Sheets and LibreOffice. To add a month, add + and the new tab's cell. A text amount such as n/a makes + show #VALUE!. Text that looks like a number, such as $100 typed as text, is converted by + in LibreOffice but SUM skips it, so the plus and 3D totals then differ and B24 shows CHECK.",
+        "3. Summary C2: =SUM(Jan:Apr!B2). This is a 3D reference: it adds B2 on every tab from Jan to Apr, by tab position. In Excel a tab dragged between Jan and Apr is included and a tab outside them is not. SUM ignores text amounts. Google Sheets does not support 3D references, so column C shows an error there (see Google's help for Sheets). Do not rely on it if you use Sheets.",
+        "4. Summary A9:A20 and B9:D21: type each tab name in column A (yellow). B9 is =IF($A9=\"\",\"\",IF(ISERROR(INDIRECT(\"'\"&$A9&\"'!B2\")),\"Check sheet name\",INDIRECT(\"'\"&$A9&\"'!B2\"))). INDIRECT builds the cell address from text and, unlike a 3D reference, exists in Excel, Google Sheets and LibreOffice (we ran it in LibreOffice only). A misspelled tab name shows Check sheet name instead of #REF!.",
+        "5. INDIRECT reads the typed name. If you rename a tab, the plus and 3D formulas follow the new name in Excel, but the INDIRECT table keeps the old text and shows Check sheet name until you retype the name in column A.",
+        "6. Summary B23 shows OK when the plus totals equal the INDIRECT totals and every typed tab name returned numbers. B24 shows OK when the 3D totals equal the plus totals, or Not supported here when the app has no 3D reference.",
+        "7. Sums only. Sales, supplies and fees here are sample amounts, not bookkeeping or tax advice.",
+        "",
+        "The shop and the amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx. Column C will not calculate in Sheets.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-sum-across-monthly-sheets.xlsx")
+
+
+def outlier_order_amounts():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order ID", "Date", "Amount", "Flag"], [12, 13, 12, 18])
+    amounts = [42.50, 58.00, 49.99, 61.25, 37.00, 54.75, 68.00, 45.50, 52.00, 39.95,
+               500.00, 71.50, 48.00, 56.25, 63.00, 44.00, 50.00, 35.50, 59.90, 66.75,
+               4.90, 47.25, 53.50, 40.00, 57.00, 62.50, 46.00, 74.00, 51.25, 38.75]
+    last = 100
+    for r in range(2, last + 1):
+        i = r - 2
+        if i < len(amounts):
+            ws[f"A{r}"] = f"ORD-{4101 + i}"
+            ws[f"B{r}"] = date.fromordinal(date(2026, 9, 14).toordinal() + i)
+            ws[f"C{r}"] = amounts[i]
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+        ws[f"D{r}"] = (f'=IF(C{r}="","",IF(NOT(ISNUMBER(C{r})),"Check",IF(NOT(AND(ISNUMBER(Fences!$B$6),ISNUMBER(Fences!$B$7))),"Check",'
+                       f'IF(OR(C{r}>Fences!$B$6,C{r}<Fences!$B$7),"Review","OK"))))')
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"D{r}"].fill = FORMULA_FILL
+    amber = PatternFill("solid", bgColor="FFE699", fgColor="FFE699")
+    ws.conditional_formatting.add(f"A2:D{last}", FormulaRule(formula=['$D2="Review"'], fill=amber, font=Font(bold=True)))
+    ws.conditional_formatting.add(f"D2:D{last}", FormulaRule(formula=['$D2="Check"'], fill=ALERT_FILL))
+
+    fn = wb.create_sheet("Fences", 1)
+    fn.column_dimensions["A"].width = 52
+    fn.column_dimensions["B"].width = 16
+    fn.column_dimensions["C"].width = 50
+    amt = f"Orders!$C$2:$C${last}"
+    dflag = f"Orders!$D$2:$D${last}"
+    res = [
+        (1, "Q1 (25th percentile)", f'=IF(COUNT({amt})<4,"Need 4 amounts",QUARTILE({amt},1))', USD, "Formula: QUARTILE(Orders!C2:C100,1)"),
+        (2, "Q3 (75th percentile)", f'=IF(COUNT({amt})<4,"Need 4 amounts",QUARTILE({amt},3))', USD, "Formula: QUARTILE(Orders!C2:C100,3)"),
+        (3, "IQR (Q3 minus Q1)", '=IF(AND(ISNUMBER(B1),ISNUMBER(B2)),B2-B1,"")', USD, ""),
+        (4, "Multiplier (type it)", 1.5, "0.0", "Typed. 1.5 is the usual rule; 3 flags only the far ones."),
+        (5, "Amounts counted", f"=COUNT({amt})", "0", "Text and blank cells are not counted."),
+        (6, "Upper fence (Q3 + multiplier x IQR)", '=IF(AND(ISNUMBER(B2),ISNUMBER(B3),ISNUMBER(B4)),B2+B4*B3,"Check")', USD, "Above this: Review."),
+        (7, "Lower fence (Q1 - multiplier x IQR)", '=IF(AND(ISNUMBER(B1),ISNUMBER(B3),ISNUMBER(B4)),B1-B4*B3,"Check")', USD, "Below this: Review."),
+        (8, "Rows flagged Review", f'=COUNTIF({dflag},"Review")', "0", "Look at the row. Do not delete it."),
+        (9, "Rows OK", f'=COUNTIF({dflag},"OK")', "0", ""),
+        (10, "Rows Check (text amount or no fences)", f'=COUNTIF({dflag},"Check")', "0", ""),
+        (11, "Rows with an amount entry", f"=COUNTA({amt})", "0", ""),
+        (12, "Check: Review + OK + Check = rows with an entry", '=IF(B8+B9+B10=B11,"OK","CHECK")', "General", ""),
+        (14, "Mean plus or minus 2 standard deviations", None, "General", ""),
+        (15, "Mean", f'=IF(COUNT({amt})<2,"",AVERAGE({amt}))', USD, ""),
+        (16, "Standard deviation", f'=IF(COUNT({amt})<2,"",STDEV({amt}))', USD, ""),
+        (17, "Upper limit (mean + 2 x SD)", '=IF(ISNUMBER(B15),B15+2*B16,"")', USD, ""),
+        (18, "Lower limit (mean - 2 x SD)", '=IF(ISNUMBER(B15),B15-2*B16,"")', USD, "Can be below $0.00, so a tiny amount cannot fall under it."),
+        (19, "Amounts outside those limits", f'=IF(ISNUMBER(B17),COUNTIF({amt},">"&B17)+COUNTIF({amt},"<"&B18),"")', "0", "Compare with Rows flagged Review above."),
+    ]
+    for r, label, v, fmt, note in res:
+        fn[f"A{r}"] = label
+        fn[f"A{r}"].font = Font(bold=True, size=12 if r == 14 else 11)
+        if v is not None:
+            fn[f"B{r}"] = v
+            fn[f"B{r}"].number_format = fmt
+            fn[f"B{r}"].fill = INPUT_FILL if r == 4 else FORMULA_FILL
+            fn[f"B{r}"].alignment = Alignment(horizontal="right")
+        if note:
+            fn[f"C{r}"] = note
+    fn.conditional_formatting.add("B12", FormulaRule(formula=['B12<>"OK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Find Unusually High or Low Order Amounts",
+        "",
+        "1. Orders tab: paste or type orders in A to C (yellow). Rows 2 to 100 have a Flag formula ready. The 30 sample orders are fictional; two are typing slips on purpose ($500.00 meant as $50.00 and $4.90 meant as $49.00).",
+        "2. Fences tab: B1 is =QUARTILE(Orders!C2:C100,1) and B2 is =QUARTILE(Orders!C2:C100,3). B3 is the IQR, B2-B1. B4 is the multiplier you type (1.5).",
+        "3. B6 = B2+B4*B3 is the upper fence and B7 = B1-B4*B3 is the lower fence. QUARTILE here is the inclusive method (same as QUARTILE.INC).",
+        "4. Orders D2: =IF(C2=\"\",\"\",IF(NOT(ISNUMBER(C2)),\"Check\",IF(OR(C2>Fences!$B$6,C2<Fences!$B$7),\"Review\",\"OK\"))) plus a guard for missing fences. An amount equal to a fence is OK. Review means look at the row; it does not mean the amount is wrong.",
+        "5. Rows flagged Review are shaded amber by a conditional formatting rule on the Flag text. A text amount (such as $50 typed as text) shows Check and is not counted in the fences.",
+        "6. Fences B12 shows OK when Review + OK + Check equals the rows that have an amount entry.",
+        "7. Fences B14 to B19 repeat the check with mean plus or minus 2 standard deviations. In the sample, the $500.00 typo raises the standard deviation so much that the lower limit falls below $0.00, and $4.90 cannot be caught by that rule (B19 counts 1, B8 counts 2). Compare B19 with B8 on your own data.",
+        "8. With fewer than 4 numbers the fences show Need 4 amounts and every amount shows Check. If most amounts are equal, the IQR is 0 and any different amount is flagged.",
+        "9. The fences are a screen for typing slips, not a rule about which orders are real or good. Check the row against the order itself.",
+        "",
+        "Orders and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_area = "A1:D41"
+    wb.save(OUT / "tidy-tabs-outlier-order-amounts.xlsx")
+
+
+def roas_calculator():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Campaigns"
+    ws.column_dimensions["A"].width = 46
+    for col, w in zip("BCDEFGH", [13, 10, 13, 10, 14, 16, 20]):
+        ws.column_dimensions[col].width = w
+    ws["A1"], ws["B1"] = "Gross margin before ads", 0.40
+    ws["C1"] = "Typed: (price - product cost - fees) / price"
+    ws["A2"], ws["B2"] = "Break even ROAS", '=IF(AND(ISNUMBER(B1),B1>0,B1<=1),1/B1,"Check margin")'
+    ws["C2"] = "Formula: 1 / margin"
+    ws["A1"].font = ws["A2"].font = Font(bold=True)
+    ws["B1"].number_format = "0.0%"
+    ws["B2"].number_format = "0.00"
+    ws["B1"].fill = INPUT_FILL
+    ws["B2"].fill = FORMULA_FILL
+    for c in ("B1", "B2"):
+        ws[c].alignment = Alignment(horizontal="right")
+    for col, t in zip("ABCDEFGH", ["Campaign", "Ad spend", "Orders", "Sales", "ROAS", "Cost per order",
+                                   "Profit after ads", "Status"]):
+        c = ws[f"{col}4"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+    ws.row_dimensions[4].height = 30
+    camps = [
+        ("Etsy Ads, candles", 180.00, 31, 1240.00),
+        ("Facebook holiday gift sets", 420.00, 38, 1260.00),
+        ("Google Shopping, soap", 250.00, 29, 725.00),
+        ("Instagram reel boost", 150.00, 7, 245.00),
+        ("Pinterest pins, wraps", 90.00, 12, 450.00),
+        ("Etsy Ads, mugs", 120.00, 9, 300.00),
+        ("Farmers market flyers", 60.00, 0, 0.00),
+        ("Email sale announcement", 40.00, 22, 960.00),
+    ]
+    first, last = 5, 16
+    for r in range(first, last + 1):
+        if r - first < len(camps):
+            for col, v in zip("ABCD", camps[r - first]):
+                ws[f"{col}{r}"] = v
+        ws[f"E{r}"] = f'=IF(AND(ISNUMBER(B{r}),ISNUMBER(D{r}),B{r}>0),D{r}/B{r},"")'
+        ws[f"F{r}"] = f'=IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r}),C{r}>0),B{r}/C{r},"")'
+        ws[f"G{r}"] = f'=IF(AND(ISNUMBER(B{r}),ISNUMBER(D{r}),ISNUMBER($B$2)),D{r}*$B$1-B{r},"")'
+        ws[f"H{r}"] = (f'=IF(AND(B{r}="",C{r}="",D{r}=""),"",IF(NOT(ISNUMBER(G{r})),"Check",'
+                       f'IF(B{r}=0,"No spend",IF(ROUND(G{r},2)>=0,"Above break-even","Below break-even"))))')
+        for col, fmt in zip("BCD", [USD, "0", USD]):
+            ws[f"{col}{r}"].number_format = fmt
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].fill = INPUT_FILL
+        for col, fmt in zip("EFG", ["0.00", USD, USD]):
+            ws[f"{col}{r}"].number_format = fmt
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"H{r}"].fill = FORMULA_FILL
+    t = last + 1
+    ws[f"A{t}"] = "Total"
+    ws[f"B{t}"], ws[f"C{t}"], ws[f"D{t}"] = f"=SUM(B{first}:B{last})", f"=SUM(C{first}:C{last})", f"=SUM(D{first}:D{last})"
+    ws[f"E{t}"] = f'=IF(SUM(B{first}:B{last})>0,SUM(D{first}:D{last})/SUM(B{first}:B{last}),"")'
+    ws[f"F{t}"] = f'=IF(SUM(C{first}:C{last})>0,SUM(B{first}:B{last})/SUM(C{first}:C{last}),"")'
+    ws[f"G{t}"] = f"=SUM(G{first}:G{last})"
+    for col, fmt in zip("BCDEFG", [USD, "0", USD, "0.00", USD, USD]):
+        ws[f"{col}{t}"].number_format = fmt
+    for col in "ABCDEFGH":
+        ws[f"{col}{t}"].font = Font(bold=True)
+        ws[f"{col}{t}"].fill = FORMULA_FILL
+    ws[f"A{t + 2}"] = "Check: total profit = Sales x margin - Spend"
+    ws[f"A{t + 2}"].font = Font(bold=True)
+    ws[f"B{t + 2}"] = (f'=IF(NOT(ISNUMBER($B$2)),"Check margin",IF(COUNTIF(H{first}:H{last},"Check")>0,"CHECK",'
+                       f'IF(ABS(G{t}-(D{t}*$B$1-B{t}))<0.005,"OK","CHECK")))')
+    ws[f"B{t + 2}"].fill = FORMULA_FILL
+    ws[f"B{t + 2}"].alignment = Alignment(horizontal="right")
+    red = PatternFill("solid", bgColor="F8D7DA", fgColor="F8D7DA")
+    ws.conditional_formatting.add(f"A{first}:H{last}", FormulaRule(formula=[f'$H{first}="Below break-even"'], fill=red))
+    ws.conditional_formatting.add(f"H{first}:H{last}", FormulaRule(formula=[f'$H{first}="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add(f"B{t + 2}", FormulaRule(formula=[f'B{t + 2}<>"OK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Return on Ad Spend (ROAS) and Break Even ROAS",
+        "",
+        "1. Campaigns tab, B1: your gross margin before ads as a percent, typed. Work it out from price, product cost and selling fees: (price - cost - fees) / price. The 40% here is a made-up example.",
+        "2. B2 is the break even ROAS, =1/B1. At a 40% margin every $1.00 of ads must bring back $2.50 in sales just to cover the product cost, fees and the ad spend. A margin of 0 or below, above 100%, or text shows Check margin.",
+        "3. Rows 5 to 16: one campaign per row. Type the ad spend (B), the orders (C) and the sales (D) from the ad report. They are yellow.",
+        "4. ROAS E5 =D5/B5. Cost per order F5 =B5/C5. Profit after ads G5 =D5*$B$1-B5. A row with no spend leaves ROAS blank instead of showing #DIV/0!, and its status is No spend.",
+        "5. Status H5: Above break-even when profit after ads rounds to $0.00 or more, Below break-even when it is less. Check means the spend or sales is blank or text, or the margin is not valid. Orders (C) are used only for cost per order.",
+        "6. Total row 17: overall ROAS is total sales divided by total spend. B19 shows OK when total profit equals total sales x margin minus total spend, and CHECK when any row needs checking.",
+        "7. This is arithmetic only. It does not say what a good ROAS is, and it ignores returns, shipping, taxes and the time between a click and a sale. Ad platforms count orders and sales in their own ways; follow the platform's report.",
+        "",
+        "Campaigns, spend and sales are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Campaigns"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-roas-calculator.xlsx")
+
+
+def pareto_top_products():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Products"
+    header(ws, ["Product", "Revenue", "Share of sales", "Cumulative share", "Group"], [26, 14, 14, 16, 10])
+    prods = [
+        ("Soy candle, 8 oz", 12480.00), ("Lavender soap bar", 9860.50), ("Holiday gift set", 7420.00),
+        ("Beeswax food wrap", 5310.25), ("Linen tote bag", 3890.00), ("Ceramic mug", 2675.50),
+        ("Wool dryer balls", 1980.00), ("Hand cream, 2 oz", 1450.75), ("Cedar sachet", 1120.00),
+        ("Bath salts, 12 oz", 860.50), ("Lip balm 3-pack", 640.00), ("Wick trimmer", 455.25),
+        ("Candle sampler", 310.00), ("Match box", 215.50), ("Soap dish", 142.00),
+    ]
+    last = 40
+    tot = f"SUM($B$2:$B${last})"
+    for r in range(2, last + 1):
+        if r - 2 < len(prods):
+            ws[f"A{r}"], ws[f"B{r}"] = prods[r - 2]
+        ws[f"B{r}"].number_format = USD
+        ws[f"C{r}"] = f'=IF(OR(B{r}="",NOT(ISNUMBER(B{r})),{tot}<=0),"",B{r}/{tot})'
+        ws[f"D{r}"] = f'=IF(OR(B{r}="",NOT(ISNUMBER(B{r})),{tot}<=0),"",SUM($B$2:B{r})/{tot})'
+        ws[f"E{r}"] = (f'=IF(B{r}="","",IF(OR(NOT(ISNUMBER(B{r})),{tot}<=0,NOT(ISNUMBER(Summary!$B$1))),"Check",'
+                       f'IF(SUM($B$1:B{r - 1})/{tot}<Summary!$B$1,"Top","Rest")))')
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = "0.0%"
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    green = PatternFill("solid", bgColor="E2F0D9", fgColor="E2F0D9")
+    ws.conditional_formatting.add(f"A2:E{last}", FormulaRule(formula=['$E2="Top"'], fill=green))
+    ws.conditional_formatting.add(f"E2:E{last}", FormulaRule(formula=['$E2="Check"'], fill=ALERT_FILL))
+
+    sm = wb.create_sheet("Summary", 1)
+    sm.column_dimensions["A"].width = 50
+    sm.column_dimensions["B"].width = 18
+    rev = f"Products!$B$2:$B${last}"
+    grp = f"Products!$E$2:$E${last}"
+    res = [
+        ("Cut line (share of sales, type it)", 0.8, "0%"),
+        ("Products listed", f"=COUNT({rev})", "0"),
+        ("Products in the Top group", f'=COUNTIF({grp},"Top")', "0"),
+        ("Share of products in Top", '=IF(B2>0,B3/B2,"")', "0.0%"),
+        ("Share of revenue in Top", f'=IF(SUM({rev})>0,SUMIF({grp},"Top",{rev})/SUM({rev}),"")', "0.0%"),
+        ("Sorted check", f'=IF(SUMPRODUCT(--(Products!$B$2:$B${last - 1}<Products!$B$3:$B${last}))=0,"Sorted","Sort largest first")', "General"),
+        ("Rows to check (text or negative revenue)", f'=COUNTIF({grp},"Check")', "0"),
+        ("Total revenue", f"=SUM({rev})", USD),
+        ("Check: groups cover every product, shares add to 100%",
+         f'=IF(NOT(ISNUMBER(B1)),"Check settings",IF(AND(B6="Sorted",B7=0,B2=B3+COUNTIF({grp},"Rest"),'
+         f'ABS(SUM(Products!$C$2:$C${last})-1)<0.000001),"OK","CHECK"))', "General"),
+    ]
+    for i, (label, v, fmt) in enumerate(res, start=1):
+        sm[f"A{i}"], sm[f"B{i}"] = label, v
+        sm[f"A{i}"].font = Font(bold=True)
+        sm[f"B{i}"].number_format = fmt
+        sm[f"B{i}"].alignment = Alignment(horizontal="right")
+        sm[f"B{i}"].fill = INPUT_FILL if i == 1 else FORMULA_FILL
+    sm.conditional_formatting.add("B9", FormulaRule(formula=['B9<>"OK"'], fill=ALERT_FILL))
+    sm.conditional_formatting.add("B6", FormulaRule(formula=['B6<>"Sorted"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Find the Products That Make Up 80 Percent of Sales",
+        "",
+        "1. Products tab: type or paste the product and its revenue (A and B, yellow). Sort the table largest revenue first: select A1:B40 and use Data > Sort on Revenue, largest to smallest. Rows 2 to 40 have formulas ready.",
+        "2. Share C2 =B2/SUM($B$2:$B$40). Cumulative D2 =SUM($B$2:B2)/SUM($B$2:$B$40) is the running share of total revenue.",
+        "3. Group E2 =IF(SUM($B$1:B1)/SUM($B$2:$B$40)<Summary!$B$1,\"Top\",\"Rest\"). A product is Top while the revenue above it is still under the cut line (80%), so the product that crosses 80% is the last one in Top. A product that lands on exactly 80.0% is Top, and the next one is Rest. SUM of the header row above row 2 is 0.",
+        "4. Summary B1 is the cut line (yellow). B3 counts Top products, B4 is their share of the product count, B5 is their share of revenue (at or above the cut line).",
+        "5. Summary B6 says Sorted or Sort largest first. If it says Sort largest first, the groups are wrong until you sort.",
+        "6. A text revenue or a negative revenue (a refund) shows Check in Group. Text is left out of the total; a negative number is in the total, so fix it before reading the groups. Summary B9 shows OK only when sorted, nothing to check, and the shares add to 100%.",
+        "7. The 80/20 split is a rule of thumb. Real shops rarely land exactly on 80 and 20. Use the Top group to decide what to restock or promote; the sheet does not say why a product sells.",
+        "8. No chart is included. The In-cell bars template shows how to draw bars with REPT.",
+        "",
+        "Products and revenue are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Products"].print_area = "A1:E41"
+    wb.save(OUT / "tidy-tabs-pareto-top-products.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -5429,4 +5861,9 @@ if __name__ == "__main__":
     sum_with_or()
     fill_blanks_above()
     mailing_labels()
+    months_to_pay_off()
+    sum_across_monthly_sheets()
+    outlier_order_amounts()
+    roas_calculator()
+    pareto_top_products()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

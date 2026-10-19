@@ -107,3 +107,10 @@
 - How to Sum Sales From Either of Two Channels (OR Logic) in Excel and Google Sheets - `sum-with-or-condition-two-channels-sumproduct-excel-google-sheets`
 - How to Fill Blank Cells With the Value Above in Excel and Google Sheets - `fill-blank-cells-with-value-above-excel-google-sheets`
 - How to Make Mailing Labels From an Address List in Excel and Google Sheets - `mailing-labels-3-across-from-address-list-index-row-column-excel-google-sheets`
+
+## 2026-10-20 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice Calc 24.2 에서 확인)
+- How to Calculate How Many Months It Will Take to Pay Off a Balance in Excel and Google Sheets - `months-to-pay-off-equipment-balance-nper-excel-google-sheets`
+- How to Add the Same Cell Across Monthly Sheets in Excel and Google Sheets - `sum-same-cell-across-monthly-sheets-3d-sum-indirect-excel-google-sheets`
+- How to Find Unusually High or Low Order Amounts in Excel and Google Sheets - `find-outlier-order-amounts-quartile-iqr-excel-google-sheets`
+- How to Calculate Return on Ad Spend (ROAS) and Break Even ROAS in Excel and Google Sheets - `return-on-ad-spend-roas-break-even-excel-google-sheets`
+- How to Find the Products That Make Up 80 Percent of Your Sales in Excel and Google Sheets - `pareto-80-20-top-products-cumulative-percent-excel-google-sheets`

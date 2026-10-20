@@ -355,7 +355,26 @@ def heroes_2026_10_20():
          render(short_sheet_copy(t + "tidy-tabs-pareto-top-products.xlsx", "Products", 16, "pareto"), "Products", name="pareto"))
 
 
+def heroes_2026_10_21():
+    t = "templates/"
+    d = "images/2026-10-21-team-0%d-%s/"
+    save(d % (1, "average-annual-sales-growth-cagr-rri-excel-google-sheets") + "annual-growth-rate-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-annual-growth-rate.xlsx", "Growth", 10, "growth"), "Growth", hide_cols="F", name="growth"))
+    save(d % (2, "count-orders-by-dollar-size-range-countifs-frequency-excel-google-sheets") + "order-size-ranges-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-order-size-ranges.xlsx", "Ranges", 8, "sizeranges"), "Ranges", name="sizeranges"))
+    save(d % (3, "price-in-effect-on-order-date-price-history-lookup-excel-google-sheets") + "price-in-effect-on-order-date-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-price-by-effective-date.xlsx", "Orders", 14, "priceorders"), "Orders", hide_cols="FG", name="priceorders"),
+         render(short_sheet_copy(t + "tidy-tabs-price-by-effective-date.xlsx", "Prices", 14, "priceprices"), "Prices", hide_cols="D", name="priceprices"))
+    save(d % (4, "how-many-batches-from-materials-on-hand-min-int-excel-google-sheets") + "batches-from-materials-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-batches-from-materials.xlsx", "Materials", 15, "batchmat"), "Materials", name="batchmat"))
+    save(d % (5, "appointment-schedule-end-times-gaps-buffer-excel-google-sheets") + "appointment-schedule-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-appointment-schedule.xlsx", "Schedule", 12, "appts"), "Schedule", hide_cols="HIJKL", name="appts"))
+
+
 def main():
+    if "--only-2026-10-21" in sys.argv:
+        heroes_2026_10_21()
+        return
     if "--only-2026-10-20" in sys.argv:
         heroes_2026_10_20()
         return

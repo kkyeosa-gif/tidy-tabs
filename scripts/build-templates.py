@@ -5779,6 +5779,567 @@ def pareto_top_products():
     wb.save(OUT / "tidy-tabs-pareto-top-products.xlsx")
 
 
+def _style_inputs(ws, cells):
+    for c in cells:
+        ws[c].fill = INPUT_FILL
+
+
+def _ok_format(ws, cell):
+    ws.conditional_formatting.add(cell, FormulaRule(formula=[f'AND({cell}<>"OK",{cell}<>"")'], fill=ALERT_FILL))
+
+
+def annual_growth_rate():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Growth"
+    for col, w in zip("ABCDEF", [10, 16, 3, 42, 16, 52]):
+        ws.column_dimensions[col].width = w
+    for col, t in zip("AB", ["Year", "Sales"]):
+        c = ws[f"{col}1"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+    sales = [(2022, 12000.00), (2023, 14200.00), (2024, 15900.00), (2025, 19100.00), (2026, 21500.00)]
+    for r in range(2, 12):
+        if r - 2 < len(sales):
+            ws[f"A{r}"], ws[f"B{r}"] = sales[r - 2]
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = "0"
+        ws[f"B{r}"].number_format = USD
+    rows = [
+        (1, "Start year (typed)", 2022, "0", True, "Must match a year in column A."),
+        (2, "End year (typed)", 2026, "0", True, ""),
+        (3, "Periods (years between)", '=IF(AND(ISNUMBER(E1),ISNUMBER(E2)),E2-E1,"Check inputs")', "0", False,
+         "End year minus start year, not the number of rows."),
+        (4, "Start year sales", '=IF(ISNUMBER(E1),IFERROR(INDEX($B$2:$B$11,MATCH(E1,$A$2:$A$11,0)),"Check inputs"),"Check inputs")', USD, False, ""),
+        (5, "End year sales", '=IF(ISNUMBER(E2),IFERROR(INDEX($B$2:$B$11,MATCH(E2,$A$2:$A$11,0)),"Check inputs"),"Check inputs")', USD, False, ""),
+        (6, "Average yearly growth (RRI)",
+         '=IF(OR(NOT(ISNUMBER(E3)),NOT(ISNUMBER(E4)),NOT(ISNUMBER(E5))),"Check inputs",'
+         'IF(OR(E4<=0,E3<1,E5<0),"Check inputs",_xlfn.RRI(E3,E4,E5)))', "0.00%", False,
+         "Formula: =RRI(E3,E4,E5), plus guards"),
+        (7, "Same rate with the power form", '=IF(ISNUMBER(E6),(E5/E4)^(1/E3)-1,"Check inputs")', "0.00%", False,
+         "Formula: =(E5/E4)^(1/E3)-1"),
+        (8, "Total growth, first to last", '=IF(ISNUMBER(E6),E5/E4-1,"")', "0.00%", False, ""),
+        (9, "End sales rebuilt from the rate", '=IF(ISNUMBER(E6),E4*(1+E6)^E3,"")', USD, False,
+         "Formula: =E4*(1+E6)^E3"),
+        (10, "Check: rebuilt end sales = real end sales",
+         '=IF(NOT(ISNUMBER(E6)),"No result",IF(AND(ABS(E9-E5)<0.005,ABS(E6-E7)<0.0000001),"OK","CHECK"))',
+         "General", False, "OK when both forms agree and the rebuild matches to the cent."),
+    ]
+    for r, label, v, fmt, inp, note in rows:
+        ws[f"D{r}"] = label
+        ws[f"D{r}"].font = Font(bold=True)
+        ws[f"E{r}"] = v
+        ws[f"E{r}"].number_format = fmt
+        ws[f"E{r}"].fill = INPUT_FILL if inp else FORMULA_FILL
+        ws[f"E{r}"].alignment = Alignment(horizontal="right")
+        if note:
+            ws[f"F{r}"] = note
+    _ok_format(ws, "E10")
+    ws.conditional_formatting.add("E6", FormulaRule(formula=['NOT(ISNUMBER(E6))'], fill=ALERT_FILL))
+
+    ck = wb.create_sheet("Check")
+    header(ck, ["Year", "Sales", "Change vs year before", "Sales at the average rate", "Real minus average rate"],
+           [10, 16, 20, 24, 24])
+    for r in range(2, 12):
+        ck[f"A{r}"] = f'=IF(Growth!A{r}="","",Growth!A{r})'
+        ck[f"B{r}"] = f'=IF(OR(Growth!A{r}="",Growth!B{r}=""),"",Growth!B{r})'
+        if r == 2:
+            ck[f"C{r}"] = ""
+        else:
+            ck[f"C{r}"] = f'=IF(AND(ISNUMBER(B{r}),ISNUMBER(B{r - 1})),IF(B{r - 1}>0,B{r}/B{r - 1}-1,""),"")'
+        ck[f"D{r}"] = (f'=IF(AND(ISNUMBER(Growth!$E$6),ISNUMBER(A{r}),ISNUMBER(Growth!$E$1),ISNUMBER(Growth!$E$2)),'
+                       f'IF(AND(A{r}>=Growth!$E$1,A{r}<=Growth!$E$2),IF(A{r}=Growth!$E$1,Growth!$E$4,Growth!$E$4*(1+Growth!$E$6)^(A{r}-Growth!$E$1)),""),"")')
+        ck[f"E{r}"] = f'=IF(AND(ISNUMBER(D{r}),ISNUMBER(B{r})),B{r}-D{r},"")'
+        ck[f"A{r}"].number_format = "0"
+        ck[f"B{r}"].number_format = ck[f"D{r}"].number_format = ck[f"E{r}"].number_format = USD
+        ck[f"C{r}"].number_format = "0.0%"
+        for col in "ABCDE":
+            ck[f"{col}{r}"].fill = FORMULA_FILL
+    ck["A13"], ck["B13"] = "Best single year", '=IF(COUNT(C2:C11)=0,"",MAX(C2:C11))'
+    ck["A14"], ck["B14"] = "Weakest single year", '=IF(COUNT(C2:C11)=0,"",MIN(C2:C11))'
+    ck["B13"].number_format = ck["B14"].number_format = "0.0%"
+    ck["A13"].font = ck["A14"].font = Font(bold=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Average Yearly Sales Growth (CAGR) With RRI",
+        "",
+        "1. Growth tab: type each year in column A and its sales in column B (yellow, up to 10 years in rows 2 to 11). Type the start year in E1 and the end year in E2. Both must appear in column A.",
+        "2. E3 is the number of periods, =E2-E1. Four years of growth between 2022 and 2026, not five: count the gaps, not the years listed.",
+        "3. E4 and E5 pick the start and end sales with INDEX and MATCH on the year.",
+        "4. E6 is =RRI(E3,E4,E5). RRI takes the number of periods, the start value and the end value and returns the growth rate per period. Excel and Google Sheets have RRI. In this file it is stored as _xlfn.RRI, which Excel and LibreOffice read as RRI.",
+        "5. E7 gives the same answer with =(E5/E4)^(1/E3)-1. E8 is the total growth from first to last year. E9 grows the start sales at the E6 rate for E3 years; E10 shows OK when E9 equals the real end sales to the cent.",
+        "6. A start of 0 or less, an end below 0, fewer than 1 period (same year, or years reversed), a year that is not in column A, or text in a year or sales cell shows Check inputs instead of #NUM!. An end of 0 gives -100.00%.",
+        "7. Check tab: the change from each year to the one before, and what each year would be if sales grew at the average rate. One average rate hides uneven years: compare columns C and E.",
+        "8. This is arithmetic on past sales. It is not a forecast and does not say what a good rate is.",
+        "",
+        "Years and sales are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Growth"].print_title_rows = None
+    wb["Growth"].print_area = "A1:F12"
+    wb["Check"].print_area = "A1:E14"
+    wb.save(OUT / "tidy-tabs-annual-growth-rate.xlsx")
+
+
+def order_size_ranges():
+    from openpyxl.worksheet.formula import ArrayFormula
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order ID", "Date", "Amount"], [12, 13, 12])
+    amts = [12.00, 24.00, 36.50, 8.00, 52.00, 25.00, 18.50, 74.00, 4.00, 31.00,
+            140.00, 22.00, 49.99, 60.00, 15.00, 28.50, 50.00, 9.00, 87.50, 19.99,
+            33.00, 41.00, 100.00, 14.00, 26.00, 65.00, 11.00, 38.00, 125.00, 20.00,
+            45.00, 6.50, 55.00, 17.00, 29.00, 72.00, 23.50, 98.00, 13.00, 35.00]
+    assert len(amts) == 40
+    start = date(2026, 9, 1).toordinal()
+    for i in range(2, 201):
+        if i - 2 < len(amts):
+            ws[f"A{i}"] = f"ORD-{5001 + i - 2}"
+            ws[f"B{i}"] = date.fromordinal(start + (i - 2))
+            ws[f"C{i}"] = amts[i - 2]
+        for col in "ABC":
+            ws[f"{col}{i}"].fill = INPUT_FILL
+        ws[f"B{i}"].number_format = US_DATE
+        ws[f"C{i}"].number_format = USD
+    ws.print_area = "A1:C41"
+
+    rg = wb.create_sheet("Ranges", 1)
+    heads = ["From (typed)", "Up to, not including", "Range", "Orders", "Sales in range", "Share of orders",
+             "Share of sales"]
+    for col, t, w in zip("ABCDEFG", heads, [14, 20, 26, 10, 16, 14, 14]):
+        c = rg[f"{col}1"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+        rg.column_dimensions[col].width = w
+    rg.row_dimensions[1].height = 32
+    amt = "Orders!$C$2:$C$200"
+    limits = [0, 25, 50, 100]
+    for k, r in enumerate(range(2, 6)):
+        rg[f"A{r}"] = limits[k]
+        rg[f"A{r}"].fill = INPUT_FILL
+        rg[f"A{r}"].number_format = USD
+        if r < 5:
+            rg[f"B{r}"] = f"=A{r + 1}"
+            rg[f"C{r}"] = f'=IF(AND(ISNUMBER(A{r}),ISNUMBER(B{r})),TEXT(A{r},"$#,##0.00")&" up to "&TEXT(B{r},"$#,##0.00"),"")'
+            rg[f"D{r}"] = f'=COUNTIFS({amt},">="&A{r},{amt},"<"&B{r})'
+            rg[f"E{r}"] = f'=SUMIFS({amt},{amt},">="&A{r},{amt},"<"&B{r})'
+        else:
+            rg[f"B{r}"] = "and up"
+            rg[f"C{r}"] = f'=IF(ISNUMBER(A{r}),TEXT(A{r},"$#,##0.00")&" and up","")'
+            rg[f"D{r}"] = f'=COUNTIFS({amt},">="&A{r})'
+            rg[f"E{r}"] = f'=SUMIFS({amt},{amt},">="&A{r})'
+        rg[f"B{r}"].number_format = USD
+    rg["A6"], rg["B6"] = "Below", "=A2"
+    rg["B6"].number_format = USD
+    rg["C6"] = '=IF(ISNUMBER(A2),"Below "&TEXT(A2,"$#,##0.00"),"")'
+    rg["D6"] = f'=COUNTIFS({amt},"<"&A2)'
+    rg["E6"] = f'=SUMIFS({amt},{amt},"<"&A2)'
+    rg["A7"] = "Total"
+    rg["D7"], rg["E7"] = "=SUM(D2:D6)", "=SUM(E2:E6)"
+    for r in range(2, 8):
+        rg[f"F{r}"] = f'=IF($D$7>0,D{r}/$D$7,"")'
+        rg[f"G{r}"] = f'=IF($E$7<>0,E{r}/$E$7,"")'
+        rg[f"E{r}"].number_format = USD
+        rg[f"F{r}"].number_format = rg[f"G{r}"].number_format = "0.0%"
+        for col in "BCDEFG":
+            rg[f"{col}{r}"].fill = FORMULA_FILL
+    rg["A6"].fill = rg["A7"].fill = FORMULA_FILL
+    for col in "ABCDEFG":
+        rg[f"{col}7"].font = Font(bold=True)
+
+    summ = [
+        (9, "Numeric amounts on Orders", f"=COUNT({amt})", "0"),
+        (10, "Text amounts (not counted)", f"=COUNTA({amt})-B9", "0"),
+        (11, "Limits typed in order", '=IF(AND(COUNT(A2:A5)=4,A2<A3,A3<A4,A4<A5),"OK","Check limits")', "General"),
+        (12, "Sales on Orders", f"=SUM({amt})", USD),
+        (13, "Check: ranges add up to the orders list",
+         '=IF(AND(B11="OK",B10=0,D7=B9,ABS(E7-B12)<0.005,COUNTIF(E18:E22,"OK")=5),"OK","CHECK")', "General"),
+    ]
+    for r, label, f, fmt in summ:
+        rg[f"A{r}"] = label
+        rg[f"A{r}"].font = Font(bold=True)
+        rg[f"B{r}"] = f
+        rg[f"B{r}"].number_format = fmt
+        rg[f"B{r}"].fill = FORMULA_FILL
+        rg[f"B{r}"].alignment = Alignment(horizontal="right")
+    rg.column_dimensions["A"].width = 38
+    _ok_format(rg, "B13")
+    rg.conditional_formatting.add("B11", FormulaRule(formula=['B11<>"OK"'], fill=ALERT_FILL))
+    rg["A15"] = "Optional cross-check with FREQUENCY (array formula in C18:C22; amounts in whole cents)"
+    rg["A15"].font = Font(bold=True)
+    for col, t in zip("ABCDE", ["Bin top (limit minus $0.01)", "Range", "FREQUENCY", "COUNTIFS", "Same?"]):
+        c = rg[f"{col}17"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+    rg.row_dimensions[17].height = 32
+    maps = [(18, "A2", "C6", "D6"), (19, "A3", "C2", "D2"), (20, "A4", "C3", "D3"), (21, "A5", "C4", "D4")]
+    for r, lim, lab, cnt in maps:
+        rg[f"A{r}"] = f'=IF(ISNUMBER({lim}),ROUND({lim}-0.01,2),0)'
+        rg[f"B{r}"] = f"={lab}"
+        rg[f"D{r}"] = f"={cnt}"
+        rg[f"A{r}"].number_format = USD
+    rg["B22"], rg["D22"] = "=C5", "=D5"
+    rg["C18"] = ArrayFormula("C18:C22", f'=IF(COUNT({amt})=0,0,IFERROR(FREQUENCY({amt},A18:A21),""))')
+    for r in range(18, 23):
+        rg[f"E{r}"] = f'=IF(C{r}=D{r},"OK","Differs")'
+        for col in "ABCDE":
+            rg[f"{col}{r}"].fill = FORMULA_FILL
+    rg.conditional_formatting.add("E18:E22", FormulaRule(formula=['E18="Differs"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Count Orders by Dollar Amount Range With COUNTIFS",
+        "",
+        "1. Orders tab: one row per order, amount in column C (yellow, rows 2 to 200). Amounts only, no $ typed as text.",
+        "2. Ranges tab, A2:A5: type the lower limit of each range (yellow). Keep them in ascending order. B2:B4 take the next row's limit; the last range has no upper limit.",
+        "3. Orders in a range: =COUNTIFS(Orders!$C$2:$C$200,\">=\"&A2,Orders!$C$2:$C$200,\"<\"&B2). The range includes its lower limit and stops just before the upper one, so an order of exactly $25.00 counts in the range that starts at $25.00, never in two ranges.",
+        "4. Sales in the range use SUMIFS with the same two tests (column E). Shares in F and G are the range divided by the total.",
+        "5. Row 6 counts everything below the first limit, such as a $0.00 order or a negative refund, so no order is lost. Row 7 is the total.",
+        "6. B13 shows OK when the limits are in order, no amount is text, the counts add up to the numeric amounts on Orders, the sales add up to the sum of the Orders column, and the FREQUENCY cross-check agrees with COUNTIFS in every range.",
+        "7. The FREQUENCY cross-check (C18:C22) is an array formula. FREQUENCY counts values up to and including each bin, so each bin top is the limit minus $0.01, which assumes amounts in whole cents. Excel older than 365 needs Ctrl+Shift+Enter for array formulas; the cross-check is optional.",
+        "8. COUNTIFS skips text amounts and blank cells. A text amount makes B10 more than 0 and B13 shows CHECK.",
+        "9. Counts only: this says how many orders fall in each range in this sample, not what a good mix is.",
+        "",
+        "Orders and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Ranges"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-order-size-ranges.xlsx")
+
+
+def price_by_effective_date():
+    wb = Workbook()
+    pr = wb.active
+    pr.title = "Prices"
+    header(pr, ["Product", "Effective date", "New price", "Row check"], [26, 15, 12, 14])
+    hist = [
+        ("Cold Brew Pack", date(2026, 1, 1), 36.00), ("Cold Brew Pack", date(2026, 6, 1), 38.00),
+        ("Cold Brew Pack", date(2026, 10, 1), 39.50),
+        ("Dark Roast", date(2025, 1, 1), 43.00), ("Dark Roast", date(2026, 3, 1), 45.50),
+        ("Decaf Blend", date(2025, 1, 1), 48.00), ("Decaf Blend", date(2025, 9, 1), 49.50),
+        ("Decaf Blend", date(2026, 3, 1), 51.00), ("Decaf Blend", date(2026, 9, 1), 52.50),
+        ("Espresso Blend", date(2025, 1, 1), 45.00), ("Espresso Blend", date(2025, 7, 1), 46.75),
+        ("House Blend", date(2025, 1, 1), 42.00), ("House Blend", date(2025, 7, 1), 44.50),
+        ("House Blend", date(2026, 3, 1), 46.00),
+        ("Single Origin Ethiopia", date(2025, 6, 1), 58.00), ("Single Origin Ethiopia", date(2026, 4, 1), 61.00),
+    ]
+    for r in range(2, 41):
+        if r - 2 < len(hist):
+            pr[f"A{r}"], pr[f"B{r}"], pr[f"C{r}"] = hist[r - 2]
+        pr[f"D{r}"] = (f'=IF(AND(A{r}="",B{r}="",C{r}=""),"",IF(NOT(AND(A{r}<>"",ISNUMBER(B{r}),ISNUMBER(C{r}))),"Check",'
+                       f'IF(AND(A{r - 1}=A{r},ISNUMBER(B{r - 1})),IF(B{r}<B{r - 1},"Check order",IF(B{r}=B{r - 1},"Same day","OK")),"OK")))')
+        pr[f"B{r}"].number_format = US_DATE
+        pr[f"C{r}"].number_format = USD
+        for col in "ABC":
+            pr[f"{col}{r}"].fill = INPUT_FILL
+        pr[f"D{r}"].fill = FORMULA_FILL
+    pr.conditional_formatting.add("D2:D40", FormulaRule(formula=['OR(D2="Check",D2="Check order")'], fill=ALERT_FILL))
+    pr.print_area = "A1:D41"
+
+    od = wb.create_sheet("Orders", 1)
+    header(od, ["Order date", "Product", "Qty", "Price in effect", "Line total"], [13, 26, 8, 16, 14])
+    orders = [
+        (date(2025, 12, 15), "Dark Roast", 4), (date(2025, 1, 1), "Dark Roast", 2),
+        (date(2025, 6, 30), "House Blend", 6), (date(2025, 7, 1), "House Blend", 6),
+        (date(2026, 2, 28), "Dark Roast", 3), (date(2026, 3, 1), "Dark Roast", 3),
+        (date(2026, 3, 1), "House Blend", 5), (date(2026, 2, 27), "House Blend", 5),
+        (date(2025, 3, 15), "Single Origin Ethiopia", 2), (date(2025, 6, 1), "Single Origin Ethiopia", 2),
+        (date(2026, 4, 2), "Single Origin Ethiopia", 3), (date(2026, 1, 1), "Cold Brew Pack", 10),
+        (date(2025, 11, 20), "Cold Brew Pack", 8), (date(2026, 7, 14), "Cold Brew Pack", 12),
+        (date(2026, 10, 1), "Cold Brew Pack", 12), (date(2025, 8, 31), "Decaf Blend", 4),
+        (date(2025, 9, 1), "Decaf Blend", 4), (date(2026, 8, 31), "Decaf Blend", 5),
+        (date(2026, 9, 1), "Decaf Blend", 5), (date(2026, 10, 12), "Decaf Blend", 6),
+        (date(2025, 5, 5), "Espresso Blend", 7), (date(2025, 7, 15), "Espresso Blend", 7),
+        (date(2026, 10, 9), "Espresso Blend", 9), (date(2025, 2, 10), "House Blend", 3),
+        (date(2025, 9, 9), "House Blend", 8), (date(2026, 5, 18), "House Blend", 8),
+        (date(2025, 4, 22), "Dark Roast", 5), (date(2026, 9, 30), "Dark Roast", 6),
+        (date(2026, 8, 15), "Cold Brew Pack", 6), (date(2026, 6, 1), "Cold Brew Pack", 4),
+    ]
+    assert len(orders) == 30
+    P = "Prices!"
+    for r in range(2, 201):
+        if r - 2 < len(orders):
+            od[f"A{r}"], od[f"B{r}"], od[f"C{r}"] = orders[r - 2]
+        od[f"D{r}"] = (f'=IF(AND(A{r}="",B{r}=""),"",IF(OR(NOT(ISNUMBER(A{r})),B{r}=""),"Check",'
+                       f'IFERROR(LOOKUP(2,1/(({P}$A$2:$A$40=B{r})*({P}$B$2:$B$40<=A{r})*ISNUMBER({P}$B$2:$B$40)*ISNUMBER({P}$C$2:$C$40)),{P}$C$2:$C$40),"No price yet")))')
+        od[f"E{r}"] = f'=IF(ISNUMBER(D{r}),IF(ISNUMBER(C{r}),C{r}*D{r},"Check"),"")'
+        od[f"A{r}"].number_format = US_DATE
+        od[f"D{r}"].number_format = od[f"E{r}"].number_format = USD
+        for col in "ABC":
+            od[f"{col}{r}"].fill = INPUT_FILL
+        od[f"D{r}"].fill = od[f"E{r}"].fill = FORMULA_FILL
+    od.conditional_formatting.add("D2:E200", FormulaRule(formula=['OR(D2="Check",D2="No price yet",E2="Check")'], fill=ALERT_FILL))
+    od.print_area = "A1:E41"
+
+    od.column_dimensions["G"].width = 3
+    od.column_dimensions["H"].width = 40
+    od.column_dimensions["I"].width = 16
+    for col in "HI":
+        od[f"{col}1"].fill = HEADER_FILL
+        od[f"{col}1"].font = HEADER_FONT
+    od["H1"], od["I1"] = "Summary", "Value"
+    rows_used = 'SUMPRODUCT(--((A2:A200<>"")+(B2:B200<>"")>0))'
+    summ = [
+        (2, "Orders priced", "=COUNT(E2:E200)", "0"),
+        (3, "Orders with No price yet", '=COUNTIF(D2:D200,"No price yet")', "0"),
+        (4, "Order rows to check", '=COUNTIF(D2:D200,"Check")+COUNTIF(E2:E200,"Check")', "0"),
+        (5, "Price rows to check", '=COUNTIF(Prices!D2:D40,"Check")+COUNTIF(Prices!D2:D40,"Check order")', "0"),
+        (6, "Total of line totals", "=SUM(E2:E200)", USD),
+        (7, "Check: every order row is priced, flagged or No price yet",
+         f'=IF(AND({rows_used}=COUNT(E2:E200)+COUNTIF(E2:E200,"Check")+COUNTIF(D2:D200,"No price yet")+COUNTIF(D2:D200,"Check"),I5=0),"OK","CHECK")',
+         "General"),
+    ]
+    for r, label, f, fmt in summ:
+        od[f"H{r}"] = label
+        od[f"H{r}"].font = Font(bold=True)
+        od[f"I{r}"] = f
+        od[f"I{r}"].number_format = fmt
+        od[f"I{r}"].fill = FORMULA_FILL
+        od[f"I{r}"].alignment = Alignment(horizontal="right")
+    _ok_format(od, "I7")
+    od["H9"] = "One product with INDEX and MATCH (Cold Brew Pack, Prices rows 2 to 4)"
+    od["H9"].font = Font(bold=True)
+    od["H10"], od["I10"] = "Order date (typed)", date(2026, 8, 15)
+    od["I10"].number_format = US_DATE
+    od["I10"].fill = INPUT_FILL
+    od["H11"] = "Price in effect (INDEX and MATCH)"
+    od["I11"] = '=IF(NOT(ISNUMBER(I10)),"Check",IFERROR(INDEX(Prices!$C$2:$C$4,MATCH(I10,Prices!$B$2:$B$4,1)),"No price yet"))'
+    od["H12"] = "Dates sorted oldest first?"
+    od["I12"] = '=IF(AND(Prices!B2<=Prices!B3,Prices!B3<=Prices!B4),"Sorted","Not sorted")'
+    od["I11"].number_format = USD
+    for c in ("I11", "I12"):
+        od[c].fill = FORMULA_FILL
+        od[c].alignment = Alignment(horizontal="right")
+    od.conditional_formatting.add("I12", FormulaRule(formula=['I12<>"Sorted"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Look Up the Price in Effect on a Date",
+        "",
+        "1. Prices tab: one row for each price change. Product (A), effective date (B, typed as MM/DD/YYYY) and the new price (C) are yellow. Keep each product's rows together, oldest date first. Rows 2 to 40 are read.",
+        "2. Orders tab: order date (A), product (B) and quantity (C) are yellow, rows 2 to 200.",
+        "3. D2 is =IFERROR(LOOKUP(2,1/((Prices!$A$2:$A$40=B2)*(Prices!$B$2:$B$40<=A2)),Prices!$C$2:$C$40),\"No price yet\"). It tests every price row: right product and an effective date on or before the order date. The template adds ISNUMBER(Prices!$B$2:$B$40)*ISNUMBER(Prices!$C$2:$C$40) inside the 1/(...) so a row with a text date or a blank or text price is skipped (the Prices tab marks that row Check). LOOKUP(2,1/...) returns the last row where all the tests are true, so it works without pressing Ctrl+Shift+Enter and the rows do not have to be sorted. If two rows for the same product have the same date, the lower row wins.",
+        "4. An order dated exactly on an effective date gets the new price. The day before gets the old price. A date before the product's first price, or a product that is not in the list, shows No price yet instead of #N/A. A text date or an empty product shows Check.",
+        "5. E2 is the line total, =C2*D2. A blank or text quantity shows Check.",
+        "6. Prices column D checks each row: Check means a missing product, a date or price that is not a number; Check order means a date earlier than the row above for the same product; Same day means the same date as the row above (the lower row wins).",
+        "7. Orders I7 shows OK when every order row is priced, flagged Check, or No price yet, and no Prices row needs checking.",
+        "8. H9:I12 shows the INDEX and MATCH version for one product: =INDEX(Prices!$C$2:$C$4,MATCH(I10,Prices!$B$2:$B$4,1)). MATCH with 1 finds the last date that is not after the order date, but it needs the dates sorted oldest first (I12 says Sorted). With unsorted dates it can return a wrong price without any error.",
+        "9. Product names must match exactly (a trailing space is a different product). This is a price lookup only: no discounts, tax or shipping.",
+        "",
+        "Products, dates and prices are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-price-by-effective-date.xlsx")
+
+
+def batches_from_materials():
+    wb = Workbook()
+    bt = wb.active
+    bt.title = "Batch"
+    bt.column_dimensions["A"].width = 34
+    bt.column_dimensions["B"].width = 12
+    bt.column_dimensions["C"].width = 56
+    bt["A1"], bt["B1"], bt["C1"] = "Candles one batch makes", 12, "Typed. Any unit you count the finished product in."
+    bt["A2"], bt["B2"], bt["C2"] = "Batches to plan for (N)", 10, "Typed. Used for the to-buy column on the Materials tab."
+    for c in ("A1", "A2"):
+        bt[c].font = Font(bold=True)
+    _style_inputs(bt, ["B1", "B2"])
+
+    ws = wb.create_sheet("Materials", 1)
+    header(ws, ["Material", "On hand", "Needed per batch", "Whole batches possible", "Left after the batches made",
+                "To buy to make N batches"], [26, 11, 15, 16, 18, 18])
+    mats = [("Soy wax (lb)", 42.5, 4.5), ("Fragrance oil (oz)", 30, 3.5), ("Cotton wicks", 130, 12),
+            ("8 oz jars", 87, 12), ("Labels", 150, 12), ("Shipping boxes", 100, 12)]
+    for r in range(2, 8):
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = mats[r - 2]
+        ws[f"D{r}"] = (f'=IF(AND(B{r}="",C{r}=""),"",IF(OR(NOT(ISNUMBER(B{r})),AND(C{r}<>"",NOT(ISNUMBER(C{r})))),"Check",'
+                       f'IF(OR(B{r}<0,C{r}<0),"Check",IF(OR(C{r}="",C{r}=0),"",INT(ROUND(B{r}/C{r},10))))))')
+        ws[f"E{r}"] = f'=IF(AND(ISNUMBER(D{r}),ISNUMBER($B$10)),ROUND(B{r}-C{r}*$B$10,6),"")'
+        ws[f"F{r}"] = f'=IF(AND(ISNUMBER(D{r}),ISNUMBER(Batch!$B$2)),ROUND(MAX(0,C{r}*Batch!$B$2-B{r}),6),"")'
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "DEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"B{r}"].number_format = ws[f"C{r}"].number_format = "#,##0.##"
+        ws[f"D{r}"].number_format = "0"
+        ws[f"E{r}"].number_format = ws[f"F{r}"].number_format = "#,##0.##"
+    ws["A9"] = "Results"
+    ws["A9"].font = Font(bold=True, size=12)
+    res = [
+        (10, "Batches you can make", '=IF(COUNTIF(D2:D7,"Check")>0,"Check inputs",IF(COUNT(D2:D7)=0,"No materials",MIN(D2:D7)))', "0"),
+        (11, "Material that runs out first", '=IF(ISNUMBER(B10),INDEX(A2:A7,MATCH(B10,D2:D7,0))&"","")', "General"),
+        (12, "Units made", '=IF(AND(ISNUMBER(B10),ISNUMBER(Batch!B1)),B10*Batch!B1,"")', "#,##0.##"),
+        (13, "Batches to plan for (N)", '=IF(ISNUMBER(Batch!B2),Batch!B2,"")', "#,##0.##"),
+        (14, "Materials to buy for N batches", '=IF(COUNT(F2:F7)=0,"",COUNTIF(F2:F7,">0"))', "0"),
+        (15, "Check: no negative leftover, limit under one batch",
+         '=IF(NOT(ISNUMBER(B10)),"No result",IF(AND(MIN(E2:E7)>=0,'
+         'INDEX(E2:E7,MATCH(B10,D2:D7,0))<INDEX(C2:C7,MATCH(B10,D2:D7,0))),"OK","CHECK"))', "General"),
+    ]
+    for r, label, f, fmt in res:
+        ws[f"A{r}"] = label
+        ws[f"A{r}"].font = Font(bold=True)
+        ws[f"B{r}"] = f
+        ws[f"B{r}"].number_format = fmt
+        ws[f"B{r}"].fill = FORMULA_FILL
+        ws[f"B{r}"].alignment = Alignment(horizontal="right")
+    ws.column_dimensions["A"].width = 44
+    ws.column_dimensions["B"].width = 18
+    _ok_format(ws, "B15")
+    ws.conditional_formatting.add("A2:F7", FormulaRule(formula=['AND(ISNUMBER($D2),ISNUMBER($B$10),$D2=$B$10)'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("D2:D7", FormulaRule(formula=['D2="Check"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: How Many Batches From the Materials on Hand",
+        "",
+        "1. Batch tab: type how many finished items one batch makes (B1) and how many batches you want to plan for (B2). Both are yellow.",
+        "2. Materials tab, rows 2 to 7: the material name (A), how much you have (B) and how much one batch needs (C). Use the same unit in B and C for a row (pounds with pounds, ounces with ounces). They are yellow.",
+        "3. D2 is the whole batches that material allows: INT(B2/C2), written as INT(ROUND(B2/C2,10)), which is INT(B2/C2) with a guard against tiny binary rounding errors in decimal divisions such as 0.3 / 0.1. Rows with a blank or 0 in C are left out (no #DIV/0!). Text or a negative number shows Check.",
+        "4. B10 is =MIN(D2:D7): the whole batches you can make. B11 names the material behind it with INDEX and MATCH. If two materials tie, the first one listed is shown. B12 is B10 times the batch yield.",
+        "5. Column E is what is left of each material after B10 batches (B2-C2*$B$10). Column F is what to buy to make N batches in total, =MAX(0,C2*N-B2), where N is Batch!B2. The row that limits the batches is shaded.",
+        "6. B15 shows OK when no leftover is negative and the limiting material has less than one batch left.",
+        "7. Whole batches only. The sheet does not know recipes, yields, shelf life or safety rules. It only divides what you have by what you use.",
+        "",
+        "Materials and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Materials"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-batches-from-materials.xlsx")
+
+
+def appointment_schedule():
+    from datetime import time
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Schedule"
+    heads = ["Client", "Service", "Start time", "Minutes", "End time", "Gap to next (min)", "Status",
+             "Start (min of day)", "End (min of day)"]
+    header(ws, heads, [16, 20, 12, 9, 12, 12, 16, 12, 12])
+    ws.row_dimensions[1].height = 32
+    for c in ws[1]:
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+    appts = [
+        ("Bailey", "Full groom", time(9, 0), 90), ("Mochi", "Bath and brush", time(10, 45), 45),
+        ("Cooper", "Full groom", time(11, 30), 90), ("Luna", "Nail trim", time(13, 15), 30),
+        ("Rosie", "Bath and brush", time(14, 0), 60), ("Max", "Full groom", time(15, 10), 90),
+        ("Daisy", "Nail trim", time(16, 45), 30), ("Buddy", "Puppy trim", time(17, 30), 45),
+    ]
+    for r in range(2, 13):
+        if r - 2 < len(appts):
+            for col, v in zip("ABCD", appts[r - 2]):
+                ws[f"{col}{r}"] = v
+        ws[f"E{r}"] = f'=IF(OR(NOT(ISNUMBER(C{r})),NOT(ISNUMBER(D{r}))),"",C{r}+D{r}/1440)'
+        ws[f"F{r}"] = f'=IF(AND(ISNUMBER(E{r}),ISNUMBER(C{r + 1})),ROUND((C{r + 1}-E{r})*1440,0),"")'
+        ws[f"G{r}"] = (
+            f'=IF(AND(A{r}="",C{r}="",D{r}=""),"",IF(OR(NOT(ISNUMBER(C{r})),NOT(ISNUMBER(D{r}))),"Check",'
+            f'IF(OR(C{r}<0,C{r}>=1,D{r}<=0,D{r}<>INT(D{r}),NOT(ISNUMBER($L$1))),"Check",IF(E{r}>=1,"Past midnight",'
+            f'IF(F{r}="",IF(AND(A{r + 1}="",C{r + 1}="",D{r + 1}=""),"Last","Check next row"),'
+            f'IF(C{r + 1}<C{r},"Out of order",IF(F{r}<0,"Overlap",IF(F{r}<$L$1,"Short buffer","OK"))))))))')
+        ws[f"H{r}"] = f'=IF(ISNUMBER(C{r}),ROUND(C{r}*1440,0),"")'
+        ws[f"I{r}"] = f'=IF(ISNUMBER(E{r}),ROUND(E{r}*1440,0),"")'
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "EFGHI":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"C{r}"].number_format = ws[f"E{r}"].number_format = "h:mm AM/PM"
+        ws[f"D{r}"].number_format = ws[f"F{r}"].number_format = ws[f"H{r}"].number_format = ws[f"I{r}"].number_format = "0"
+    ws.column_dimensions["J"].width = 3
+    ws.column_dimensions["K"].width = 46
+    ws.column_dimensions["L"].width = 14
+    ws["K1"], ws["L1"] = "Buffer between appointments (min)", 15
+    ws["L1"].fill = INPUT_FILL
+    tot = [
+        (2, "Booked minutes", "=SUM(D2:D12)", "0"),
+        (3, "First start", '=IF(COUNT(C2:C12)=0,"",MIN(C2:C12))', "h:mm AM/PM"),
+        (4, "Last end", '=IF(COUNT(E2:E12)=0,"",MAX(E2:E12))', "h:mm AM/PM"),
+        (5, "Open minutes between", '=IF(AND(ISNUMBER(L3),ISNUMBER(L4)),ROUND((L4-L3)*1440,0)-L2,"")', "0"),
+        (6, "Appointments", "=COUNT(C2:C12)", "0"),
+        (7, "Rows to look at", '=COUNTIF(G2:G12,"Short buffer")+COUNTIF(G2:G12,"Overlap")', "0"),
+        (8, "Check: booked + gaps = first start to last end",
+         '=IF(COUNT(C2:C12)=0,"No appointments",IF(COUNTIF(G2:G12,"Overlap")+COUNTIF(G2:G12,"Past midnight")'
+         '+COUNTIF(G2:G12,"Check")+COUNTIF(G2:G12,"Check next row")+COUNTIF(G2:G12,"Out of order")>0,"Fix rows first",'
+         'IF(L2+SUM(F2:F12)=ROUND((L4-L3)*1440,0),"OK","CHECK")))', "General"),
+    ]
+    for r, label, f, fmt in tot:
+        ws[f"K{r}"] = label
+        ws[f"L{r}"] = f
+        ws[f"L{r}"].number_format = fmt
+        ws[f"L{r}"].fill = FORMULA_FILL
+    for r in range(1, 9):
+        ws[f"K{r}"].font = Font(bold=True)
+        ws[f"L{r}"].alignment = Alignment(horizontal="right")
+    _ok_format(ws, "L8")
+    amber = PatternFill("solid", bgColor="FFE699", fgColor="FFE699")
+    ws.conditional_formatting.add("A2:G12", FormulaRule(formula=['$G2="Short buffer"'], fill=amber))
+    ws.conditional_formatting.add("A2:G12", FormulaRule(
+        formula=['OR($G2="Overlap",$G2="Past midnight",$G2="Check",$G2="Check next row",$G2="Out of order")'],
+        fill=ALERT_FILL))
+
+    sl = wb.create_sheet("Slots", 1)
+    sl.column_dimensions["A"].width = 24
+    for col, w in zip("BCDEFG", [14, 22, 12, 3, 22, 10]):
+        sl.column_dimensions[col].width = w
+    sl["A1"], sl["B1"] = "Opening time", time(9, 0)
+    sl["A2"], sl["B2"] = "Slot length (min)", 30
+    sl["A3"], sl["B3"] = "Closing time", time(18, 30)
+    sl["B1"].number_format = sl["B3"].number_format = "h:mm AM/PM"
+    for c in ("A1", "A2", "A3"):
+        sl[c].font = Font(bold=True)
+    _style_inputs(sl, ["B1", "B2", "B3"])
+    for col, t in zip("ABCD", ["Slot start", "Slot end", "Appointments touching the slot", "Status"]):
+        c = sl[f"{col}4"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+    sl.row_dimensions[4].height = 32
+    okslot = 'IFERROR(AND(ISNUMBER($B$1),ISNUMBER($B$2),ISNUMBER($B$3),$B$2>0,$B$2=INT($B$2),$B$3>$B$1),FALSE)'
+    for r in range(5, 53):
+        if r == 5:
+            sl[f"A{r}"] = f'=IF(AND({okslot},$B$1>=0,$B$1<1),ROUND($B$1*1440,0)/1440,"")'
+        else:
+            sl[f"A{r}"] = f'=IF(ISNUMBER(A{r - 1}),IF(AND(ROUND(A{r - 1}*1440,0)+$B$2<1440,ROUND(A{r - 1}*1440,0)+$B$2<ROUND($B$3*1440,0)),(ROUND(A{r - 1}*1440,0)+$B$2)/1440,""),"")'
+        sl[f"B{r}"] = f'=IF(ISNUMBER(A{r}),(ROUND(A{r}*1440,0)+$B$2)/1440,"")'
+        sl[f"C{r}"] = (f'=IF(ISNUMBER(A{r}),COUNTIFS(Schedule!$H$2:$H$12,"<"&ROUND(B{r}*1440,0),'
+                       f'Schedule!$I$2:$I$12,">"&ROUND(A{r}*1440,0)),"")')
+        sl[f"D{r}"] = f'=IF(C{r}="","",IF(C{r}=0,"Open",IF(C{r}=1,"Taken","Shared slot")))'
+        sl[f"A{r}"].number_format = sl[f"B{r}"].number_format = "h:mm AM/PM"
+        sl[f"C{r}"].number_format = "0"
+        for col in "ABCD":
+            sl[f"{col}{r}"].fill = FORMULA_FILL
+    sl["F4"], sl["G4"] = "Summary", "Value"
+    sl["F4"].fill = sl["G4"].fill = HEADER_FILL
+    sl["F4"].font = sl["G4"].font = HEADER_FONT
+    for r, label, st in [(5, "Open slots", "Open"), (6, "Taken slots", "Taken"), (7, "Shared slots", "Shared slot")]:
+        sl[f"F{r}"] = label
+        sl[f"G{r}"] = f'=COUNTIF(D5:D52,"{st}")'
+        sl[f"F{r}"].font = Font(bold=True)
+        sl[f"G{r}"].fill = FORMULA_FILL
+    sl.conditional_formatting.add("A5:D52", FormulaRule(formula=['$D5="Taken"'], fill=DONE_FILL))
+    sl.conditional_formatting.add("A5:D52", FormulaRule(formula=['$D5="Shared slot"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Appointment Schedule With End Times, Gaps and Buffers",
+        "",
+        "1. Schedule tab: type the client (A), service (B), start time (C) and length in whole minutes (D). They are yellow. Type times as 9:00 AM and list the day in start-time order, rows 2 to 12. L1 is the buffer you want between appointments, in minutes.",
+        "2. End time, E2 =C2+D2/1440. A day has 24 x 60 = 1,440 minutes, so minutes divided by 1440 is the part of a day to add. Format the result as a time.",
+        "3. Gap to next, F2 =ROUND((C3-E2)*1440,0): the next start minus this end, times 1440, rounded to whole minutes. The ROUND stops times stored as fractions of a day from showing 14.999999 instead of 15.",
+        "4. Status, G2: Short buffer when the gap is under L1, Overlap when it is negative, OK otherwise. Last is the final appointment. Past midnight means the end time is on the next day (the time shown wraps around); the sheet does not plan across days. Check means a start that is not a time of day, minutes that are not a whole number above 0, text, or a buffer in L1 that is not a number. Out of order means the next row starts earlier.",
+        "5. Totals, L2:L8: booked minutes, first start, last end, open minutes between (first start to last end minus booked). L8 shows OK when booked minutes plus the gaps equal the time from first start to last end. It says Fix rows first while a row is Overlap, Past midnight, Check or Out of order, and CHECK if a blank row sits in the middle of the list.",
+        "6. Columns H and I turn start and end into whole minutes of the day (9:00 AM is 540). The Slots tab compares those whole numbers so floating point does not move an appointment into the wrong slot.",
+        "7. Slots tab: type the opening time (B1), the slot length in whole minutes (B2) and the closing time (B3). A slot is Taken when one appointment starts before the slot ends and ends after the slot starts. Shared slot means two appointments touch the same slot (they can be back to back inside it). Open means none. Slots stop at the closing time; the table holds up to 48 slots.",
+        "8. Times and minutes only. No booking policy, deposit or pay rule.",
+        "",
+        "Clients, pets and times are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Schedule"].print_title_rows = None
+    wb["Schedule"].print_area = "A1:L13"
+    wb["Slots"].print_title_rows = None
+    wb["Slots"].page_setup.orientation = "portrait"
+    wb.save(OUT / "tidy-tabs-appointment-schedule.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -5866,4 +6427,9 @@ if __name__ == "__main__":
     outlier_order_amounts()
     roas_calculator()
     pareto_top_products()
+    annual_growth_rate()
+    order_size_ranges()
+    price_by_effective_date()
+    batches_from_materials()
+    appointment_schedule()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

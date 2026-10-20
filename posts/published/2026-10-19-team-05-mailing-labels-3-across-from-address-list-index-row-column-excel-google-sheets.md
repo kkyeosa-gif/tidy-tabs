@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeuHD9ElCc6
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-make-mailing-labels-from-address.html
 title: How to Make Mailing Labels From an Address List in Excel and Google Sheets
 labels: excel-formulas, small-business, mailing
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and all 18 label cells were compared with a Python layout of the addresses in reading order, plus a list of 12 addresses, a blank address row, a 19th to 21st address, an empty list, a blank name and a ZIP typed as a number. The Labels tab exported to one US Letter portrait PDF page. Nothing was printed on paper or label sheets, whether a very long street name wraps to a fourth line was not inspected, and Excel and Google Sheets were not opened.

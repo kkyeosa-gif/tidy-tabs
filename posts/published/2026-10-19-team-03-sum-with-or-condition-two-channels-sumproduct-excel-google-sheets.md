@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DesgD-vmkST
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-sum-sales-from-either-of-two.html
 title: How to Sum Sales From Either of Two Channels (OR Logic) in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the Etsy plus Shopify totals were checked against a Python Decimal model for every pair of the 4 channels, plus the same channel twice, a channel with no rows, a blank channel cell, a trailing space, lower case text, an amount typed as text, a $64.00 threshold and an empty Orders tab. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

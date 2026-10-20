@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DetzRI-GmbF
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-fill-blank-cells-with-value.html
 title: How to Fill Blank Cells With the Value Above in Excel and Google Sheets
 labels: excel-formulas, small-business, data-cleanup
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the 15 sample rows were checked against a Python forward fill and Decimal sums, plus 9 edited variants (a blank first row, a cell holding only spaces, padded names, numbers as the key, a blank separator row, rows with no vendor after empty rows, an amount typed as text, an empty report). Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

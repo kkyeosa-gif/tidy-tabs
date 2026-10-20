@@ -114,3 +114,10 @@
 - How to Find Unusually High or Low Order Amounts in Excel and Google Sheets - `find-outlier-order-amounts-quartile-iqr-excel-google-sheets`
 - How to Calculate Return on Ad Spend (ROAS) and Break Even ROAS in Excel and Google Sheets - `return-on-ad-spend-roas-break-even-excel-google-sheets`
 - How to Find the Products That Make Up 80 Percent of Your Sales in Excel and Google Sheets - `pareto-80-20-top-products-cumulative-percent-excel-google-sheets`
+
+## 2026-10-21 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice Calc 24.2 에서 확인)
+- How to Calculate Average Yearly Sales Growth (CAGR) in Excel and Google Sheets - `average-annual-sales-growth-cagr-rri-excel-google-sheets`
+- How to Count Orders by Dollar Amount Range in Excel and Google Sheets - `count-orders-by-dollar-size-range-countifs-frequency-excel-google-sheets`
+- How to Look Up the Price That Was in Effect on a Certain Date in Excel and Google Sheets - `price-in-effect-on-order-date-price-history-lookup-excel-google-sheets`
+- How to Find How Many Batches You Can Make From the Materials You Have in Excel and Google Sheets - `how-many-batches-from-materials-on-hand-min-int-excel-google-sheets`
+- How to Build a Day's Appointment Schedule With End Times and Buffers in Excel and Google Sheets - `appointment-schedule-end-times-gaps-buffer-excel-google-sheets`

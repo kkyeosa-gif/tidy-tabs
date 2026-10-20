@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DeugF3JGayH
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-how-many-months-it.html
 title: How to Calculate How Many Months It Will Take to Pay Off a Balance in Excel and Google Sheets
 labels: excel-formulas, small-business, loans
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal month by month loop, with 24 edited payoff variants (0 percent rate, payment below the first month's interest, payment above the balance, blank and text inputs, a one cent edge case) and goal examples. No mismatches in the final run. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

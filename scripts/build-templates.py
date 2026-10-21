@@ -6340,6 +6340,603 @@ def appointment_schedule():
     wb.save(OUT / "tidy-tabs-appointment-schedule.xlsx")
 
 
+def market_event_comparison():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    header(ws, ["Date", "Event", "Amount", "Note"], [13, 28, 12, 22])
+    raw = [
+        ("2026-09-12", "Riverside Farmers Market", [212.00, 305.50, 188.00, 142.50],
+         ["Opening rush", "Mid-morning", "Noon", "Closing"]),
+        ("2026-09-26", "School PTA Fair", [180.00, 165.00, 140.00, 135.00],
+         ["Hour 1", "Hour 2", "Hour 3", "Hour 4 and 5"]),
+        ("2026-10-04", "Sunday Farmers Market", [98.00, 142.50, 120.00, 96.50, 83.00],
+         ["Opening", "Mid-morning", "Noon", "Early afternoon", "Closing"]),
+        ("2026-10-10", "Weekend Craft Fair", [340.00, 285.50, 410.00, 198.00],
+         ["Day 1 morning", "Day 1 noon", "Day 1 afternoon", "Day 1 evening"]),
+        ("2026-10-11", "Weekend Craft Fair", [375.50, 260.00, 232.00, 209.00],
+         ["Day 2 morning", "Day 2 noon", "Day 2 afternoon", "Day 2 evening"]),
+        ("2026-10-16", "Downtown Night Market", [85.00, 140.00, 160.50, 120.00, 95.00, 130.00, 110.50, 150.00, 98.00, 91.00],
+         ["Hour 1", "Hour 1", "Hour 2", "Hour 2", "Hour 3", "Hour 3", "Hour 4", "Hour 4", "Hour 4", "Last call"]),
+        ("2026-10-17", "Harvest Festival", [150.00, 260.00, 310.00, 275.50, 195.00, 240.00, 225.50, 230.00, 214.00],
+         ["Hour 1", "Hour 2", "Hour 3", "Hour 4", "Hour 5", "Hour 6", "Hour 7", "Hour 8", "Hour 9"]),
+    ]
+    rows = []
+    for d, ev, amts, notes in raw:
+        for a, n in zip(amts, notes):
+            rows.append((date.fromisoformat(d), ev, a, n))
+    assert len(rows) == 40
+    for i in range(2, 201):
+        if i - 2 < len(rows):
+            for col, v in zip("ABCD", rows[i - 2]):
+                ws[f"{col}{i}"] = v
+        for col in "ABCD":
+            ws[f"{col}{i}"].fill = INPUT_FILL
+        ws[f"A{i}"].number_format = US_DATE
+        ws[f"C{i}"].number_format = USD
+    ws.print_area = "A1:D41"
+
+    ev = wb.create_sheet("Events", 1)
+    heads = ["Event", "Sales", "Booth fee", "Other costs", "Hours at event", "Profit", "Profit per hour",
+             "Sales per hour", "Rank by profit per hour"]
+    for col, t, w in zip("ABCDEFGHI", heads, [28, 13, 11, 12, 11, 13, 13, 13, 14]):
+        c = ev[f"{col}1"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+        ev.column_dimensions[col].width = w
+    ev.row_dimensions[1].height = 32
+    ev.freeze_panes = "A2"
+    events = [("Riverside Farmers Market", 35, 126, 8), ("Weekend Craft Fair", 175, 470, 18),
+              ("School PTA Fair", 40, 85, 5), ("Sunday Farmers Market", 30, 95, 6),
+              ("Harvest Festival", 250, 360, 9), ("Downtown Night Market", 60, 140, 4)]
+    for r in range(2, 14):
+        if r - 2 < len(events):
+            n, b, o, h = events[r - 2]
+            ev[f"A{r}"], ev[f"C{r}"], ev[f"D{r}"], ev[f"E{r}"] = n, b, o, h
+        ev[f"B{r}"] = f'=IF(A{r}="","",SUMIFS(Sales!$C$2:$C$200,Sales!$B$2:$B$200,A{r}))'
+        ev[f"F{r}"] = f'=IF(A{r}="","",IF(COUNT(C{r}:D{r})<COUNTA(C{r}:D{r}),"Check costs",B{r}-C{r}-D{r}))'
+        ev[f"G{r}"] = (f'=IF(A{r}="","",IF(NOT(ISNUMBER(F{r})),"Check costs",'
+                       f'IF(AND(ISNUMBER(E{r}),E{r}>0),F{r}/E{r},"Check hours")))')
+        ev[f"H{r}"] = f'=IF(A{r}="","",IF(AND(ISNUMBER(E{r}),E{r}>0),B{r}/E{r},"Check hours"))'
+        ev[f"I{r}"] = f'=IF(ISNUMBER(G{r}),RANK(G{r},$G$2:$G$13),"")'
+        for col in "ACDE":
+            ev[f"{col}{r}"].fill = INPUT_FILL
+        for col in "BFGHI":
+            ev[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "BCDFGH":
+            ev[f"{col}{r}"].number_format = USD
+        ev[f"E{r}"].number_format = "#,##0.##"
+        ev[f"I{r}"].number_format = "0"
+    ev.conditional_formatting.add("G2:G13", FormulaRule(formula=['OR(G2="Check hours",G2="Check costs")'], fill=ALERT_FILL))
+    ev.conditional_formatting.add("A2:I13", FormulaRule(formula=['AND(ISNUMBER($I2),$I2=1)'], fill=DONE_FILL))
+    ev.column_dimensions["J"].width = 3
+    ev.column_dimensions["K"].width = 40
+    ev.column_dimensions["L"].width = 26
+    summ = [
+        (1, "Sales added up on this tab", "=SUM(B2:B13)", USD),
+        (2, "Sales on the Sales tab", "=SUM(Sales!C2:C200)", USD),
+        (3, "Best event by profit", '=IF(COUNT(F2:F13)=0,"",INDEX(A2:A13,MATCH(MAX(F2:F13),F2:F13,0)))', "General"),
+        (4, "Its profit", '=IF(COUNT(F2:F13)=0,"",MAX(F2:F13))', USD),
+        (5, "Best event by profit per hour", '=IF(COUNT(G2:G13)=0,"",INDEX(A2:A13,MATCH(MAX(G2:G13),G2:G13,0)))', "General"),
+        (6, "Its profit per hour", '=IF(COUNT(G2:G13)=0,"",MAX(G2:G13))', USD),
+        (7, "Events needing a look (hours or costs)", '=COUNTIF(G2:G13,"Check hours")+COUNTIF(G2:G13,"Check costs")', "0"),
+        (8, "Check: event sales = Sales tab",
+         '=IF(AND(ABS(SUM(B2:B13)-SUM(Sales!C2:C200))<0.005,COUNT(Sales!C2:C200)=COUNTA(Sales!C2:C200)),"OK","CHECK")',
+         "General"),
+    ]
+    for r, label, f, fmt in summ:
+        ev[f"K{r}"] = label
+        ev[f"K{r}"].font = Font(bold=True)
+        ev[f"L{r}"] = f
+        ev[f"L{r}"].number_format = fmt
+        ev[f"L{r}"].fill = FORMULA_FILL
+        ev[f"L{r}"].alignment = Alignment(horizontal="right")
+    _ok_format(ev, "L8")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Compare Markets and Craft Fairs by Profit and Profit Per Hour",
+        "",
+        "1. Sales tab: one row per sale or per shift total, with the date (A), the event name (B) and the amount (C). Yellow, rows 2 to 200. The name in B must match the name on the Events tab exactly.",
+        "2. Events tab, rows 2 to 13: type the event name (A), the booth fee (C), your other costs such as materials, gas and parking (D) and the hours you spent there (E). They are yellow. Up to 12 events.",
+        "3. Sales, B2: =SUMIFS(Sales!$C$2:$C$200,Sales!$B$2:$B$200,A2). Profit, F2: =B2-C2-D2. Profit per hour, G2: the profit divided by the hours. G2 shows Check hours when E2 is blank, 0 or text (so the cell shows words, not #DIV/0!), and Check costs when a fee or cost is text. Sales per hour is H2. A blank fee or cost counts as $0.00.",
+        "4. Rank, I2: 1 is the most profit per hour. Events with the same profit per hour share a rank. The rank-1 row is shaded green.",
+        "5. K1:L8: the best event by profit (first one listed if two tie) and the best event by profit per hour. They can be different events: that is the point of the table.",
+        "6. L8 shows OK when the sales on the Events tab add up to the Sales tab and no amount is text. CHECK usually means an event name on the Sales tab is spelled differently (or has a trailing space) from the Events tab, an event is missing from the list, or an amount is text.",
+        "7. Arithmetic only. The file does not say which events to apply to, and it does not treat booth fees or costs as deductions for any tax purpose.",
+        "",
+        "Events, sales and costs are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Events"].print_title_rows = None
+    wb["Events"].print_area = "A1:I13"
+    wb.save(OUT / "tidy-tabs-market-event-comparison.xlsx")
+
+
+def sales_by_hour():
+    from datetime import time
+    from openpyxl.formatting.rule import ColorScaleRule
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order date and time", "Amount", "Item", "Hour"], [24, 12, 24, 9])
+    sample = [
+        ("10/03 08:15:00", 24.00, "Soy candle"), ("10/03 08:40:00", 8.00, "Soap bar"),
+        ("10/03 09:05:00", 36.50, "Candle set"), ("10/03 09:59:59", 18.00, "Soy candle"),
+        ("10/03 10:00:00", 22.00, "Brass earrings"), ("10/03 10:00:01", 12.00, "Greeting cards"),
+        ("10/03 10:20:00", 48.00, "Gift box"), ("10/03 10:35:00", 16.50, "Soap bar"),
+        ("10/03 10:50:00", 30.00, "Candle set"), ("10/03 11:10:00", 24.00, "Soy candle"),
+        ("10/03 11:45:00", 54.00, "Gift box"), ("10/03 12:05:00", 18.00, "Brass earrings"),
+        ("10/03 12:30:00", 40.00, "Candle set"), ("10/03 12:55:00", 26.00, "Soap bar"),
+        ("10/03 13:15:00", 14.50, "Greeting cards"), ("10/03 13:40:00", 32.00, "Soy candle"),
+        ("10/03 14:10:00", 20.00, "Soap bar"), ("10/03 14:45:00", 44.00, "Gift box"),
+        ("10/03 15:20:00", 18.00, "Soy candle"), ("10/03 15:50:00", 12.00, "Greeting cards"),
+        ("10/03 16:25:00", 28.00, "Brass earrings"), ("10/03 17:05:00", 16.00, "Soap bar"),
+        ("10/03 18:30:00", 24.00, "Soy candle"),
+        ("10/10 07:45:00", 9.00, "Soap bar"), ("10/10 08:30:00", 15.00, "Greeting cards"),
+        ("10/10 09:10:00", 28.00, "Soy candle"), ("10/10 09:50:00", 42.00, "Candle set"),
+        ("10/10 10:15:00", 36.00, "Gift box"), ("10/10 10:40:00", 22.50, "Brass earrings"),
+        ("10/10 11:00:00", 18.00, "Soy candle"), ("10/10 11:25:00", 60.00, "Gift box"),
+        ("10/10 11:55:00", 14.00, "Soap bar"), ("10/10 12:15:00", 34.00, "Candle set"),
+        ("10/10 12:45:00", 20.00, "Soy candle"), ("10/10 13:05:00", 26.50, "Brass earrings"),
+        ("10/10 13:50:00", 12.00, "Greeting cards"), ("10/10 14:20:00", 38.00, "Candle set"),
+        ("10/10 14:55:00", 16.00, "Soap bar"), ("10/10 15:30:00", 24.00, "Soy candle"),
+        ("10/10 16:10:00", 30.00, "Gift box"), ("10/10 16:40:00", 18.50, "Soap bar"),
+        ("10/10 17:20:00", 22.00, "Brass earrings"), ("10/10 17:59:59", 10.00, "Greeting cards"),
+        ("10/10 18:00:00", 27.00, "Soy candle"), ("10/10 19:10:00", 15.00, "Soap bar"),
+        ("10/11 00:00:00", 33.00, "Online order"), ("10/11 10:05:00", 29.00, "Candle set"),
+        ("10/11 10:45:00", 21.00, "Soy candle"), ("10/11 11:30:00", 17.00, "Greeting cards"),
+        ("10/11 14:00:00", 19.50, "Soap bar"),
+    ]
+    assert len(sample) == 50
+    for i in range(2, 301):
+        if i - 2 < len(sample):
+            s, amt, item = sample[i - 2]
+            md, hms = s.split()
+            m, d = map(int, md.split("/"))
+            h, mi, se = map(int, hms.split(":"))
+            ws[f"A{i}"] = datetime(2026, m, d, h, mi, se)
+            ws[f"B{i}"], ws[f"C{i}"] = amt, item
+        ws[f"D{i}"] = f'=IF(A{i}="","",IF(ISNUMBER(A{i}),HOUR(A{i}),"Check time"))'
+        for col in "ABC":
+            ws[f"{col}{i}"].fill = INPUT_FILL
+        ws[f"D{i}"].fill = FORMULA_FILL
+        ws[f"A{i}"].number_format = "mm/dd/yyyy h:mm:ss AM/PM"
+        ws[f"B{i}"].number_format = USD
+        ws[f"D{i}"].number_format = "0"
+    ws.print_area = "A1:D51"
+
+    bh = wb.create_sheet("By hour", 1)
+    heads = ["Hour (0 to 23)", "Time of day", "Orders", "Sales", "Share of sales"]
+    for col, t, w in zip("ABCDE", heads, [12, 16, 10, 14, 12]):
+        c = bh[f"{col}1"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+        bh.column_dimensions[col].width = w
+    bh.row_dimensions[1].height = 32
+    oh, ob = "Orders!$D$2:$D$300", "Orders!$B$2:$B$300"
+    for r in range(2, 13):
+        bh[f"A{r}"] = 6 + r
+        bh[f"A{r}"].fill = INPUT_FILL
+        bh[f"B{r}"] = f'=IF(ISNUMBER(A{r}),IFERROR(TEXT(TIME(A{r},0,0),"h AM/PM"),""),"")'
+        bh[f"C{r}"] = f'=COUNTIFS({oh},A{r})'
+        bh[f"D{r}"] = f'=SUMIFS({ob},{oh},A{r})'
+    bh["A13"] = "Outside these hours"
+    bh["C13"] = f'=COUNTIFS({oh},"<"&MIN(A2:A12))+COUNTIFS({oh},">"&MAX(A2:A12))'
+    bh["D13"] = f'=SUMIFS({ob},{oh},"<"&MIN(A2:A12))+SUMIFS({ob},{oh},">"&MAX(A2:A12))'
+    bh["A14"] = "Rows with a bad time"
+    bh["C14"] = f'=COUNTIF({oh},"Check time")'
+    bh["D14"] = f'=SUMIFS({ob},{oh},"Check time")'
+    bh["A15"] = "Total"
+    bh["C15"], bh["D15"] = "=SUM(C2:C14)", "=SUM(D2:D14)"
+    for r in range(2, 16):
+        bh[f"E{r}"] = f'=IF($D$15<>0,D{r}/$D$15,"")'
+        bh[f"D{r}"].number_format = USD
+        bh[f"E{r}"].number_format = "0.0%"
+        bh[f"C{r}"].number_format = "0"
+        for col in "BCDE":
+            bh[f"{col}{r}"].fill = FORMULA_FILL
+    for r in (13, 14, 15):
+        bh[f"A{r}"].fill = FORMULA_FILL
+    for col in "ABCDE":
+        bh[f"{col}15"].font = Font(bold=True)
+    bh.conditional_formatting.add("D2:D12", ColorScaleRule(start_type="min", start_color="FFFFFF",
+                                                           end_type="max", end_color="63BE7B"))
+    bh.column_dimensions["F"].width = 3
+    bh.column_dimensions["G"].width = 38
+    bh.column_dimensions["H"].width = 16
+    summ = [
+        (1, "Busiest hour by sales", '=IF(MAX(D2:D12)>0,INDEX(B2:B12,MATCH(MAX(D2:D12),D2:D12,0)),"")', "General"),
+        (2, "Sales in that hour", '=IF(MAX(D2:D12)>0,MAX(D2:D12),"")', USD),
+        (3, "Busiest hour by orders", '=IF(MAX(C2:C12)>0,INDEX(B2:B12,MATCH(MAX(C2:C12),C2:C12,0)),"")', "General"),
+        (4, "Orders in that hour", '=IF(MAX(C2:C12)>0,MAX(C2:C12),"")', "0"),
+        (5, "Orders with a real date and time", "=COUNT(Orders!A2:A300)", "0"),
+        (6, "Orders counted in the table", "=C15", "0"),
+        (7, "Check: table = Orders tab",
+         '=IF(AND(C14=0,C15=COUNTA(Orders!A2:A300),COUNT(Orders!A2:A300)=COUNTA(Orders!A2:A300),'
+         'ABS(D15-SUM(Orders!B2:B300))<0.005,COUNT(Orders!B2:B300)=COUNTA(Orders!B2:B300)),"OK","CHECK")', "General"),
+    ]
+    for r, label, f, fmt in summ:
+        bh[f"G{r}"] = label
+        bh[f"G{r}"].font = Font(bold=True)
+        bh[f"H{r}"] = f
+        bh[f"H{r}"].number_format = fmt
+        bh[f"H{r}"].fill = FORMULA_FILL
+        bh[f"H{r}"].alignment = Alignment(horizontal="right")
+    _ok_format(bh, "H7")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Sales by Hour of the Day From Order Timestamps",
+        "",
+        "1. Orders tab: the date and time of each order (A), the amount (B) and an item or note (C). Yellow, rows 2 to 300. Type or paste real date and time values such as 10/10/2026 9:59 AM, not text.",
+        "2. Hour, D2: =IF(A2=\"\",\"\",IF(ISNUMBER(A2),HOUR(A2),\"Check time\")). HOUR returns a whole number from 0 to 23, so an order at exactly 10:00:00 AM is hour 10 and 9:59:59 AM is hour 9. A time stored as text shows Check time. A date with no time is hour 0 (midnight).",
+        "3. By hour tab, A2:A12: the hours you want to list, typed as numbers (8 is 8 AM, 18 is 6 PM). Yellow. Change them if your day is different.",
+        "4. Orders, C2: =COUNTIFS(Orders!$D$2:$D$300,A2). Sales, D2: =SUMIFS(Orders!$B$2:$B$300,Orders!$D$2:$D$300,A2). Share of sales is the hour's sales divided by the total in D15.",
+        "5. Row 13 (Outside these hours) counts every order whose hour is below the first or above the last hour in column A, so nothing is lost. Midnight (hour 0) lands here. Row 14 counts rows whose time is not a real time.",
+        "6. G1:H4 show the busiest hour by sales and by orders among the hours listed (the first one if two tie). The Sales column has a color scale from white to green.",
+        "7. H7 shows OK when the table holds every order and every dollar on the Orders tab: no bad time, no amount left out of an hour, no text amount. CHECK means look at row 14, an order with an amount but no time, or an amount typed as text.",
+        "8. Why a helper column: in LibreOffice Calc 24.2 a SUMIFS over a time range built on MOD(A2,1) left out the 10:00:00 row, because MOD of a date and time came back a hair under 10:00 AM. HOUR returns a whole number, so there is no boundary to miss. This was not run in Excel or Google Sheets.",
+        "9. The file counts and adds up. It gives no staffing or opening-hours advice.",
+        "",
+        "Orders and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["By hour"].print_title_rows = None
+    wb["By hour"].print_area = "A1:H15"
+    wb.save(OUT / "tidy-tabs-sales-by-hour.xlsx")
+
+
+def yyyymmdd_to_date():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Convert"
+    heads = ["Number (like 20261021)", "Text (like \"20261021\")", "ISO text (like 2026-10-21T14:35:00)",
+             "Date from number", "Date from text", "Date and time from ISO text",
+             "Check number", "Check text", "Check ISO"]
+    header(ws, heads, [16, 16, 26, 15, 15, 22, 12, 12, 12])
+    ws.row_dimensions[1].height = 46
+    nums = [20261021, 20260105, 20260228, 20240229, 20261231, 20260101, 20260704, 20260930, 20261115, 20260315]
+    texts = ["20261021", "20260914", "20260802", "20260630", "20261001", "20260520", "20260411", "20260207",
+             "20260119", "20261225"]
+    isos = ["2026-10-21T14:35:00", "2026-10-21T09:05:00", "2026-09-30T23:59:00", "2026-09-01T00:00:00",
+            "2026-08-15T12:00:00", "2026-07-04T08:30:00", "2026-06-12T17:45:00", "2026-05-20T10:10:00",
+            "2026-04-02T13:20:00", "2026-03-18T06:55:00"]
+    # 60 sample values in 20 rows; each row holds three different dates, one per shape
+    for k in range(10):
+        ws[f"A{2 + k}"] = nums[k]
+        ws[f"B{2 + k}"] = texts[k]
+        ws[f"C{2 + k}"] = isos[k]
+    more_nums = [20260820, 20260612, 20260301, 20260418, 20260909, 20261003, 20260722, 20260514, 20260126, 20261208]
+    more_texts = ["20260703", "20260825", "20261110", "20260216", "20260928", "20261019", "20260331", "20260607",
+                  "20260122", "20261130"]
+    more_isos = ["2026-02-14T11:11:00", "2026-01-09T15:40:00", "2026-11-05T20:15:00", "2026-12-24T09:00:00",
+                 "2026-10-03T16:25:00", "2026-09-19T07:45:00", "2026-08-08T18:30:00", "2026-07-21T12:12:00",
+                 "2026-06-06T21:05:00", "2026-05-30T05:50:00"]
+    for k in range(10):
+        ws[f"A{12 + k}"] = more_nums[k]
+        ws[f"B{12 + k}"] = more_texts[k]
+        ws[f"C{12 + k}"] = more_isos[k]
+    for rr in range(2, 102):
+        ws[f"D{rr}"] = (f'=IF(A{rr}="","",IF(ISNUMBER(A{rr}),'
+                        f'IFERROR(DATE(INT(A{rr}/10000),MOD(INT(A{rr}/100),100),MOD(A{rr},100)),"Check date"),"Check date"))')
+        ws[f"E{rr}"] = (f'=IF(TRIM(B{rr})="","",'
+                        f'IFERROR(DATE(LEFT(B{rr},4),MID(B{rr},5,2),RIGHT(B{rr},2)),"Check date"))')
+        ws[f"F{rr}"] = (f'=IF(TRIM(C{rr})="","",'
+                        f'IFERROR(DATE(LEFT(C{rr},4),MID(C{rr},6,2),MID(C{rr},9,2))'
+                        f'+TIME(MID(C{rr},12,2),MID(C{rr},15,2),0),"Check date"))')
+        ws[f"G{rr}"] = (f'=IF(A{rr}="","",IF(ISNUMBER(D{rr}),IF(TEXT(D{rr},"yyyymmdd")=A{rr}&"","OK","Check date"),"Check date"))')
+        ws[f"H{rr}"] = (f'=IF(TRIM(B{rr})="","",IF(ISNUMBER(E{rr}),IF(TEXT(E{rr},"yyyymmdd")=B{rr}&"","OK","Check date"),"Check date"))')
+        ws[f"I{rr}"] = (f'=IF(TRIM(C{rr})="","",IF(ISNUMBER(F{rr}),'
+                        f'IF(TEXT(F{rr},"yyyy-mm-dd")&"T"&TEXT(F{rr},"hh:mm")=LEFT(C{rr},16),"OK","Check date"),"Check date"))')
+        for col in "ABC":
+            ws[f"{col}{rr}"].fill = INPUT_FILL
+        for col in "DEFGHI":
+            ws[f"{col}{rr}"].fill = FORMULA_FILL
+        ws[f"A{rr}"].number_format = "0"
+        ws[f"B{rr}"].number_format = "@"
+        ws[f"C{rr}"].number_format = "@"
+        ws[f"D{rr}"].number_format = ws[f"E{rr}"].number_format = US_DATE
+        ws[f"F{rr}"].number_format = US_DATETIME
+    ws.conditional_formatting.add("D2:I101", FormulaRule(formula=['D2="Check date"'], fill=ALERT_FILL))
+    ws.column_dimensions["J"].width = 3
+    ws.column_dimensions["K"].width = 40
+    ws.column_dimensions["L"].width = 14
+    summ = [
+        (1, "Values typed (all three columns)", "=COUNTA(A2:C101)", "0"),
+        (2, "Converted without a flag", '=COUNTIF(G2:I101,"OK")', "0"),
+        (3, "Flagged Check date", '=COUNTIF(G2:I101,"Check date")', "0"),
+        (4, "Check: every value converted and verified", '=IF(AND(L3=0,L2=L1),"OK","CHECK")', "General"),
+    ]
+    for rr, label, f, fmt in summ:
+        ws[f"K{rr}"] = label
+        ws[f"K{rr}"].font = Font(bold=True)
+        ws[f"L{rr}"] = f
+        ws[f"L{rr}"].number_format = fmt
+        ws[f"L{rr}"].fill = FORMULA_FILL
+        ws[f"L{rr}"].alignment = Alignment(horizontal="right")
+    _ok_format(ws, "L4")
+    ws.print_area = "A1:I21"
+
+    bm = wb.create_sheet("By month", 1)
+    for col, t, w in zip("ABCDE", ["Month", "Dates from numbers", "Dates from text", "Dates and times from ISO text",
+                                   "Month start (real date)"], [14, 16, 16, 20, 18]):
+        c = bm[f"{col}1"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+        bm.column_dimensions[col].width = w
+    bm.row_dimensions[1].height = 46
+    bm["G1"], bm["H1"] = "Year to count (typed)", 2026
+    bm["H1"].fill = INPUT_FILL
+    bm["H1"].number_format = "0"
+    bm["G1"].font = Font(bold=True)
+    bm.column_dimensions["F"].width = 3
+    bm.column_dimensions["G"].width = 38
+    bm.column_dimensions["H"].width = 12
+    for m in range(1, 13):
+        r = m + 1
+        bm[f"E{r}"] = f'=IF(ISNUMBER($H$1),DATE($H$1,{m},1),"")'
+        bm[f"A{r}"] = f'=IF(ISNUMBER(E{r}),TEXT(E{r},"mmmm"),"")'
+        for col, src in zip("BCD", "DEF"):
+            rng = f"Convert!${src}$2:${src}$101"
+            bm[f"{col}{r}"] = f'=IF(ISNUMBER(E{r}),COUNTIFS({rng},">="&E{r},{rng},"<"&DATE($H$1,{m + 1},1)),"")'
+        bm[f"E{r}"].number_format = US_DATE
+        for col in "ABCDE":
+            bm[f"{col}{r}"].fill = FORMULA_FILL
+    bm["A14"] = "Total in the year"
+    for col in "BCD":
+        bm[f"{col}14"] = f"=SUM({col}2:{col}13)"
+    bm["A15"] = "Real dates in other years"
+    for col, src in zip("BCD", "DEF"):
+        bm[f"{col}15"] = f"=COUNT(Convert!{src}2:{src}101)-{col}14"
+    for rr in (14, 15):
+        for col in "ABCD":
+            bm[f"{col}{rr}"].fill = FORMULA_FILL
+            bm[f"{col}{rr}"].font = Font(bold=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Convert YYYYMMDD Numbers, Text and ISO Timestamps to Real Dates",
+        "",
+        "1. Convert tab, rows 2 to 101: paste or type your values in the yellow cells. Column A is for numbers like 20261021, column B for text like \"20261021\" (the cells are formatted as Text), column C for ISO text like 2026-10-21T14:35:00. Use the column that matches how your export arrives; the three columns do not need to match each other.",
+        "2. From a number, D2: =DATE(INT(A2/10000),MOD(INT(A2/100),100),MOD(A2,100)). INT(A2/10000) is the year, MOD(INT(A2/100),100) the month and MOD(A2,100) the day.",
+        "3. From text, E2: =DATE(LEFT(B2,4),MID(B2,5,2),RIGHT(B2,2)). LEFT, MID and RIGHT cut out the year, month and day. LibreOffice Calc 24.2 accepted these text pieces inside DATE without VALUE, and the same formula with VALUE(LEFT(B2,4)), VALUE(MID(B2,5,2)) and VALUE(RIGHT(B2,2)) gave the same date there. A value with a trailing space (\"20261021 \") gave 10/01/2026 without the check, because RIGHT(B2,2) is \"1 \", so the check column matters; clean the text first with TRIM.",
+        "4. From ISO text, F2: =DATE(LEFT(C2,4),MID(C2,6,2),MID(C2,9,2))+TIME(MID(C2,12,2),MID(C2,15,2),0). The date comes from characters 1 to 10 and the time from 12 to 16. Seconds are not read. A time zone suffix such as Z or -05:00 is ignored and no time zone conversion is done.",
+        "5. Results are real dates, formatted MM/DD/YYYY and MM/DD/YYYY h:mm AM/PM, so you can sort them and total them by month (By month tab).",
+        "6. Month 13 or February 30 does not make DATE fail: it rolls over to the next month or year. Without a check, 20261341 becomes 02/10/2027 and 20260230 becomes 03/02/2026 (LibreOffice Calc 24.2 results). Columns G, H and I rebuild the digits from the result and compare them with what you typed. A mismatch shows Check date in red. A 6-digit value such as 261021, a value with a space, a date with no time in ISO text, and anything that cannot be read also show Check date.",
+        "7. Leap day: 20240229 is OK; 20230229 shows Check date.",
+        "8. L4 shows OK when every typed value converted and matched. CHECK means at least one value shows Check date.",
+        "9. By month tab: counts the converted dates in each month of the year typed in H1. Row 15 counts real dates that fall in other years.",
+        "10. Blank cells stay blank. Fix a flagged value at its source: do not type over the gray cells.",
+        "",
+        "Values are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Convert"].print_title_rows = "1:1"
+    wb["By month"].page_setup.orientation = "portrait"
+    wb["By month"].print_title_rows = None
+    wb["By month"].print_area = "A1:H15"
+    wb.save(OUT / "tidy-tabs-yyyymmdd-to-date.xlsx")
+
+
+def days_between_orders():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Customer", "Order date"], [30, 13])
+    cust = {
+        "Ann Lopez": ["01/05", "02/02", "04/13"],
+        "Maple Street Gift Shop": ["01/12", "02/09", "03/09", "04/06", "05/04", "06/01"],
+        "Harbor Coffee Cart": ["01/20", "03/03", "05/05", "07/14", "09/22"],
+        "Birch and Bloom Florist": ["02/03", "03/17", "04/28", "06/09", "08/04"],
+        "Cedar Lane Boutique": ["01/27", "04/20", "08/10"],
+        "Dana Whitfield": ["03/02"],
+        "Pine Hill Market": ["02/17", "03/24", "04/21", "05/26", "06/30", "08/04", "09/08"],
+        "Ellis Subscription Box": ["01/08", "02/12", "03/12", "04/16", "05/14"],
+        "Greenway Garden Center": ["03/10", "05/12", "07/07"],
+        "Noah Chen": ["05/19", "09/15"],
+    }
+    rows = []
+    for name, ds in cust.items():
+        for d in ds:
+            m, dd = map(int, d.split("/"))
+            rows.append((date(2026, m, dd), name))
+    rows.sort()
+    assert len(rows) == 40
+    for i in range(2, 301):
+        if i - 2 < len(rows):
+            ws[f"B{i}"], ws[f"A{i}"] = rows[i - 2]
+        ws[f"A{i}"].fill = ws[f"B{i}"].fill = INPUT_FILL
+        ws[f"B{i}"].number_format = US_DATE
+    ws.print_area = "A1:B41"
+
+    cs = wb.create_sheet("Customers", 1)
+    heads = ["Customer", "Orders", "First order", "Last order", "Average days between orders", "Reorder window"]
+    for col, t, w in zip("ABCDEF", heads, [30, 9, 13, 13, 16, 14]):
+        c = cs[f"{col}1"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+        cs.column_dimensions[col].width = w
+    cs.row_dimensions[1].height = 46
+    cs.freeze_panes = "A2"
+    names = list(cust.keys())
+    oc, od = "Orders!$A$2:$A$300", "Orders!$B$2:$B$300"
+    for r in range(2, 22):
+        if r - 2 < len(names):
+            cs[f"A{r}"] = names[r - 2]
+        cs[f"A{r}"].fill = INPUT_FILL
+        cs[f"B{r}"] = f'=IF(A{r}="","",COUNTIF({oc},A{r}))'
+        cs[f"C{r}"] = f'=IF(OR(A{r}="",B{r}=0),"",_xlfn.MINIFS({od},{oc},A{r}))'
+        cs[f"D{r}"] = f'=IF(OR(A{r}="",B{r}=0),"",_xlfn.MAXIFS({od},{oc},A{r}))'
+        cs[f"E{r}"] = (f'=IF(A{r}="","",IF(B{r}=0,"Not in Orders",IF(COUNTIFS({oc},A{r},{od},">0")<B{r},"Check dates",'
+                       f'IF(B{r}<2,"One order",(D{r}-C{r})/(B{r}-1)))))')
+        cs[f"F{r}"] = f'=IF(ISNUMBER(E{r}),D{r}+E{r},"")'
+        for col in "BCDEF":
+            cs[f"{col}{r}"].fill = FORMULA_FILL
+        cs[f"B{r}"].number_format = "0"
+        cs[f"C{r}"].number_format = cs[f"D{r}"].number_format = cs[f"F{r}"].number_format = US_DATE
+        cs[f"E{r}"].number_format = "0.0"
+        cs[f"E{r}"].alignment = Alignment(horizontal="right")
+    cs.conditional_formatting.add("E2:E21", FormulaRule(formula=['OR(E2="Check dates",E2="Not in Orders")'], fill=ALERT_FILL))
+    cs.column_dimensions["G"].width = 3
+    cs.column_dimensions["H"].width = 38
+    cs.column_dimensions["I"].width = 14
+    summ = [
+        (1, "Order rows with a customer name", f"=COUNTA({oc})", "0"),
+        (2, "Orders counted on this tab", "=SUM(B2:B21)", "0"),
+        (3, "Order rows with a real date", f"=COUNT({od})", "0"),
+        (4, "Customers with 2 or more orders", '=COUNTIF(B2:B21,">=2")', "0"),
+        (5, "Check: counts = Orders tab",
+         '=IF(AND(I2=I1,I3=I1),"OK","CHECK")', "General"),
+    ]
+    for r, label, f, fmt in summ:
+        cs[f"H{r}"] = label
+        cs[f"H{r}"].font = Font(bold=True)
+        cs[f"I{r}"] = f
+        cs[f"I{r}"].number_format = fmt
+        cs[f"I{r}"].fill = FORMULA_FILL
+        cs[f"I{r}"].alignment = Alignment(horizontal="right")
+    _ok_format(cs, "I5")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Average Days Between a Customer's Orders",
+        "",
+        "1. Orders tab: one row per order, customer (A) and order date (B). Yellow, rows 2 to 300. Dates must be real dates, not text. The order of the rows does not matter.",
+        "2. Customers tab, A2:A21: type each customer name once, exactly as it appears on the Orders tab (up to 20). Yellow.",
+        "3. Orders, B2: =COUNTIF(Orders!$A$2:$A$300,A2). First order, C2: MINIFS of the dates for that customer. Last order, D2: MAXIFS. In this file they are stored as _xlfn.MINIFS and _xlfn.MAXIFS, which Excel and LibreOffice read as MINIFS and MAXIFS. They need Excel 2019 or later; Google Sheets has them.",
+        "4. Average days between orders, E2: =IF(B2<2,\"One order\",(D2-C2)/(B2-1)). The days from the first to the last order divided by the number of gaps, which is the orders minus 1. Three orders have two gaps. A customer with one order shows One order, not #DIV/0!. Two orders on the same day give 0.0.",
+        "5. The average hides uneven gaps: orders 10, 10 and 80 days apart and orders 45, 45 and 45 days apart give the same average. Look at the dates when it matters.",
+        "6. Reorder window, F2: =D2+E2, the last order date plus the average, as a date to look at. It is arithmetic on past orders, not a prediction. The file does not use today's date.",
+        "7. I5 shows OK when every order row's customer is on the Customers list and every order has a real date. A name with a trailing space or a different spelling counts as a different customer and gives CHECK. A date typed as text shows Check dates in column E.",
+        "8. Before Excel 2019, MINIFS and MAXIFS do not exist. A plain alternative for the first order is =MIN(IF(Orders!$A$2:$A$300=A2,Orders!$B$2:$B$300)) entered as an array formula (Ctrl+Shift+Enter in older Excel), and the same with MAX for the last order. In LibreOffice Calc 24.2 the MIN(IF()) and MAX(IF()) array formulas gave the same first and last dates as MINIFS and MAXIFS on a small test. They are not in this file, and were not run in Excel.",
+        "",
+        "Customers and dates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Customers"].print_title_rows = None
+    wb["Customers"].print_area = "A1:I21"
+    wb.save(OUT / "tidy-tabs-days-between-orders.xlsx")
+
+
+def currency_to_usd():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Date", "Order", "Currency", "Amount", "USD amount"], [13, 14, 11, 12, 14])
+    orders = [
+        ("09/01", "Candle set", "CAD", 48.50), ("09/02", "Soap trio", "GBP", 36.00),
+        ("09/03", "Tote bag", "USD", 24.00), ("09/04", "Gift box", "EUR", 52.00),
+        ("09/05", "Candle set", "CAD", 64.00), ("09/07", "Print", "AUD", 40.00),
+        ("09/08", "Earrings", "GBP", 28.50), ("09/09", "Soap trio", "CAD", 36.00),
+        ("09/10", "Candle", "USD", 18.00), ("09/12", "Tote bag", "EUR", 31.00),
+        ("09/13", "Gift box", "GBP", 61.00), ("09/14", "Print", "CAD", 22.50),
+        ("09/15", "Earrings", "AUD", 55.00), ("09/17", "Candle set", "GBP", 48.50),
+        ("09/18", "Soap trio", "EUR", 27.00), ("09/19", "Tote bag", "USD", 30.00),
+        ("09/21", "Print", "CAD", 18.00), ("09/22", "Gift box", "CAD", 74.25),
+        ("09/23", "Candle", "GBP", 15.00), ("09/24", "Earrings", "EUR", 44.00),
+        ("09/25", "Soap trio", "AUD", 33.00), ("09/26", "Candle set", "USD", 42.00),
+        ("09/28", "Print", "GBP", 19.50), ("09/29", "Tote bag", "CAD", 29.99),
+        ("09/30", "Gift box", "EUR", 58.00), ("10/01", "Candle", "CAD", 21.00),
+        ("10/02", "Earrings", "GBP", 33.00), ("10/03", "Soap trio", "USD", 26.00),
+        ("10/05", "Print", "EUR", 16.50), ("10/06", "Candle set", "AUD", 62.00),
+    ]
+    assert len(orders) == 30
+    rt = "Rates!$B$2:$B$10"
+    rc = "Rates!$A$2:$A$10"
+    for i in range(2, 102):
+        if i - 2 < len(orders):
+            d, o, c, a = orders[i - 2]
+            m, dd = map(int, d.split("/"))
+            ws[f"A{i}"], ws[f"B{i}"], ws[f"C{i}"], ws[f"D{i}"] = date(2026, m, dd), f"{o} #{1041 + i - 2}", c, a
+        ws[f"E{i}"] = (f'=IF(AND(C{i}="",D{i}=""),"",IF(NOT(ISNUMBER(D{i})),"Check amount",'
+                       f'IFERROR(IF(ISNA(MATCH(C{i},{rc},0)),"Check currency",'
+                       f'IF(NOT(ISNUMBER(INDEX({rt},MATCH(C{i},{rc},0)))),"Check rate",'
+                       f'IF(INDEX({rt},MATCH(C{i},{rc},0))<=0,"Check rate",'
+                       f'ROUND(D{i}*INDEX({rt},MATCH(C{i},{rc},0)),2)))),"Check currency")))')
+        for col in "ABCD":
+            ws[f"{col}{i}"].fill = INPUT_FILL
+        ws[f"E{i}"].fill = FORMULA_FILL
+        ws[f"A{i}"].number_format = US_DATE
+        ws[f"D{i}"].number_format = "#,##0.00"
+        ws[f"E{i}"].number_format = USD
+        ws[f"E{i}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("E2:E101", FormulaRule(formula=['LEFT(E2,5)="Check"'], fill=ALERT_FILL))
+    ws.column_dimensions["F"].width = 3
+    ws.column_dimensions["G"].width = 40
+    ws.column_dimensions["H"].width = 16
+    summ = [
+        (1, "Total in US dollars", "=SUM(E2:E101)", USD),
+        (2, "Orders converted", "=COUNT(E2:E101)", "0"),
+        (3, "Rows saying Check currency, rate or amount", '=COUNTIF(E2:E101,"Check*")', "0"),
+        (4, "Dollars by currency on the Rates tab", "=SUM(Rates!G2:G10)", USD),
+        (5, "Check: no flagged rows, all dollars accounted for",
+         '=IF(AND(H3=0,ABS(H4-H1)<0.005),"OK","CHECK")', "General"),
+    ]
+    for r, label, f, fmt in summ:
+        ws[f"G{r}"] = label
+        ws[f"G{r}"].font = Font(bold=True)
+        ws[f"H{r}"] = f
+        ws[f"H{r}"].number_format = fmt
+        ws[f"H{r}"].fill = FORMULA_FILL
+        ws[f"H{r}"].alignment = Alignment(horizontal="right")
+    _ok_format(ws, "H5")
+    ws.print_area = "A1:E31"
+
+    rs = wb.create_sheet("Rates", 1)
+    heads = ["Currency code", "US dollars per 1 unit", "Currency name", "Rate as of", "Typed amounts in that currency",
+             "Total converted at once", "Sum of the rows", "Rows minus total"]
+    for col, t, w in zip("ABCDEFGH", heads, [11, 14, 18, 13, 16, 15, 14, 13]):
+        c = rs[f"{col}1"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+        rs.column_dimensions[col].width = w
+    rs.row_dimensions[1].height = 46
+    rates = [("USD", 1, "US dollar"), ("CAD", 0.73, "Canadian dollar"), ("GBP", 1.27, "British pound"),
+             ("EUR", 1.08, "Euro"), ("AUD", 0.65, "Australian dollar")]
+    for r in range(2, 11):
+        if r - 2 < len(rates):
+            c, v, n = rates[r - 2]
+            rs[f"A{r}"], rs[f"B{r}"], rs[f"C{r}"] = c, v, n
+            rs[f"D{r}"] = date(2026, 9, 1)
+        for col in "ABCD":
+            rs[f"{col}{r}"].fill = INPUT_FILL
+        rs[f"B{r}"].number_format = "0.0000"
+        rs[f"D{r}"].number_format = US_DATE
+        rs[f"E{r}"] = f'=IF(A{r}="","",SUMIFS(Orders!$D$2:$D$101,Orders!$C$2:$C$101,A{r}))'
+        rs[f"F{r}"] = f'=IF(AND(A{r}<>"",ISNUMBER(B{r})),ROUND(E{r}*B{r},2),"")'
+        rs[f"G{r}"] = f'=IF(A{r}="","",SUMIFS(Orders!$E$2:$E$101,Orders!$C$2:$C$101,A{r}))'
+        rs[f"H{r}"] = f'=IF(ISNUMBER(F{r}),ROUND(G{r}-F{r},2),"")'
+        for col in "EFGH":
+            rs[f"{col}{r}"].fill = FORMULA_FILL
+        rs[f"E{r}"].number_format = "#,##0.00"
+        for col in "FGH":
+            rs[f"{col}{r}"].number_format = USD
+    rs["A12"] = "The rates above are sample numbers for this fictional shop. They are not real quotes. Type your own from your payment or bank statement, and type the date you took them."
+    rs["A12"].font = Font(italic=True)
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Convert Foreign Currency Orders to US Dollars With a Rate Table",
+        "",
+        "1. Rates tab, rows 2 to 10: type the currency code (A), US dollars per 1 unit of that currency (B), a name (C) and the date of the rate (D). Yellow. Keep a USD row at rate 1 so dollar orders pass through. The sample rates are made up for this fictional shop and are not real exchange rates.",
+        "2. Where to get a rate: from your own payment processor or bank statement, for the day you want to use. The file does not fetch rates. Google Sheets has a GOOGLEFINANCE function for live rates; it is not used in this file and was not tested.",
+        "3. Orders tab, rows 2 to 101: date (A), a label (B), the currency code (C) and the amount in that currency (D). Yellow.",
+        "4. USD amount, E2: =IFERROR(ROUND(D2*INDEX(Rates!$B$2:$B$10,MATCH(C2,Rates!$A$2:$A$10,0)),2),\"Check currency\"), with two extra tests in the file: Check amount when D2 is text or blank, and Check rate when the rate is blank, text, 0 or negative. MATCH is not case sensitive, so gbp finds GBP. A code with a trailing space does not match and shows Check currency.",
+        "5. Each row is rounded to cents. Rounding every row and rounding the total once can differ by a cent. The Rates tab shows both for each currency: column F converts the typed total at once, column G adds the rounded rows, column H is the difference.",
+        "6. H1 is the total in US dollars (text rows are skipped). H5 shows OK when no row says Check and the dollars grouped by currency on the Rates tab add up to H1. A duplicate code in the Rates list makes H4 too high and gives CHECK.",
+        "7. A refund can be typed as a negative amount; it converts to a negative dollar amount.",
+        "8. Arithmetic only. This file does not give tax, reporting or accounting advice. If you need foreign currency rules for a return, ask an accountant or read the official IRS page.",
+        "",
+        "Orders and rates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Rates"].print_title_rows = None
+    wb["Rates"].page_setup.orientation = "landscape"
+    wb["Rates"].print_area = "A1:H12"
+    wb.save(OUT / "tidy-tabs-currency-to-usd.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -6432,4 +7029,9 @@ if __name__ == "__main__":
     price_by_effective_date()
     batches_from_materials()
     appointment_schedule()
+    market_event_comparison()
+    sales_by_hour()
+    yyyymmdd_to_date()
+    days_between_orders()
+    currency_to_usd()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

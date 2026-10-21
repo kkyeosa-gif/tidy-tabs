@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DewYDsnEfLE
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-return-on-ad-spend.html
 title: How to Calculate Return on Ad Spend (ROAS) and Break Even ROAS in Excel and Google Sheets
 labels: excel-formulas, small-business, advertising
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the 8 sample campaigns were checked against a Python Decimal model, plus 22 edited variants (exact break-even, spend with no sales, zero spend, text amounts, bad margins, a 41.25% margin, 12 full rows, an empty sheet). The conditional formatting colors were seen only in the LibreOffice PDF export. Excel and Google Sheets were not opened.

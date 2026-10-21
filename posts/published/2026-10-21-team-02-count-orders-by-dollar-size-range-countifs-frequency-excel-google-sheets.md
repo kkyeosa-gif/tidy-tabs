@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DexOL8ylGo4
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-count-orders-by-dollar-amount.html
 title: How to Count Orders by Dollar Amount Range in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model on the sample and about a dozen edited copies (amounts exactly on a limit, $0.00 and a refund, text amounts, blank rows, limits out of order, an amount above the last limit, sub-cent amounts). Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

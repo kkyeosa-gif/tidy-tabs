@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dew5lsBFHyG
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-average-yearly-sales.html
 title: How to Calculate Average Yearly Sales Growth (CAGR) in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model, including 143 edited variants (other year pairs, flat and falling sales, a start or end of 0, negative and text inputs, reversed years, a gap year, 10 years of data). No mismatches in the final run. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dewr22Im8AH
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-products-that-make-up-80.html
 title: How to Find the Products That Make Up 80 Percent of Your Sales in Excel and Google Sheets
 labels: excel-formulas, small-business, sales-reports
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the 15 sample products were checked against Python Decimal cumulative sums, plus edited copies (a product landing on exactly 80.0%, a product crossing 80%, ties, a refund row, text revenue, unsorted data, blank rows, one product, a text cut line, an empty table). The Top row color was seen only in the LibreOffice PDF export. Sorting with Data > Sort and the conditional formatting were not exercised in any spreadsheet app. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

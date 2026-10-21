@@ -121,3 +121,10 @@
 - How to Look Up the Price That Was in Effect on a Certain Date in Excel and Google Sheets - `price-in-effect-on-order-date-price-history-lookup-excel-google-sheets`
 - How to Find How Many Batches You Can Make From the Materials You Have in Excel and Google Sheets - `how-many-batches-from-materials-on-hand-min-int-excel-google-sheets`
 - How to Build a Day's Appointment Schedule With End Times and Buffers in Excel and Google Sheets - `appointment-schedule-end-times-gaps-buffer-excel-google-sheets`
+
+## 2026-10-22 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice Calc 24.2 에서 확인)
+- How to Compare Farmers Markets and Craft Fairs by Profit and Profit Per Hour in Excel and Google Sheets - `compare-market-events-profit-per-hour-booth-fee-excel-google-sheets`
+- How to Find Your Busiest Hour of the Day From Order Timestamps in Excel and Google Sheets - `sales-by-hour-of-day-hour-countifs-sumifs-excel-google-sheets`
+- How to Convert 20261021 and Other YYYYMMDD Numbers to Real Dates in Excel and Google Sheets - `convert-yyyymmdd-number-to-date-date-left-mid-excel-google-sheets`
+- How to Calculate the Average Days Between Orders for Each Customer in Excel and Google Sheets - `average-days-between-orders-per-customer-maxifs-minifs-excel-google-sheets`
+- How to Convert Orders in Canadian Dollars, Pounds or Euros to US Dollars in Excel and Google Sheets - `convert-foreign-currency-orders-to-usd-index-match-excel-google-sheets`

@@ -371,7 +371,25 @@ def heroes_2026_10_21():
          render(short_sheet_copy(t + "tidy-tabs-appointment-schedule.xlsx", "Schedule", 12, "appts"), "Schedule", hide_cols="HIJKL", name="appts"))
 
 
+def heroes_2026_10_22():
+    t = "templates/"
+    d = "images/2026-10-22-team-0%d-%s/"
+    save(d % (1, "compare-market-events-profit-per-hour-booth-fee-excel-google-sheets") + "market-event-comparison-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-market-event-comparison.xlsx", "Events", 7, "events"), "Events", name="events"))
+    save(d % (2, "sales-by-hour-of-day-hour-countifs-sumifs-excel-google-sheets") + "sales-by-hour-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-sales-by-hour.xlsx", "By hour", 15, "byhour"), "By hour", name="byhour"))
+    save(d % (3, "convert-yyyymmdd-number-to-date-date-left-mid-excel-google-sheets") + "yyyymmdd-to-date-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-yyyymmdd-to-date.xlsx", "Convert", 9, "yyyymmdd"), "Convert", name="yyyymmdd"))
+    save(d % (4, "average-days-between-orders-per-customer-maxifs-minifs-excel-google-sheets") + "days-between-orders-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-days-between-orders.xlsx", "Customers", 10, "gaps"), "Customers", name="gaps"))
+    save(d % (5, "convert-foreign-currency-orders-to-usd-index-match-excel-google-sheets") + "currency-to-usd-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-currency-to-usd.xlsx", "Orders", 12, "currency"), "Orders", name="currency"))
+
+
 def main():
+    if "--only-2026-10-22" in sys.argv:
+        heroes_2026_10_22()
+        return
     if "--only-2026-10-21" in sys.argv:
         heroes_2026_10_21()
         return

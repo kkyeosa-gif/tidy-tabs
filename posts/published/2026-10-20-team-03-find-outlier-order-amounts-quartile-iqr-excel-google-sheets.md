@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DevE3ROF7hO
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-unusually-high-or-low-order.html
 title: How to Find Unusually High or Low Order Amounts in Excel and Google Sheets
 labels: excel-formulas, small-business, data-cleanup
 tested_in: LibreOffice Calc 24.2 (Linux) only. The template was recalculated there and the 30 sample orders were checked against a Python model (inclusive quartiles, Decimal), plus 20 edited variants (amounts exactly on a fence, one cent past it, equal amounts, text amounts, a refund, a blank gap, multiplier 3, fewer than 4 amounts). The Review color was seen only in the LibreOffice PDF export and in the saved XML. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

@@ -1404,7 +1404,7 @@ def reorder_point_calculator():
     last = 200
     ws["J1"], ws["K1"] = "Days in sales period", 30
     ws["J1"].font = Font(bold=True)
-    ws.column_dimensions["J"].width = 22
+    ws.column_dimensions["J"].width = 25
     ws.conditional_formatting.add(f"H2:H{last}", FormulaRule(formula=['$H2="REORDER"'], fill=ALERT_FILL))
 
     notes_sheet(wb, [
@@ -6937,6 +6937,417 @@ def currency_to_usd():
     wb.save(OUT / "tidy-tabs-currency-to-usd.xlsx")
 
 
+def _head_row(ws, row, heads, widths, height=32):
+    """Header cells on any row (header() only does row 1)."""
+    for i, (t, w) in enumerate(zip(heads, widths), start=1):
+        c = ws.cell(row=row, column=i)
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+        ws.column_dimensions[c.column_letter].width = w
+    ws.row_dimensions[row].height = height
+
+
+def _summary_block(ws, label_col, value_col, items):
+    """Bold label, gray formula cell, right aligned. items: (row, label, formula, number format)."""
+    for r, label, f, fmt in items:
+        ws[f"{label_col}{r}"] = label
+        ws[f"{label_col}{r}"].font = Font(bold=True)
+        ws[f"{value_col}{r}"] = f
+        ws[f"{value_col}{r}"].number_format = fmt
+        ws[f"{value_col}{r}"].fill = FORMULA_FILL
+        ws[f"{value_col}{r}"].alignment = Alignment(horizontal="right")
+
+
+def equipment_payback():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Payback"
+    _head_row(ws, 5, ["Month", "Net profit from the equipment", "Running total", "Reached the cost?"],
+              [34, 18, 16, 14], height=46)
+    ws["A1"], ws["B1"] = "Equipment", "Espresso machine for the cart"
+    ws["A2"], ws["B2"] = "Equipment cost", 4800
+    ws["A3"], ws["B3"] = "Payback month (first month the running total reaches the cost)", None
+    ws["A4"], ws["B4"] = "Payback in months, with a fraction", None
+    for r in range(1, 5):
+        ws[f"A{r}"].font = Font(bold=True)
+    ws["A3"].alignment = ws["A4"].alignment = Alignment(wrap_text=True, vertical="center")
+    ws.row_dimensions[3].height = ws.row_dimensions[4].height = 30
+    ws["B1"].fill = ws["B2"].fill = INPUT_FILL
+    ws["B2"].number_format = USD
+    ws.column_dimensions["B"].width = 30
+    ws["B3"] = ('=IF(NOT(ISNUMBER(B2)),"Type the cost in B2",IF(B2<=0,"Cost must be above 0",'
+                'IF(MAX(C6:C29)<B2,"Not paid back in this range",COUNTIF(C6:C29,"<"&B2)+1)))')
+    ws["B4"] = ('=IF(ISNUMBER(B3),IFERROR(B3-1+(B2-IF(B3=1,0,SUMIF(A6:A29,"<"&B3,B6:B29)))'
+                '/SUMIF(A6:A29,B3,B6:B29),"Check profits"),"")')
+    ws["B3"].number_format = "0"
+    ws["B4"].number_format = "0.00"
+    for a in ("B3", "B4"):
+        ws[a].fill = FORMULA_FILL
+        ws[a].font = Font(bold=True)
+        ws[a].alignment = Alignment(horizontal="right", vertical="center")
+    profits = [300, 325, 350, 375, 400, 425, 450, 475, 500, 520, 540, 560,
+               580, 600, 610, 620, 630, 640, 650, 650, 650, 650, 650, 650]
+    assert len(profits) == 24
+    for i in range(24):
+        r = 6 + i
+        ws[f"A{r}"] = i + 1
+        ws[f"B{r}"] = profits[i]
+        ws[f"C{r}"] = f"=SUM(B$6:B{r})"
+        ws[f"D{r}"] = f'=IF(AND(ISNUMBER($B$2),C{r}>=$B$2),"Yes","")'
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"C{r}"].fill = ws[f"D{r}"].fill = FORMULA_FILL
+        ws[f"A{r}"].alignment = Alignment(horizontal="center")
+        ws[f"D{r}"].alignment = Alignment(horizontal="center")
+        ws[f"B{r}"].number_format = ws[f"C{r}"].number_format = USD
+    ws.conditional_formatting.add("A6:D29", FormulaRule(formula=['AND(ISNUMBER($B$3),$A6=$B$3)'], fill=DONE_FILL))
+    ws.column_dimensions["E"].width = 3
+    ws.column_dimensions["F"].width = 44
+    ws.column_dimensions["G"].width = 22
+    _summary_block(ws, "F", "G", [
+        (1, "Whole months (rounded up)", '=IF(ISNUMBER(B4),ROUNDUP(ROUND(B4,6),0),"")', "0"),
+        (2, "Months with net profit typed", "=COUNT(B6:B29)", "0"),
+        (3, "Months with a loss (below 0)", '=COUNTIF(B6:B29,"<0")', "0"),
+        (4, "First month at or above the cost (column D)",
+         '=IF(ISNUMBER(B3),IFERROR(MATCH("Yes",D6:D29,0),"None"),"")', "0"),
+        (5, "Check: both methods agree, profits are numbers",
+         '=IF(AND(ISNUMBER(B2),COUNT(B6:B29)=COUNTA(B6:B29)),IF(ISNUMBER(B3),IF(B3=G4,"OK","CHECK"),'
+         'IF(B3="Not paid back in this range",IF(COUNTIF(D6:D29,"Yes")=0,"OK","CHECK"),"CHECK")),"CHECK")',
+         "General"),
+    ])
+    _ok_format(ws, "G5")
+    ws.print_area = "A1:G29"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Equipment Payback Period in Months",
+        "",
+        "1. Payback tab, B1 and B2: type the equipment name and what it cost. Yellow. B2 must be a number above 0.",
+        "2. B6:B29: type the net profit the equipment added in month 1, month 2 and so on (up to 24 months). Yellow. Net profit means the sales it made minus what it cost to run, as you count it. Leave a month blank if you have no number yet. A loss is typed as a negative number.",
+        "3. Running total, C6: =SUM(B$6:B6). Copied down, each row adds that month to all the months above it.",
+        "4. Payback month, B3: =COUNTIF(C6:C29,\"<\"&B2)+1. It counts the months where the running total is still below the cost and adds 1. It shows Not paid back in this range when no month reaches the cost (so a cost above the 24 month total gives words, not an error), and a message when B2 is blank, text, 0 or negative.",
+        "5. The count is right only if the running total does not go down after it first reaches the cost. Column D marks every month at or above the cost, and G4 finds the first one with MATCH. G5 shows CHECK when the two methods disagree, when a profit cell holds text (SUM skips text, so the total would be low), or when the cost is not a number. Fix the month with the loss or the text before you trust B3.",
+        "6. Payback with a fraction, B4: the month before the payback month, plus the part of the payback month that was needed. It assumes the profit came evenly through that month. In the sample, month 11 ends at $4,660.00 and month 12 adds $560.00, so $4,800.00 is reached 0.25 of the way through month 12: 11.25. G1 rounds that up to whole months.",
+        "7. If the cost equals a month's running total exactly, that month is the payback month and B4 is a whole number.",
+        "8. The month row where the total first reaches the cost is shaded green.",
+        "9. This is arithmetic on the profit numbers you type. It does not discount future money, add interest or say whether to buy anything. It is not a tax, depreciation or investment judgment.",
+        "",
+        "The machine and profit numbers are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Payback"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-equipment-payback.xlsx")
+
+
+def seasonal_sales_index():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    header(ws, ["Year", "Month number (1 to 12)", "Sales"], [9, 14, 13])
+    ws.row_dimensions[1].height = 44
+    y2024 = [6200, 5400, 5800, 6100, 7000, 6500, 5900, 6300, 6800, 8200, 13500, 17800]
+    y2025 = [6600, 5700, 6100, 6500, 7400, 6900, 6200, 6600, 7100, 8800, 14400, 18900]
+    rows = [(2024, m + 1, v) for m, v in enumerate(y2024)] + [(2025, m + 1, v) for m, v in enumerate(y2025)]
+    for i in range(2, 201):
+        if i - 2 < len(rows):
+            ws[f"A{i}"], ws[f"B{i}"], ws[f"C{i}"] = rows[i - 2]
+        for col in "ABC":
+            ws[f"{col}{i}"].fill = INPUT_FILL
+        ws[f"C{i}"].number_format = USD
+    ws.print_area = "A1:C25"
+
+    ix = wb.create_sheet("Index", 1)
+    heads = ["Month number", "Month", "Average sales", "Index", "Years of data", "Share of the yearly goal"]
+    for col, t, w in zip("ABCDEF", heads, [9, 9, 14, 9, 9, 16]):
+        c = ix[f"{col}1"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+        ix.column_dimensions[col].width = w
+    ix.row_dimensions[1].height = 46
+    ix.freeze_panes = "A2"
+    mb, sa = "Sales!$B$2:$B$200", "Sales!$C$2:$C$200"
+    for r in range(2, 14):
+        ix[f"A{r}"] = r - 1
+        ix[f"B{r}"] = f'=TEXT(DATE(2026,A{r},1),"mmm")'
+        ix[f"C{r}"] = f'=IF(E{r}=0,"No data",AVERAGEIF({mb},A{r},{sa}))'
+        ix[f"D{r}"] = f'=IF(ISNUMBER(C{r}),IFERROR(C{r}/AVERAGE({sa}),"Check sales"),"")'
+        ix[f"E{r}"] = f'=SUMPRODUCT(({mb}=A{r})*ISNUMBER({sa}))'
+        ix[f"F{r}"] = (f'=IF(AND(ISNUMBER(C{r}),ISNUMBER($I$1)),IFERROR(ROUND($I$1*C{r}/SUM($C$2:$C$13),2),"Check sales"),"")')
+        for col in "CDEF":
+            ix[f"{col}{r}"].fill = FORMULA_FILL
+        ix[f"A{r}"].alignment = Alignment(horizontal="center")
+        ix[f"C{r}"].number_format = ix[f"F{r}"].number_format = USD
+        ix[f"D{r}"].number_format = "0.00"
+        ix[f"E{r}"].number_format = "0"
+        for col in "CDF":
+            ix[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ix.conditional_formatting.add("A2:F13", FormulaRule(formula=['AND(ISNUMBER($D2),$D2>1)'], fill=DONE_FILL))
+    ix.conditional_formatting.add("C2:C13", FormulaRule(formula=['$C2="No data"'], fill=ALERT_FILL))
+    ix.column_dimensions["G"].width = 3
+    ix.column_dimensions["H"].width = 40
+    ix.column_dimensions["I"].width = 16
+    _summary_block(ix, "H", "I", [
+        (1, "Yearly sales goal (type yours)", None, USD),
+        (2, "Average month, all rows on the Sales tab", f'=IFERROR(AVERAGE({sa}),"")', USD),
+        (3, "Busiest month", '=IF(COUNT(D2:D13)=0,"",INDEX(B2:B13,MATCH(MAX(D2:D13),D2:D13,0)))', "General"),
+        (4, "Its index", '=IF(COUNT(D2:D13)=0,"",MAX(D2:D13))', "0.00"),
+        (5, "Slowest month", '=IF(COUNT(D2:D13)=0,"",INDEX(B2:B13,MATCH(MIN(D2:D13),D2:D13,0)))', "General"),
+        (6, "Its index", '=IF(COUNT(D2:D13)=0,"",MIN(D2:D13))', "0.00"),
+        (7, "The 12 indexes added up", '=IF(COUNT(D2:D13)=0,"",SUM(D2:D13))', "0.00"),
+        (8, "Months with no data", '=COUNTIF(C2:C13,"No data")', "0"),
+        (9, "Goal amounts added up", "=SUM(F2:F13)", USD),
+        (10, "Cents off the goal after rounding", '=IF(AND(ISNUMBER(I1),COUNT(F2:F13)>0),ROUND(I1-I9,2),"")', USD),
+        (11, "Check: every sale lands in a month, no text amounts",
+         f'=IF(AND(COUNT({sa})=COUNTA({sa}),SUM(E2:E13)=COUNT({sa})),"OK","CHECK")', "General"),
+    ])
+    ix["I1"].fill = INPUT_FILL
+    ix["I1"] = 90000
+    _ok_format(ix, "I11")
+    ix.print_area = "A1:I13"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Seasonal Sales Index by Calendar Month",
+        "",
+        "1. Sales tab, rows 2 to 200: type the year (A), the month number from 1 to 12 (B) and that month's total sales (C), one row per month. Yellow. The sample has 24 months, 2024 and 2025.",
+        "2. Index tab, C2: =AVERAGEIF(Sales!$B$2:$B$200,A2,Sales!$C$2:$C$200). The average of all the Januaries, all the Februaries and so on. A month with no rows shows No data instead of #DIV/0!.",
+        "3. Index, D2: the month's average divided by the average of every row, =C2/AVERAGE(Sales!$C$2:$C$200). 1.00 is a typical month, 2.00 about twice as busy, 0.60 about 60% of a typical month. Rows with an index above 1.00 are shaded green.",
+        "4. The 12 indexes add up to exactly 12.00 only when every month has the same number of years of data (column E). With one year for some months and two for others the total is a little off. I7 shows the total.",
+        "5. I3 to I6 name the busiest and slowest month with INDEX and MATCH. If two months tie, the first one in the list is shown.",
+        "6. I1 is a yearly goal you type. Column F spreads it by each month's average sales, =ROUND($I$1*C2/SUM($C$2:$C$13),2). Rounding each month to cents can leave the 12 amounts a few cents off the goal; I10 shows the difference. In the sample it is 2 cents ($89,999.98 against $90,000.00). The file does not add the cents anywhere. A month with no data gets no share of the goal.",
+        "7. I11 shows OK when every amount on the Sales tab is a number and every row has a month number from 1 to 12. A month number of 13, a month typed as text, or a sales amount typed as text gives CHECK.",
+        "8. This describes past months. It is not a forecast and it does not say how much to stock or hire.",
+        "",
+        "Shop and sales are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Index"].print_title_rows = None
+    wb["Index"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-seasonal-sales-index.xlsx")
+
+
+def order_line_numbers():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    header(ws, ["Order ID", "Item", "Item number", "Items in order", "Position", "Order label"],
+           [12, 30, 9, 9, 10, 16])
+    ws.row_dimensions[1].height = 32
+    orders = [
+        ("A1001", ["Lavender soy candle", "Cedar soy candle"]),
+        ("A1002", ["Oatmeal soap bar"]),
+        ("A1003", ["Brass hoop earrings", "Letterpress birthday card", "Kraft gift box"]),
+        ("A1004", ["Charcoal soap bar", "Oatmeal soap bar", "Lavender soy candle", "Linen tote bag"]),
+        ("A1005", ["Letterpress birthday card", "Letterpress thank-you card"]),
+        ("A1006", ["Cedar soy candle"]),
+        ("A1007", ["Brass hoop earrings", "Linen tote bag", "Kraft gift box"]),
+        ("A1008", ["Lavender soy candle", "Charcoal soap bar", "Letterpress birthday card", "Kraft gift box"]),
+        ("A1009", ["Oatmeal soap bar", "Cedar soy candle", "Brass hoop earrings", "Linen tote bag"]),
+    ]
+    rows = [(o, it) for o, items in orders for it in items]
+    assert len(rows) == 24
+    for i in range(2, 201):
+        if i - 2 < len(rows):
+            ws[f"A{i}"], ws[f"B{i}"] = rows[i - 2]
+        ws[f"C{i}"] = f'=IF(A{i}="","",COUNTIF($A$2:A{i},A{i}))'
+        ws[f"D{i}"] = f'=IF(A{i}="","",COUNTIF($A$2:$A$200,A{i}))'
+        ws[f"E{i}"] = f'=IF(A{i}="","",IF(D{i}=1,"Only",IF(C{i}=1,"First",IF(C{i}=D{i},"Last",""))))'
+        ws[f"F{i}"] = f'=IF(A{i}="","",A{i}&"-"&C{i}&" of "&D{i})'
+        ws[f"A{i}"].fill = ws[f"B{i}"].fill = INPUT_FILL
+        for col in "CDEF":
+            ws[f"{col}{i}"].fill = FORMULA_FILL
+        ws[f"C{i}"].number_format = ws[f"D{i}"].number_format = "0"
+        ws[f"C{i}"].alignment = ws[f"D{i}"].alignment = Alignment(horizontal="center")
+    ws.conditional_formatting.add("A2:A200", FormulaRule(formula=['A2<>TRIM(A2)'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("A2:F200", FormulaRule(formula=['OR($E2="Last",$E2="Only")'], fill=DONE_FILL))
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 46
+    ws.column_dimensions["I"].width = 12
+    _summary_block(ws, "H", "I", [
+        (1, "Rows with an order ID", "=COUNTA(A2:A200)", "0"),
+        (2, "Orders (rows numbered 1)", "=COUNTIF(C2:C200,1)", "0"),
+        (3, "Most items in one order", "=MAX(D2:D200)", "0"),
+        (4, "Order IDs with a space at the start or end", "=SUMPRODUCT(--(LEN(A2:A200)<>LEN(TRIM(A2:A200))))", "0"),
+        (5, "Rows with an ID but no item, or an item but no ID", "=SUMPRODUCT(--((A2:A200<>\"\")<>(B2:B200<>\"\")))", "0"),
+        (6, "Rows of an order that are not next to each other",
+         "=SUMPRODUCT((A3:A200<>\"\")*(A3:A200<>A2:A199)*ISNUMBER(C3:C200)*(C3:C200>1))", "0"),
+        (7, "Order IDs containing * or ?",
+         '=SUMPRODUCT(--(LEN(A2:A200)<>LEN(SUBSTITUTE(SUBSTITUTE(A2:A200,"*",""),"?",""))))', "0"),
+        (8, "Check: no stray spaces, no * or ?, no half-filled rows", '=IF(AND(I4=0,I5=0,I7=0),"OK","CHECK")', "General"),
+    ])
+    _ok_format(ws, "I8")
+    ws.print_area = "A1:F25"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Number the Items Within Each Order",
+        "",
+        "1. Orders tab, rows 2 to 200: type or paste the order ID (A) and the item (B), one row per item. Yellow. The sample has 24 items in 9 fictional orders.",
+        "2. Item number, C2: =COUNTIF($A$2:A2,A2). The range starts at $A$2 and its second end moves down one row each time, so each row counts how many times its order ID has appeared so far. A new order ID starts at 1.",
+        "3. Items in order, D2: =COUNTIF($A$2:$A$200,A2). The same ID counted over the whole list.",
+        "4. Position, E2: Only for a one item order, First for item 1, Last for the final item (item number equals items in order), blank in between. Order label, F2: the ID, the item number and the total, such as A1003-2 of 3. The Last and Only rows are shaded green.",
+        "5. The order of the rows does not matter for the counts. If the rows of one order are not next to each other, each row still gets the right item number going down the list and the right total. I6 counts rows that are separated from the rest of their order. Sort by Order ID first if you want a packing list.",
+        "6. COUNTIF ignores capitalization, so a1003 and A1003 count as the same order. It does not ignore spaces: A1003 with a space at the end is a different order. Those cells turn red, I4 counts them and I8 shows CHECK. In a spare column, =TRIM(A2) gives a clean copy.",
+        "7. A row with an order ID that is blank shows blank in C to F, even if it has an item, and I5 counts it. A duplicate ID is expected in this file. It is not a duplicate checker.",
+        "8. In COUNTIF a * or ? in the criteria is a wildcard. In LibreOffice Calc an ID such as A*1 was counted together with A1 and AB1, and A? with A1. I7 counts IDs that contain * or ? and I8 shows CHECK; rename those IDs (for example swap the * for a dash) before you trust the numbers. Also in LibreOffice Calc, the text 007 and the number 7 were counted as the same order, so keep an all-digit ID typed the same way everywhere.",
+        "9. Rows 2 to 200 are set up. For more rows, copy the last row down and change $A$200 to a later row in column D, I1 to I7 and the formulas that mention row 200.",
+        "",
+        "Orders and items are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_title_rows = "1:1"
+    wb.save(OUT / "tidy-tabs-order-line-numbers.xlsx")
+
+
+def split_shared_cost():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Split"
+    ws["A1"], ws["B1"] = "Total shared bill", 240
+    ws["A1"].font = Font(bold=True)
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = USD
+    ws["A2"] = "Booth fee for the October craft fair. Type the bill in B1 and each seller's sales in B4:B7."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 3, ["Seller", "Sales", "Rounded share", "Final amount", "Share of sales",
+                      "Equal split", "Sales split minus equal split"], [22, 13, 13, 13, 11, 12, 15], height=46)
+    sellers = [("Maple Street Candles", 1310), ("Birch and Bloom Soap", 890),
+               ("Harbor Knit Co.", 560), ("Pine Hill Prints", 340)]
+    chk = ('OR(NOT(ISNUMBER($B$1)),COUNT($B$4:$B$7)<COUNTA($B$4:$B$7),SUM($B$4:$B$7)<=0,MIN($B$4:$B$7)<0)')
+    for r in range(4, 8):
+        n, s = sellers[r - 4]
+        ws[f"A{r}"], ws[f"B{r}"] = n, s
+        ws[f"C{r}"] = f'=IF({chk},"Check sales",IF(B{r}="","",ROUND($B$1*B{r}/SUM($B$4:$B$7),2)))'
+        ws[f"D{r}"] = (f'=IF(ISNUMBER(C{r}),C{r}+IF(AND(B{r}=MAX($B$4:$B$7),COUNTIF($B$4:B{r},MAX($B$4:$B$7))=1),'
+                       f'ROUND($B$1-SUM($C$4:$C$7),2),0),C{r})')
+        ws[f"E{r}"] = f'=IF(ISNUMBER(C{r}),B{r}/SUM($B$4:$B$7),C{r})'
+        ws[f"F{r}"] = f'=IF(AND(A{r}<>"",ISNUMBER($B$1)),ROUND($B$1/COUNTA($A$4:$A$7),2),"")'
+        ws[f"G{r}"] = f'=IF(AND(ISNUMBER(D{r}),ISNUMBER(F{r})),ROUND(D{r}-F{r},2),"")'
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        for col in "CDEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        ws[f"B{r}"].number_format = USD
+        for col in "CDFG":
+            ws[f"{col}{r}"].number_format = USD
+        ws[f"E{r}"].number_format = "0.00%"
+    ws["A8"] = "Total"
+    ws["B8"], ws["C8"], ws["D8"], ws["E8"], ws["F8"] = ("=SUM(B4:B7)", "=SUM(C4:C7)", "=SUM(D4:D7)",
+                                                       "=SUM(E4:E7)", "=SUM(F4:F7)")
+    for col in "ABCDEFG":
+        ws[f"{col}8"].font = Font(bold=True)
+    for col in "BCDF":
+        ws[f"{col}8"].number_format = USD
+    ws["E8"].number_format = "0.00%"
+    ws.conditional_formatting.add("C4:G7", FormulaRule(formula=['C4="Check sales"'], fill=ALERT_FILL))
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 44
+    ws.column_dimensions["J"].width = 25
+    _summary_block(ws, "I", "J", [
+        (1, "Cents left over after rounding (bill minus C8)", '=IF(AND(ISNUMBER(B1),COUNT(C4:C7)>0),ROUND(B1-C8,2),"")', USD),
+        (2, "Seller who gets the leftover cents",
+         '=IF(NOT(ISNUMBER(J1)),"",IF(J1=0,"None needed",INDEX(A4:A7,MATCH(MAX(B4:B7),B4:B7,0))))', "General"),
+        (3, "Final amounts add up to", "=D8", USD),
+        (4, "Equal split adds up to", "=F8", USD),
+        (5, "Check: final amounts equal the bill",
+         '=IF(AND(ISNUMBER(B1),ISNUMBER(D8)),IF(ROUND(D8-B1,2)=0,"OK","CHECK"),"CHECK")', "General"),
+    ])
+    _ok_format(ws, "J5")
+    ws.print_area = "A1:J8"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Split a Shared Booth Fee or Bill by Sales Share",
+        "",
+        "1. Split tab: type the total bill in B1, the seller names in A4:A7 and each seller's sales in B4:B7. Yellow. Up to 4 sellers. The sample is a fictional $240.00 booth fee shared by 4 fictional sellers.",
+        "2. Rounded share, C4: =ROUND($B$1*B4/SUM($B$4:$B$7),2). The bill times the seller's sales over all sales, rounded to cents. Rounding each seller can make the four amounts add to a cent or two more or less than the bill. In the sample they add to $239.99 (C8).",
+        "3. Final amount, D4: =C4+IF(AND(B4=MAX($B$4:$B$7),COUNTIF($B$4:B4,MAX($B$4:$B$7))=1),ROUND($B$1-SUM($C$4:$C$7),2),0). It adds the leftover cents (J1) to the seller with the largest sales. If two sellers tie for the largest, only the first one listed gets them. The Final amounts add back to the bill.",
+        "4. Share of sales, E, shows each seller's percent. Equal split, F, divides the bill by the number of names in A4:A7, rounded to cents, for comparison. With a bill that does not divide evenly the equal split can also be a cent off (F8). G is the sales split minus the equal split.",
+        "5. A seller with $0.00 sales pays $0.00. If all the sales are 0, any sales amount is text or negative, or B1 is not a number, the amounts show Check sales instead of #DIV/0!. A blank sales cell leaves that row blank.",
+        "6. J5 shows OK when the final amounts add up to the bill to the cent. A total with fractions of a cent, such as 86.455, gives CHECK, because dollar amounts cannot add to half a cent.",
+        "7. This is arithmetic only. It does not say how a fee should fairly be split. Agree the method with the other sellers before you use the numbers, and do not treat the result as a tax deduction.",
+        "",
+        "Sellers and sales are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Split"].print_title_rows = None
+    wb["Split"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-split-shared-cost.xlsx")
+
+
+def income_steadiness():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Income"
+    header(ws, ["Month", "Income"], [14, 13])
+    vals = [2400, 3100, 1800, 2900, 3500, 2200, 2700, 3000, 1600, 2800, 3300, 2500]
+    months = [(2025, 10), (2025, 11), (2025, 12)] + [(2026, m) for m in range(1, 10)]
+    for i, ((y, m), v) in enumerate(zip(months, vals), start=2):
+        ws[f"A{i}"], ws[f"B{i}"] = date(y, m, 1), v
+        ws[f"A{i}"].number_format = "mmm yyyy"
+        ws[f"B{i}"].number_format = USD
+        ws[f"A{i}"].fill = ws[f"B{i}"].fill = INPUT_FILL
+    ws.print_area = "A1:B13"
+
+    st = wb.create_sheet("Steadiness", 1)
+    r_ = "Income!$B$2:$B$13"
+    heads = ["Measure", "Value", "What it is"]
+    for col, t, w in zip("ABC", heads, [46, 18, 64]):
+        c = st[f"{col}1"]
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center")
+        st.column_dimensions[col].width = w
+    st.row_dimensions[1].height = 24
+    rows = [
+        (2, "Average month", f'=IF(COUNT({r_})=0,"Type income",AVERAGE({r_}))', USD, "The mean of the months with a number."),
+        (3, "Standard deviation", f'=IF(COUNT({r_})<2,"Need 2 or more months",STDEV({r_}))', USD,
+         "How far a typical month sits from the average (STDEV, the sample version)."),
+        (4, "Variation (standard deviation / average)",
+         '=IF(AND(ISNUMBER(B2),ISNUMBER(B3)),IF(B2<=0,"Average is 0 or below",B3/B2),"")', "0.0%",
+         "A lower percent means steadier months."),
+        (5, "Lowest month", f'=IF(COUNT({r_})=0,"",MIN({r_}))', USD, "The smallest income typed."),
+        (6, "Average of the 3 lowest months",
+         f'=IF(COUNT({r_})<3,"Need 3 or more months",(SMALL({r_},1)+SMALL({r_},2)+SMALL({r_},3))/3)', USD,
+         "Add the three smallest and divide by 3."),
+        (7, "Months below average minus one standard deviation",
+         f'=IF(AND(ISNUMBER(B2),ISNUMBER(B3)),COUNTIF({r_},"<"&(B2-B3)),"")', "0", "A count of unusually low months."),
+        (8, "Months with income entered", f"=COUNT({r_})", "0", "Blank months are skipped."),
+        (9, "Highest month", f'=IF(COUNT({r_})=0,"",MAX({r_}))', USD, "The largest income typed."),
+        (10, "Check: all entries are numbers, at least 3 months",
+         f'=IF(AND(COUNTA({r_})=COUNT({r_}),COUNT({r_})>=3),"OK","CHECK")', "General",
+         "CHECK means an entry is text or fewer than 3 months are filled."),
+    ]
+    for r, label, f, fmt, what in rows:
+        st[f"A{r}"] = label
+        st[f"A{r}"].font = Font(bold=True)
+        st[f"B{r}"] = f
+        st[f"B{r}"].number_format = fmt
+        st[f"B{r}"].fill = FORMULA_FILL
+        st[f"B{r}"].alignment = Alignment(horizontal="right")
+        st[f"C{r}"] = what
+    _ok_format(st, "B10")
+    st.print_area = "A1:C10"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: How Steady Is Your Monthly Income",
+        "",
+        "1. Income tab, rows 2 to 13: a month (A) and that month's income (B). Yellow. Up to 12 months. A blank income cell is skipped, not counted as $0.00. Type a month with no income as 0.",
+        "2. Steadiness, B2: =AVERAGE(Income!B2:B13). B3: =STDEV(Income!B2:B13), the sample standard deviation (STDEV, not STDEV.S, so the file opens the same in older Excel).",
+        "3. Variation, B4: =B3/B2, shown as a percent. In the sample it is 0.2180, or 21.8%: a typical month is about 22% above or below the average. Identical months give 0.0%. It describes the spread of the numbers you typed. It does not say how much to save or spend.",
+        "4. B5 is the lowest month. B6 is the average of the 3 lowest months, =(SMALL(r,1)+SMALL(r,2)+SMALL(r,3))/3 with r the 12 income cells; with fewer than 3 numbers it shows Need 3 or more months. B7 counts the months below the average minus one standard deviation, =COUNTIF(r,\"<\"&(B2-B3)).",
+        "5. Messages replace errors: Type income when nothing is typed, Need 2 or more months for the standard deviation with one number, Average is 0 or below instead of #DIV/0!.",
+        "6. B10 shows OK when every entry is a number and at least 3 months are filled. Income typed as text, such as $2,400 with a dollar sign typed as text or n/a, is skipped by AVERAGE and STDEV and gives CHECK.",
+        "7. Only the 12 rows are read. For more months, change B13 in every formula.",
+        "8. Arithmetic on past income only. Not tax, loan or financial planning advice.",
+        "",
+        "Months and income are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Steadiness"].print_title_rows = None
+    wb["Steadiness"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-income-steadiness.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -7034,4 +7445,9 @@ if __name__ == "__main__":
     yyyymmdd_to_date()
     days_between_orders()
     currency_to_usd()
+    equipment_payback()
+    seasonal_sales_index()
+    order_line_numbers()
+    split_shared_cost()
+    income_steadiness()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

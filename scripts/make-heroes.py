@@ -386,7 +386,25 @@ def heroes_2026_10_22():
          render(short_sheet_copy(t + "tidy-tabs-currency-to-usd.xlsx", "Orders", 12, "currency"), "Orders", name="currency"))
 
 
+def heroes_2026_10_23():
+    t = "templates/"
+    d = "images/2026-10-23-team-0%d-%s/"
+    save(d % (1, "equipment-payback-period-months-cumulative-profit-excel-google-sheets") + "equipment-payback-period-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-equipment-payback.xlsx", "Payback", 18, "payback"), "Payback", hide_cols="EFG", name="payback"))
+    save(d % (2, "seasonal-sales-index-by-month-averageif-excel-google-sheets") + "seasonal-sales-index-template.png",
+         render(t + "tidy-tabs-seasonal-sales-index.xlsx", "Index", hide_cols="EF", name="seasonal"))
+    save(d % (3, "number-items-within-each-order-countif-expanding-range-excel-google-sheets") + "order-line-numbers-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-order-line-numbers.xlsx", "Orders", 13, "orderlines"), "Orders", hide_cols="GHI", name="orderlines"))
+    save(d % (4, "split-shared-booth-fee-by-sales-share-round-excel-google-sheets") + "split-booth-fee-template.png",
+         render(hide_rows_copy(t + "tidy-tabs-split-shared-cost.xlsx", "Split", [2], "splitfee"), "Split", hide_cols="EFGH", name="splitfee"))
+    save(d % (5, "monthly-income-steadiness-stdev-lowest-months-excel-google-sheets") + "income-steadiness-template.png",
+         render(t + "tidy-tabs-income-steadiness.xlsx", "Steadiness", hide_cols="C", name="steadiness", widths={"A": 62}))
+
+
 def main():
+    if "--only-2026-10-23" in sys.argv:
+        heroes_2026_10_23()
+        return
     if "--only-2026-10-22" in sys.argv:
         heroes_2026_10_22()
         return

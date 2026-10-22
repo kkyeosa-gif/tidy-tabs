@@ -128,3 +128,9 @@
 - How to Convert 20261021 and Other YYYYMMDD Numbers to Real Dates in Excel and Google Sheets - `convert-yyyymmdd-number-to-date-date-left-mid-excel-google-sheets`
 - How to Calculate the Average Days Between Orders for Each Customer in Excel and Google Sheets - `average-days-between-orders-per-customer-maxifs-minifs-excel-google-sheets`
 - How to Convert Orders in Canadian Dollars, Pounds or Euros to US Dollars in Excel and Google Sheets - `convert-foreign-currency-orders-to-usd-index-match-excel-google-sheets`
+## 2026-10-23 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice Calc 24.2 에서 확인)
+- How to Calculate Payback Period for Equipment in Excel and Google Sheets - `equipment-payback-period-months-cumulative-profit-excel-google-sheets`
+- How to Find Your Busiest and Slowest Months With a Seasonal Index in Excel and Google Sheets - `seasonal-sales-index-by-month-averageif-excel-google-sheets`
+- How to Number Items Within Each Order in Excel and Google Sheets - `number-items-within-each-order-countif-expanding-range-excel-google-sheets`
+- How to Split a Shared Booth Fee Between Sellers by Sales Share in Excel and Google Sheets - `split-shared-booth-fee-by-sales-share-round-excel-google-sheets`
+- How to Measure How Much Your Monthly Income Varies With STDEV in Excel and Google Sheets - `monthly-income-steadiness-stdev-lowest-months-excel-google-sheets`

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DezQp13Ecd_
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-add-minutes-to-start-time-to.html
 title: How to Add Minutes to a Start Time to Find an Appointment End Time in Excel and Google Sheets
 labels: excel-formulas, small-business, scheduling
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an exact minute model, with 33 edited variants (back to back, overlap, past midnight, blank row, text start time, text minutes, buffer 0, 20, blank and text, 11 appointments, one appointment, empty schedule, other slot lengths). No mismatches in the final run. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

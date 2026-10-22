@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DexppqCFcDx
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-look-up-price-that-was-in-effect.html
 title: How to Look Up the Price That Was in Effect on a Certain Date in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model for 30 sample orders and many edited variants (order on the change day, the day before, before the first price, unknown product, trailing space, same-day price rows, unsorted dates, text dates, blank prices). Excel and Google Sheets were not opened; the LOOKUP form was not run in Google Sheets. Help links are from Microsoft Support and Google Docs Editors Help.

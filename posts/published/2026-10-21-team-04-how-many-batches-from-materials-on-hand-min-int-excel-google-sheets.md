@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dey83XJmxoY
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-how-many-batches-you-can.html
 title: How to Find How Many Batches You Can Make From the Materials You Have in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model, including edited copies (material at exactly one batch, short by a cent, zero on hand, ties, blank and zero needed amounts, text and negative inputs, decimals). Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

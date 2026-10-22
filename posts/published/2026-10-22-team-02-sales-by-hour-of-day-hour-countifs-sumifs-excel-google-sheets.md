@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dezy-w6IIYE
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-your-busiest-hour-of-day.html
 title: How to Find Your Busiest Hour of the Day From Order Timestamps in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model, including 15 edited variants for this file (boundary times such as 9:59:59 AM and 10:00:00 AM, midnight, a date with no time, a time typed as text, a duplicate hour in the list, a text amount, 299 orders). No mismatches in the final run. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DezeYruFUNV
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-compare-farmers-markets-and.html
 title: How to Compare Farmers Markets and Craft Fairs by Profit Per Hour in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model, including 17 edited variants of the events file (zero, blank and text hours, a misspelled event name, an event with no sales, tied events, negative profit, a text fee, an event listed twice). No mismatches in the final run. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

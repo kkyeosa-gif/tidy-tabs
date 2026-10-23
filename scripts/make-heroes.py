@@ -401,7 +401,25 @@ def heroes_2026_10_23():
          render(t + "tidy-tabs-income-steadiness.xlsx", "Steadiness", hide_cols="C", name="steadiness", widths={"A": 62}))
 
 
+def heroes_2026_10_24():
+    t = "templates/"
+    d = "images/2026-10-24-team-0%d-%s/"
+    save(d % (1, "client-retainer-hours-remaining-sumifs-excel-google-sheets") + "retainer-hours-remaining-by-client-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-retainer-hours.xlsx", "Clients", 6, "retainer"), "Clients", hide_cols="GHI", name="retainer"))
+    save(d % (2, "monthly-calendar-grid-from-month-year-weekday-excel-google-sheets") + "monthly-calendar-october-2026-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-monthly-calendar.xlsx", "Calendar", 11, "calendar"), "Calendar", hide_cols="HIJ", name="calendar"))
+    save(d % (3, "trailing-12-month-sales-total-sumifs-edate-excel-google-sheets") + "trailing-12-month-sales-total-template.png",
+         render(t + "tidy-tabs-trailing-12-month-sales.xlsx", "Trailing", hide_cols="C", name="trailing", widths={"A": 78}))
+    save(d % (4, "inventory-count-variance-physical-vs-system-excel-google-sheets") + "inventory-count-variance-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-inventory-count-variance.xlsx", "Count", 15, "invcount"), "Count", hide_cols="IJK", name="invcount"))
+    save(d % (5, "compare-options-weighted-score-sumproduct-rank-excel-google-sheets") + "weighted-score-vendor-comparison-template.png",
+         render(t + "tidy-tabs-weighted-score-matrix.xlsx", "Score", hide_cols="HIJ", name="weighted"))
+
+
 def main():
+    if "--only-2026-10-24" in sys.argv:
+        heroes_2026_10_24()
+        return
     if "--only-2026-10-23" in sys.argv:
         heroes_2026_10_23()
         return

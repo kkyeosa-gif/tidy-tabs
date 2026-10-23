@@ -13,7 +13,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 from openpyxl.formatting.rule import FormulaRule
-from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.worksheet.datavalidation import DataValidation
 
 OUT = Path("templates")
@@ -7348,6 +7348,465 @@ def income_steadiness():
     wb.save(OUT / "tidy-tabs-income-steadiness.xlsx")
 
 
+def retainer_hours():
+    wb = Workbook()
+    log = wb.active
+    log.title = "Log"
+    header(log, ["Date", "Client", "Hours", "Task"], [12, 26, 9, 34])
+    entries = [
+        (date(2026, 9, 1), "Birch Street Bakery", 5.5, "Website copy"),
+        (date(2026, 9, 3), "Lakeview Dental Office", 6, "Newsletter"),
+        (date(2026, 9, 4), "Pine Hill Yoga", 2, "Class descriptions"),
+        (date(2026, 9, 8), "Cedar & Co. Realty", 2.5, "Listing descriptions"),
+        (date(2026, 9, 10), "Birch Street Bakery", 4.25, "Menu rewrite"),
+        (date(2026, 9, 11), "Lakeview Dental Office", 7.5, "Blog posts"),
+        (date(2026, 9, 15), "Pine Hill Yoga", 1.5, "Email series"),
+        (date(2026, 9, 17), "Cedar & Co. Realty", 1.25, "Open house flyer"),
+        (date(2026, 9, 18), "Lakeview Dental Office", 4.25, "Patient FAQ"),
+        (date(2026, 9, 22), "Pine Hill Yoga", 3, "Workshop page"),
+        (date(2026, 9, 24), "Birch Street Bakery", 3, "Holiday email"),
+        (date(2026, 9, 25), "Cedar & Co. Realty", 3, "Neighborhood guide"),
+        (date(2026, 9, 29), "Lakeview Dental Office", 5, "Website edits"),
+        (date(2026, 10, 1), "Pine Hill Yoga", 4.25, "Retreat brochure"),
+        (date(2026, 10, 6), "Lakeview Dental Office", 3.75, "Newsletter"),
+        (date(2026, 10, 8), "Pine Hill Yoga", 1.5, "Social posts"),
+        (date(2026, 10, 13), "Cedar & Co. Realty", 0.75, "Proofreading"),
+    ]
+    for r in range(2, 201):
+        for col in "ABCD":
+            log[f"{col}{r}"].fill = INPUT_FILL
+        log[f"A{r}"].number_format = US_DATE
+        log[f"C{r}"].number_format = "0.00"
+    for r, e in enumerate(entries, start=2):
+        for col, v in zip("ABCD", e):
+            log[f"{col}{r}"] = v
+    log.print_area = "A1:D26"
+
+    cl = wb.create_sheet("Clients", 0)
+    header(cl, ["Client", "Hours bought", "Hours used", "Hours left", "Percent used", "Status"],
+           [26, 13, 12, 12, 12, 22])
+    clients = [("Birch Street Bakery", 20), ("Lakeview Dental Office", 30), ("Pine Hill Yoga", 10),
+               ("Cedar & Co. Realty", 15), ("Oak Lane Florist", 12)]
+    for r in range(2, 14):
+        cl[f"A{r}"].fill = cl[f"B{r}"].fill = INPUT_FILL
+        if r - 2 < len(clients):
+            cl[f"A{r}"], cl[f"B{r}"] = clients[r - 2]
+        cl[f"C{r}"] = f'=IF(A{r}="","",SUMIFS(Log!$C$2:$C$200,Log!$B$2:$B$200,A{r}))'
+        cl[f"D{r}"] = f'=IF(OR(A{r}="",NOT(ISNUMBER(B{r}))),"",B{r}-C{r})'
+        cl[f"E{r}"] = f'=IF(D{r}="","",IF(B{r}=0,"",C{r}/B{r}))'
+        cl[f"F{r}"] = (f'=IF(D{r}="","",IF(D{r}<0,"Over by "&ROUND(-D{r},2)&" hours",'
+                       f'IF(D{r}<=B{r}*0.2,"Low","OK")))')
+        for col in "BCD":
+            cl[f"{col}{r}"].number_format = "0.00"
+        cl[f"E{r}"].number_format = "0.0%"
+        for col in "CDEF":
+            cl[f"{col}{r}"].fill = FORMULA_FILL
+            cl[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    cl.conditional_formatting.add("A2:F13", FormulaRule(formula=['LEFT($F2,4)="Over"'], fill=ALERT_FILL))
+    cl.conditional_formatting.add("A2:F13", FormulaRule(formula=['$F2="Low"'], fill=PatternFill("solid", fgColor="FCE4D6")))
+    cl.column_dimensions["G"].width = 3
+    cl.column_dimensions["H"].width = 50
+    cl.column_dimensions["I"].width = 14
+    _summary_block(cl, "H", "I", [
+        (2, "Hours bought, all clients", "=SUM(B2:B13)", "0.00"),
+        (3, "Hours used, all clients", "=SUM(C2:C13)", "0.00"),
+        (4, "Hours logged in the Log sheet", "=SUM(Log!$C$2:$C$200)", "0.00"),
+        (5, "Clients that are Low or over", '=COUNTIF(F2:F13,"Low")+COUNTIF(F2:F13,"Over*")', "0"),
+        (6, "Check: every logged client is listed, hours are numbers",
+         '=IF(AND(SUMPRODUCT((Log!$B$2:$B$200<>"")*(COUNTIF($A$2:$A$13,Log!$B$2:$B$200)=0))=0,'
+         'COUNT(Log!$C$2:$C$200)=COUNTA(Log!$C$2:$C$200),'
+         'SUMPRODUCT(--((Log!$B$2:$B$200<>"")<>(Log!$C$2:$C$200<>"")))=0,'
+         'COUNT($B$2:$B$13)=COUNTA($B$2:$B$13),SUMPRODUCT(($A$2:$A$13<>"")*(1-ISNUMBER($B$2:$B$13)))=0,'
+         'ROUND(I3-I4,6)=0),"OK","CHECK")', "General"),
+    ])
+    _ok_format(cl, "I6")
+    cl.print_area = "A1:I13"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Prepaid Retainer Hours Remaining for Each Client",
+        "",
+        "1. Log tab: one row per entry. Type the date (A), the client name (B), the hours (C) and a task note (D). Yellow. Rows 2 to 200 are read. Quarter hours such as 0.25 work.",
+        "2. Clients tab: type each client name in A2:A13 exactly as it appears in the Log and the hours they bought in B. Yellow. Up to 12 clients. The sample is five fictional clients of a freelance writer.",
+        "3. Hours used, C2: =SUMIFS(Log!$C$2:$C$200,Log!$B$2:$B$200,A2). It adds the Log hours whose client matches A2. Capitalization does not matter. A client with no Log rows shows 0.00.",
+        "4. Hours left, D2: =B2-C2. A negative number means the client has used more hours than they bought. The one cell version is =B2-SUMIFS(Log!$C$2:$C$200,Log!$B$2:$B$200,A2).",
+        "5. Percent used, E2: =C2/B2 (blank if the hours bought are 0). Status, F2: Over by N hours when D is below 0, Low when the hours left are 20% of the hours bought or less, OK otherwise. Change 0.2 in the F formulas to use another cutoff.",
+        "6. A name with a space at the end, such as \"Pine Hill Yoga \", is a different name to SUMIFS. Its hours are not added to the client, and I6 shows CHECK because the name is not in the Clients list. Hours typed as text (for example 2h) are skipped by SUMIFS and also give CHECK.",
+        "7. I6 shows OK when every Log client is listed, every Log hours cell is a number, and the hours used add up to the hours in the Log (I3 equals I4).",
+        "8. Hours only. No rates, invoices, tax or contract advice.",
+        "",
+        "Clients and hours are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Clients"].print_title_rows = None
+    wb["Clients"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-retainer-hours.xlsx")
+
+
+def monthly_calendar():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Calendar"
+    for r, (t, v) in enumerate([("Year", 2026), ("Month number", 10)], start=1):
+        ws[f"A{r}"], ws[f"B{r}"] = t, v
+        ws[f"A{r}"].font = Font(bold=True)
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = "0"
+    ws["A3"] = "First day"
+    ws["A3"].font = Font(bold=True)
+    ws["B3"] = ('=IF(AND(ISNUMBER(B1),ISNUMBER(B2)),IF(AND(B1>=1901,B1<=9999,B2>=1,B2<=12,B2=INT(B2),B1=INT(B1)),'
+                'DATE(B1,B2,1),""),"")')
+    ws["B3"].number_format = US_DATE
+    ws["B3"].fill = FORMULA_FILL
+    ws["B3"].alignment = Alignment(horizontal="right")
+    for col in "ABCDEFG":
+        ws.column_dimensions[col].width = 15
+    ws.merge_cells("A4:G4")
+    ws["A4"] = ('=IF(ISNUMBER(B3),TEXT(B3,"mmmm yyyy"),'
+                '"Type a year (1901 to 9999) and a month number (1 to 12)")')
+    ws["A4"].font = Font(bold=True, size=16)
+    ws["A4"].alignment = Alignment(horizontal="center")
+    ws["A4"].fill = FORMULA_FILL
+    ws.row_dimensions[4].height = 26
+    days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    for hr in (5, 13):
+        for col, d in zip("ABCDEFG", days):
+            c = ws[f"{col}{hr}"]
+            c.value, c.fill, c.font = d, HEADER_FILL, HEADER_FONT
+            c.alignment = Alignment(horizontal="center")
+    ws["A12"] = "Events per day (from the Events tab)"
+    ws["A12"].font = Font(bold=True)
+    x = "$B$3-WEEKDAY($B$3)+1+(ROW()-ROW($A$6))*7+COLUMN()-COLUMN($A$6)"
+    thin = Side(style="thin", color="BFBFBF")
+    box = Border(left=thin, right=thin, top=thin, bottom=thin)
+    for r in range(6, 12):
+        ws.row_dimensions[r].height = 34
+        for col in "ABCDEFG":
+            c = ws[f"{col}{r}"]
+            c.value = f'=IF(ISNUMBER($B$3),IF(MONTH({x})=$B$2,{x},""),"")'
+            c.number_format = "d"
+            c.fill = FORMULA_FILL
+            c.alignment = Alignment(horizontal="left", vertical="top")
+            c.border = box
+            k = ws[f"{col}{r + 8}"]
+            k.value = f'=IF({col}{r}="","",COUNTIF(Events!$A$2:$A$200,{col}{r}))'
+            k.number_format = "0;-0;;@"
+            k.fill = FORMULA_FILL
+            k.alignment = Alignment(horizontal="center")
+            k.border = box
+    ws.conditional_formatting.add("A14:G19", FormulaRule(formula=['AND(ISNUMBER(A14),A14>0)'], fill=DONE_FILL))
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 44
+    ws.column_dimensions["J"].width = 14
+    _summary_block(ws, "I", "J", [
+        (1, "Days shown in the grid", "=COUNT(A6:G11)", "0"),
+        (2, "Events on the Events tab", "=COUNT(Events!$A$2:$A$200)", "0"),
+        (3, "Events in this month", "=SUM(A14:G19)", "0"),
+        (4, "Events in other months", '=IF(ISNUMBER(B3),J2-J3,"")', "0"),
+        (5, "Check: valid month, event dates are whole days",
+         '=IF(AND(ISNUMBER(B3),COUNT(Events!$A$2:$A$200)=COUNTA(Events!$A$2:$A$200)),'
+         'IF(SUMPRODUCT(--(Events!$A$2:$A$200<>INT(Events!$A$2:$A$200)))=0,"OK","CHECK"),"CHECK")', "General"),
+    ])
+    _ok_format(ws, "J5")
+    dv_m = DataValidation(type="list", formula1='"1,2,3,4,5,6,7,8,9,10,11,12"', allow_blank=False)
+    dv_y = DataValidation(type="whole", operator="between", formula1="1901", formula2="9999", allow_blank=False)
+    ws.add_data_validation(dv_m)
+    ws.add_data_validation(dv_y)
+    dv_m.add("B2")
+    dv_y.add("B1")
+    ws.print_area = "A1:J19"
+
+    ev = wb.create_sheet("Events")
+    header(ev, ["Date", "What"], [13, 44])
+    events = [
+        (date(2026, 10, 2), "Spooky candle listing goes live"),
+        (date(2026, 10, 3), "Saturday farmers market"),
+        (date(2026, 10, 8), "Newsletter due"),
+        (date(2026, 10, 10), "Saturday farmers market"),
+        (date(2026, 10, 10), "Wholesale order ships"),
+        (date(2026, 10, 15), "Blog post due"),
+        (date(2026, 10, 17), "Craft fair booth"),
+        (date(2026, 10, 22), "Newsletter due"),
+        (date(2026, 10, 24), "Saturday farmers market"),
+        (date(2026, 10, 28), "Holiday shipping cutoff for wholesale"),
+        (date(2026, 10, 31), "Halloween market"),
+        (date(2026, 11, 7), "Saturday farmers market"),
+        (date(2026, 11, 14), "Craft fair booth"),
+    ]
+    for r in range(2, 201):
+        ev[f"A{r}"].fill = ev[f"B{r}"].fill = INPUT_FILL
+        ev[f"A{r}"].number_format = US_DATE
+    for r, (d, t) in enumerate(events, start=2):
+        ev[f"A{r}"], ev[f"B{r}"] = d, t
+    ev.print_area = "A1:B30"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Monthly Calendar That Changes With the Month and Year",
+        "",
+        "1. Calendar tab: type the year in B1 and the month number (1 to 12) in B2 (the label in A2 says Month number). Yellow. B2 has a dropdown. The calendar redraws.",
+        "2. First day, B3: =DATE(B1,B2,1) inside a test that the year is 1901 to 9999 and the month is a whole number 1 to 12. Otherwise B3 and the grid stay blank and the title asks for a valid year and month.",
+        "3. Grid, A6:G11 (6 weeks of 7 days, Sunday first). Every cell holds the same formula: =IF(MONTH($B$3-WEEKDAY($B$3)+1+(ROW()-ROW($A$6))*7+COLUMN()-COLUMN($A$6))=$B$2, that same date, \"\"), wrapped in a test that B3 is a date. $B$3-WEEKDAY($B$3)+1 is the Sunday on or before the 1st. Each cell adds 7 for every row down and 1 for every column across. A date outside the month shows blank. The cells hold real dates, shown with the number format d so only the day number appears.",
+        "4. Events tab: type the date (A) and what is happening (B). Yellow. Rows 2 to 200 are read. Type dates only, without a time. Two events on one day are both counted.",
+        "5. Events per day, A14:G19: =IF(A6=\"\",\"\",COUNTIF(Events!$A$2:$A$200,A6)). It counts the Events rows with that date. Days with no events show blank (the cell holds 0 but the format hides it).",
+        "6. J5 shows OK when B3 is a valid first day and every Events date is a whole day. A date typed as text, or with a time such as 10/10/2026 2:00 PM, gives CHECK because COUNTIF would miss it.",
+        "7. J4 counts the events that fall in other months. They are not shown on this month's grid.",
+        "8. Print: landscape US Letter, one page. Printing was checked as a PDF export only.",
+        "",
+        "Events are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Calendar"].print_title_rows = None
+    wb["Calendar"].page_setup.orientation = "landscape"
+    wb["Calendar"].page_setup.fitToHeight = 1
+    wb.save(OUT / "tidy-tabs-monthly-calendar.xlsx")
+
+
+def trailing_12_month_sales():
+    wb = Workbook()
+    sa = wb.active
+    sa.title = "Sales"
+    header(sa, ["Month (1st of month)", "Sales", "12 months ending this month"], [20, 13, 28])
+    base = [4200, 7800, 11500, 3100, 3400, 3700, 4000, 4800, 4300, 4100, 4400, 4600]  # Oct to Sep
+    ra, rb = "$A$2:$A$200", "$B$2:$B$200"
+    for r in range(2, 201):
+        sa[f"A{r}"].fill = sa[f"B{r}"].fill = INPUT_FILL
+        sa[f"A{r}"].number_format = US_DATE
+        sa[f"B{r}"].number_format = USD
+        sa[f"C{r}"] = (f'=IF(NOT(ISNUMBER(A{r})),"",IF(COUNTIFS({ra},">"&EDATE(A{r},-12),{ra},"<="&A{r})<12,"",'
+                       f'SUMIFS({rb},{ra},">"&EDATE(A{r},-12),{ra},"<="&A{r})))')
+        sa[f"C{r}"].number_format = USD
+        sa[f"C{r}"].fill = FORMULA_FILL
+        sa[f"C{r}"].alignment = Alignment(horizontal="right")
+    y, m = 2023, 10
+    for i in range(36):
+        r = i + 2
+        factor = (1.0, 1.06, 1.12)[i // 12]
+        sa[f"A{r}"] = date(y, m, 1)
+        sa[f"B{r}"] = int(round(base[i % 12] * factor / 10.0) * 10)
+        m += 1
+        if m == 13:
+            y, m = y + 1, 1
+    sa.print_area = "A1:C37"
+
+    tr = wb.create_sheet("Trailing", 0)
+    for col, w in zip("ABC", [60, 18, 84]):
+        tr.column_dimensions[col].width = w
+    sa_ra, sa_rb = f"Sales!{ra}", f"Sales!{rb}"
+    cur = f'{sa_ra},">"&EDATE(B1,-12),{sa_ra},"<="&B1'
+    prev = f'{sa_ra},">"&EDATE(B1,-24),{sa_ra},"<="&EDATE(B1,-12)'
+    rows = [
+        (1, "Last month included (type the 1st)", None, US_DATE, "Yellow. Type the 1st of the last month you want, such as 09/01/2026."),
+        (2, "Trailing 12 months sales",
+         f'=IF(ISNUMBER(B1),SUMIFS({sa_rb},{cur}),"Type the month in B1")', USD,
+         "The 12 months ending at B1: later than EDATE(B1,-12), up to B1."),
+        (3, "Months found in those 12", f'=IF(ISNUMBER(B1),COUNTIFS({cur}),"")', "0",
+         '=IF(ISNUMBER(B3),IF(B3=12,"All 12 months found","Not 12 months: a month is missing or the data starts later"),"")'),
+        (4, "Previous 12 months sales",
+         f'=IF(ISNUMBER(B1),SUMIFS({sa_rb},{prev}),"")', USD, "The 12 months before those."),
+        (5, "Change in dollars", '=IF(AND(B3=12,B7=12),B2-B4,"Need 12 months in both")', USD, "Trailing minus previous."),
+        (6, "Change in percent", '=IF(ISNUMBER(B5),IF(B4=0,"Previous 12 is 0",B5/B4),"")', "0.0%", "Change divided by the previous 12."),
+        (7, "Months found in the previous 12", f'=IF(ISNUMBER(B1),COUNTIFS({prev}),"")', "0",
+         '=IF(ISNUMBER(B7),IF(B7=12,"All 12 months found","Not 12 months: a month is missing or the data starts later"),"")'),
+        (8, "Check: end month and months are the 1st, no repeats, numbers",
+         f'=IF(AND(ISNUMBER(B1),COUNT({sa_ra})=COUNTA({sa_ra}),COUNT({sa_rb})=COUNTA({sa_rb})),'
+         f'IF(AND(DAY(B1)=1,SUMPRODUCT(({sa_ra}<>"")*(DAY({sa_ra})<>1))=0,'
+         f'SUMPRODUCT(({sa_ra}<>"")*(COUNTIF({sa_ra},{sa_ra})>1))=0),"OK","CHECK"),"CHECK")',
+         "General", "CHECK means B1 or a Sales month is not the 1st, a month repeats, or an entry is text."),
+    ]
+    for r, label, f, fmt, note in rows:
+        tr[f"A{r}"] = label
+        tr[f"A{r}"].font = Font(bold=True)
+        if f is None:
+            tr[f"B{r}"] = date(2026, 9, 1)
+            tr[f"B{r}"].fill = INPUT_FILL
+        else:
+            tr[f"B{r}"] = f
+            tr[f"B{r}"].fill = FORMULA_FILL
+        tr[f"B{r}"].number_format = fmt
+        tr[f"B{r}"].alignment = Alignment(horizontal="right")
+        tr[f"C{r}"] = note
+    _ok_format(tr, "B8")
+    tr.print_area = "A1:C8"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Trailing 12 Month Sales",
+        "",
+        "1. Sales tab: type the first day of each month in A (such as 10/01/2025) and that month's sales in B. Yellow. Rows 2 to 200 are read. The sample is 36 fictional months of a gift shop, 10/01/2023 to 09/01/2026.",
+        "2. Trailing tab, B1: type the last month you want included, also the 1st of a month (09/01/2026 in the sample). No TODAY is used, so the number only changes when you change B1 or the Sales rows.",
+        "3. Trailing 12 months, B2: =SUMIFS(Sales!$B$2:$B$200,Sales!$A$2:$A$200,\">\"&EDATE(B1,-12),Sales!$A$2:$A$200,\"<=\"&B1). It adds the sales dated later than 12 months before B1 and up to B1, which is the 12 months ending at B1.",
+        "4. B3 counts the months found with the same two conditions (COUNTIFS). If it is not 12, C3 says so: a month is missing or the data starts later. B2 still adds what it finds.",
+        "5. Previous 12 months, B4: the same SUMIFS from EDATE(B1,-24) to EDATE(B1,-12). B7 counts its months. B5 and B6 (change in dollars and percent) show Need 12 months in both until B3 and B7 are 12.",
+        "6. Sales column C: the same 12 month total for each row's month. It stays blank until 12 months of data exist up to that row.",
+        "7. Dates must be the 1st of the month. A date such as 09/15/2026 after the end date is left out by the \"<=\" test, and B8 shows CHECK. Two rows for the same month also give CHECK. Dates or sales typed as text give CHECK.",
+        "8. This describes past sales only. It is not a forecast and not a valuation.",
+        "",
+        "Sales are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Trailing"].print_title_rows = None
+    wb["Trailing"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-trailing-12-month-sales.xlsx")
+
+
+def inventory_count_variance():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Count"
+    header(ws, ["Item", "Expected quantity", "Counted quantity", "Unit cost", "Difference",
+                "Value of difference", "Status", "Units off"],
+           [28, 12, 12, 11, 12, 14, 13, 10])
+    ws.row_dimensions[1].height = 32
+    items = [
+        ("Ceramic mug", 48, 45, 6.50), ("Soy candle 8 oz", 30, 30, 4.25), ("Canvas tote bag", 12, 14, 5.25),
+        ("Sticker sheet", 200, 190, 0.20), ("Oatmeal soap bar", 60, 58, 1.85), ("Greeting card", 80, 80, 0.95),
+        ("Brass hoop earrings", 15, 12, 3.40), ("Pocket notebook", 24, 26, 3.10), ("Tea tin", 36, 33, 4.80),
+        ("Wooden keychain", 50, 50, 1.10), ("Ceramic trinket dish", 6, 0, 8.75), ("Gift wrap roll", 25, 27, 0.60),
+        ("Enamel pin", 40, 41, 2.25), ("Postcard set", 100, None, 0.30),
+    ]
+    for r in range(2, 101):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"D{r}"].number_format = USD
+        ws[f"E{r}"] = f'=IF(C{r}="","",IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r})),C{r}-B{r},"Check count"))'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(E{r}),IF(ISNUMBER(D{r}),ROUND(E{r}*D{r},2),"Check cost"),"")'
+        ws[f"G{r}"] = (f'=IF(A{r}="","",IF(E{r}="","Not counted",IF(NOT(ISNUMBER(E{r})),"Check count",'
+                       f'IF(E{r}=0,"Match",IF(E{r}<0,"Short","Over")))))')
+        ws[f"H{r}"] = f'=IF(ISNUMBER(E{r}),ABS(E{r}),"")'
+        ws[f"F{r}"].number_format = USD
+        for col in "EFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for r, (n, e, c, cost) in enumerate(items, start=2):
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"D{r}"] = n, e, cost
+        if c is not None:
+            ws[f"C{r}"] = c
+    ws.conditional_formatting.add("A2:H100", FormulaRule(formula=['$G2="Short"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("A2:H100", FormulaRule(formula=['$G2="Match"'], fill=DONE_FILL))
+    ws.conditional_formatting.add("A2:H100", FormulaRule(formula=['$G2="Over"'], fill=PatternFill("solid", fgColor="DDEBF7")))
+    ws.column_dimensions["I"].width = 3
+    ws.column_dimensions["J"].width = 54
+    ws.column_dimensions["K"].width = 14
+    _summary_block(ws, "J", "K", [
+        (2, "Items counted", "=COUNT(C2:C100)", "0"),
+        (3, "Items not counted yet", '=COUNTIF(G2:G100,"Not counted")', "0"),
+        (4, "Items off (over or short)", '=COUNTIF(E2:E100,">0")+COUNTIF(E2:E100,"<0")', "0"),
+        (5, "Units off (over and short added together)", "=SUM(H2:H100)", "0"),
+        (6, "Net value of differences", "=SUM(F2:F100)", USD),
+        (7, "Value of shortages", '=SUMIF(F2:F100,"<0")', USD),
+        (8, "Value of overages", '=SUMIF(F2:F100,">0")', USD),
+        (9, "Check: all counts and costs are numbers, none below 0",
+         '=IF(AND(COUNTA(B2:B100)=COUNT(B2:B100),COUNTA(C2:C100)=COUNT(C2:C100),COUNTA(D2:D100)=COUNT(D2:D100),'
+         'COUNTIF(B2:B100,"<0")+COUNTIF(C2:C100,"<0")+COUNTIF(D2:D100,"<0")=0,'
+         'SUMPRODUCT((A2:A100<>"")*(1-ISNUMBER(B2:B100)))=0,SUMPRODUCT((A2:A100<>"")*(1-ISNUMBER(D2:D100)))=0,'
+         'SUMPRODUCT((A2:A100="")*((B2:B100<>"")+(C2:C100<>"")+(D2:D100<>"")))=0),"OK","CHECK")', "General"),
+    ])
+    _ok_format(ws, "K9")
+    ws.print_area = "A1:K30"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Physical Inventory Count vs Expected Stock",
+        "",
+        "1. Count tab: type the item (A), the expected quantity from your records (B), the unit cost (D) and, after you count the shelf, the counted quantity (C). All yellow. Rows 2 to 100 are read. The sample is 14 fictional gift shop items; the last one is not counted yet.",
+        "2. Difference, E2: =IF(C2=\"\",\"\",C2-B2), with a test that B2 and C2 are numbers (otherwise Check count). A negative result means the item is short, a positive result means it is over. A blank counted cell stays blank. It is not treated as 0, so type 0 if you counted none on the shelf.",
+        "3. Value of difference, F2: =ROUND(E2*D2,2). The difference times the unit cost, to the cent. Blank when E is blank.",
+        "4. Status, G2: Not counted when C is blank, Match when the difference is 0, Short when below 0, Over when above 0. Short rows turn red, Match rows green, Over rows blue.",
+        "5. Units off, H2: =ABS(E2), the size of the difference without its sign. The summary adds them (K5). A helper column is used instead of SUMPRODUCT(ABS()) so blank cells cannot cause an error.",
+        "6. Summary in J2:K9. Items off, K4: =COUNTIF(E2:E100,\">0\")+COUNTIF(E2:E100,\"<0\"). It does not count blank cells. Net value K6 adds all values. Value of shortages K7 adds the negative ones: =SUMIF(F2:F100,\"<0\").",
+        "7. K9 shows OK when every quantity and cost is a number, none is below 0, every item row has an expected quantity and a unit cost, and no numbers sit in a row with no item name.",
+        "8. Arithmetic only. This sheet does not say what to do about a shortage and gives no accounting or tax treatment.",
+        "",
+        "Items and costs are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Count"].page_setup.orientation = "landscape"
+    wb["Count"].print_title_rows = "1:1"
+    wb.save(OUT / "tidy-tabs-inventory-count-variance.xlsx")
+
+
+def weighted_score_matrix():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Score"
+    ws["A1"] = "Weighted score: compare print shops for tote bags"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Weights in B3:E3, scores 1 to 10 in B5:E9. Fictional data."
+    ws["A2"].font = Font(italic=True)
+    ws["A3"] = "Weight (how much it matters)"
+    ws["A3"].font = Font(bold=True)
+    for col, w in zip("BCDE", [0.4, 0.2, 0.3, 0.1]):
+        ws[f"{col}3"] = w
+        ws[f"{col}3"].fill = INPUT_FILL
+        ws[f"{col}3"].number_format = "0.00"
+    ws["F3"] = '=IF(COUNT(B3:E3)=0,"",SUM(B3:E3))'
+    ws["F3"].number_format = '0.00" total"'
+    ws["F3"].fill = FORMULA_FILL
+    ws["F3"].alignment = Alignment(horizontal="right")
+    _head_row(ws, 4, ["Option", "Price", "Turnaround", "Quality", "Support", "Weighted score", "Rank"],
+              [30, 11, 13, 11, 11, 14, 8])
+    for col in "BCDE":
+        ws[f"{col}4"].fill = INPUT_FILL
+        ws[f"{col}4"].font = Font(bold=True)
+    options = [
+        ("Harbor Print Co.", [8, 6, 9, 5]), ("Bluebird Printing", [7, 9, 7, 8]),
+        ("Pine Street Press", [9, 5, 6, 6]), ("Quick Tote Shop", [6, 10, 5, 7]),
+        ("Maple Screen Prints", [7, 7, 8, 8]),
+    ]
+    for r in range(5, 10):
+        name, sc = options[r - 5]
+        ws[f"A{r}"] = name
+        ws[f"A{r}"].fill = INPUT_FILL
+        for col, v in zip("BCDE", sc):
+            ws[f"{col}{r}"] = v
+            ws[f"{col}{r}"].fill = INPUT_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="center")
+        ws[f"F{r}"] = (f'=IF(A{r}="","",IF(OR(COUNT($B$3:$E$3)<4,SUM($B$3:$E$3)<=0,MIN($B$3:$E$3)<0),"Check weights",'
+                       f'IF(COUNT(B{r}:E{r})<4,"Check scores",ROUND(SUMPRODUCT($B$3:$E$3,B{r}:E{r})/SUM($B$3:$E$3),10))))')
+        ws[f"G{r}"] = f'=IF(ISNUMBER(F{r}),RANK(F{r},$F$5:$F$9),"")'
+        ws[f"F{r}"].number_format = "0.00"
+        for col in "FG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("A5:G9", FormulaRule(formula=['$G5=1'], fill=DONE_FILL))
+    ws.conditional_formatting.add("F5:F9", FormulaRule(formula=['AND(ISTEXT(F5),F5<>"")'], fill=ALERT_FILL))
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 44
+    ws.column_dimensions["J"].width = 24
+    _summary_block(ws, "I", "J", [
+        (1, "Highest weighted score", '=IF(COUNT(F5:F9)=0,"",INDEX(A5:A9,MATCH(MAX(F5:F9),F5:F9,0)))', "General"),
+        (2, "Its weighted score", '=IF(COUNT(F5:F9)=0,"",MAX(F5:F9))', "0.00"),
+        (3, "Options with a score", "=COUNT(F5:F9)", "0"),
+        (4, "Options tied for rank 1", '=IF(COUNT(G5:G9)=0,"",COUNTIF(G5:G9,1))', "0"),
+        (5, "Check: weights, scores 1 to 10, every option scored",
+         '=IF(AND(COUNT($B$3:$E$3)=4,SUM($B$3:$E$3)>0,MIN($B$3:$E$3)>=0,COUNT(B5:E9)=COUNTA(B5:E9),'
+         'COUNTIF(B5:E9,"<1")+COUNTIF(B5:E9,">10")=0,COUNTA(B5:E9)=4*COUNTA(A5:A9),COUNT(F5:F9)=COUNTA(A5:A9)),'
+         '"OK","CHECK")', "General"),
+    ])
+    _ok_format(ws, "J5")
+    ws.print_area = "A1:J9"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Compare Options With a Weighted Score",
+        "",
+        "1. Score tab: type your weights for the four criteria in B3:E3 (the sample uses 0.40, 0.20, 0.30, 0.10, which add to 1.00), the options in A5:A9 and a score from 1 to 10 for each criterion in B5:E9. Yellow. Rename the criteria in B4:E4 if you like. The sample is five fictional print shops and made up scores.",
+        "2. Weighted score, F5: =SUMPRODUCT($B$3:$E$3,B5:E5)/SUM($B$3:$E$3). SUMPRODUCT multiplies each score by its weight and adds the products. Dividing by the sum of the weights keeps the result on the 1 to 10 scale, so weights that add to 100 or to 1 give the same answer. Copy it down to F9. In the file the division is wrapped in ROUND(...,10): computers store 0.4 and 0.3 as tiny approximations, so two options that tie on paper can differ by about 0.000000000000001 and would not rank the same. Rounding to 10 decimals does not change any score you can see.",
+        "3. Rank, G5: =RANK(F5,$F$5:$F$9). 1 is the highest weighted score. Two options with the same score get the same rank. The rank 1 row is green.",
+        "4. J1 shows the option with the highest weighted score (the first one listed if two tie) and J4 counts how many are tied for rank 1. The highest score only means the highest number from your own weights and scores. It is not a recommendation.",
+        "5. If a weight is missing or negative, or all weights are 0, the scores show Check weights. If an option has a blank or text score, its weighted score shows Check scores and it is left out of the ranking.",
+        "6. J5 shows OK when the four weights are numbers that add to more than 0, every score is a number from 1 to 10, and every named option has all four scores.",
+        "7. Scores are your own opinions. The sheet does the arithmetic only.",
+        "",
+        "Shops and scores are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Score"].print_title_rows = None
+    wb["Score"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-weighted-score-matrix.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -7450,4 +7909,9 @@ if __name__ == "__main__":
     order_line_numbers()
     split_shared_cost()
     income_steadiness()
+    retainer_hours()
+    monthly_calendar()
+    trailing_12_month_sales()
+    inventory_count_variance()
+    weighted_score_matrix()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

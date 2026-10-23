@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De1hM76EYL0
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-average-days-between.html
 title: How to Calculate the Average Days Between Orders for Each Customer in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python date model, including 16 edited variants for order gaps (one order, same day orders, uneven gaps, shuffled rows, text dates, trailing spaces, a customer missing from Orders, 20 customers with 299 orders). No mismatches in the final run. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De2Xxkcmv2V
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-your-busiest-and-slowest.html
 title: How to Find Your Busiest and Slowest Months With a Seasonal Index in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model, including 18 edited variants (a month with one year of data, a month with no data, no data at all, unequal years, a month number of 13, a month or amount typed as text, a blank or zero goal, all sales at 0, a negative month, a tie for busiest). No mismatches in the final run. Excel and Google Sheets were not opened.

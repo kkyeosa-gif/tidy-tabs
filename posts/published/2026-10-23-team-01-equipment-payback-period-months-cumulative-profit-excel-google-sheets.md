@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De2DLgqG5NM
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-payback-period-for.html
 title: How to Calculate Payback Period for Equipment in Excel and Google Sheets
 labels: excel-formulas, small-business, equipment
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model, including 26 edited variants (cost 0, negative, text or blank, cost equal to a month's running total, cost above the 24 month total, a blank profit month, a loss before the payback month, a loss after the cost was reached, text in a profit cell, decimal profits). No mismatches in the final run. Excel and Google Sheets were not opened.

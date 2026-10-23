@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De11cssEZG3
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-convert-orders-in-canadian.html
 title: How to Convert Orders in Canadian Dollars, Pounds or Euros to US Dollars in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model, including 19 edited variants (a code not in the table, lower case codes, a trailing space, blank, zero, text and negative rates, text amounts, refunds, half cent amounts, a duplicate code in the rate table, 100 random orders). No mismatches in the final run. Excel and Google Sheets were not opened.

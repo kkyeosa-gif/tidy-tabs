@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De0Ocl4juqa
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-convert-yyyymmdd-numbers-like.html
 title: How to Convert YYYYMMDD Numbers Like 20261021 to Real Dates in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python date model, including 16 edited variants of the date file (impossible dates, leap days, spaces, time zone suffixes, odd numbers). No mismatches in the final run. Excel and Google Sheets were not opened; the help links are from Microsoft Support and Google Docs Editors Help.

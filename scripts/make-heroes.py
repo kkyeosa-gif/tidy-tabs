@@ -416,7 +416,25 @@ def heroes_2026_10_24():
          render(t + "tidy-tabs-weighted-score-matrix.xlsx", "Score", hide_cols="HIJ", name="weighted"))
 
 
+def heroes_2026_10_25():
+    t = "templates/"
+    d = "images/2026-10-25-team-0%d-%s/"
+    save(d % (1, "categorize-expenses-by-keyword-search-lookup-excel-google-sheets") + "categorize-expenses-by-keyword-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-categorize-expenses-by-keyword.xlsx", "Expenses", 16, "catkw"), "Expenses", name="catkw"))
+    save(d % (2, "dimensional-weight-billable-weight-roundup-max-excel-google-sheets") + "dimensional-weight-template.png",
+         render(t + "tidy-tabs-dimensional-weight.xlsx", "Calculator", hide_cols="C", name="dimw"))
+    save(d % (3, "simple-gantt-chart-conditional-formatting-excel-google-sheets") + "simple-gantt-chart-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-simple-gantt-chart.xlsx", "Plan", 12, "gantt"), "Plan", hide_cols=["AH", "AI", "AJ"], name="gantt"))
+    save(d % (4, "add-up-hours-over-24-hours-h-mm-format-excel-google-sheets") + "total-hours-over-24-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-total-hours-over-24.xlsx", "Hours", 22, "hours24"), "Hours", hide_cols="JK", name="hours24"))
+    save(d % (5, "expenses-by-category-by-month-two-way-sumifs-excel-google-sheets") + "expenses-by-category-and-month-template.png",
+         render(t + "tidy-tabs-expenses-by-category-and-month.xlsx", "Summary", hide_cols="IJK", name="catmonth"))
+
+
 def main():
+    if "--only-2026-10-25" in sys.argv:
+        heroes_2026_10_25()
+        return
     if "--only-2026-10-24" in sys.argv:
         heroes_2026_10_24()
         return

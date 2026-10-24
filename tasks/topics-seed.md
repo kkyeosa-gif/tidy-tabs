@@ -134,3 +134,10 @@
 - How to Number Items Within Each Order in Excel and Google Sheets - `number-items-within-each-order-countif-expanding-range-excel-google-sheets`
 - How to Split a Shared Booth Fee Between Sellers by Sales Share in Excel and Google Sheets - `split-shared-booth-fee-by-sales-share-round-excel-google-sheets`
 - How to Measure How Much Your Monthly Income Varies With STDEV in Excel and Google Sheets - `monthly-income-steadiness-stdev-lowest-months-excel-google-sheets`
+
+## 2026-10-25 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice Calc 24.2 에서 확인)
+- How to Auto-Categorize Expenses From Bank Descriptions in Excel and Google Sheets - `categorize-expenses-by-keyword-search-lookup-excel-google-sheets`
+- How to Calculate Dimensional Weight and Billable Weight for a Package in Excel and Google Sheets - `dimensional-weight-billable-weight-roundup-max-excel-google-sheets`
+- How to Make a Simple Gantt Chart With Conditional Formatting in Excel and Google Sheets - `simple-gantt-chart-conditional-formatting-excel-google-sheets`
+- Why Your Total Hours Reset After 24 and How to Fix It in Excel and Google Sheets - `add-up-hours-over-24-hours-h-mm-format-excel-google-sheets`
+- How to Total Expenses by Category and Month in One Table With SUMIFS in Excel and Google Sheets - `expenses-by-category-by-month-two-way-sumifs-excel-google-sheets`

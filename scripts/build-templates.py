@@ -7807,6 +7807,501 @@ def weighted_score_matrix():
     wb.save(OUT / "tidy-tabs-weighted-score-matrix.xlsx")
 
 
+def categorize_expenses_by_keyword():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Expenses"
+    header(ws, ["Date", "Bank description", "Amount", "Category"], [12, 44, 12, 14])
+    rows = [
+        (date(2026, 9, 1), "SHELL OIL 57442 MANCHESTER NH", 48.20),
+        (date(2026, 9, 2), "USPS PO 0245 BOSTON MA 02108", 18.65),
+        (date(2026, 9, 3), "ETSY INC FEES BROOKLYN NY", 12.40),
+        (date(2026, 9, 4), "STAPLES 0118 NASHUA NH 03060", 36.99),
+        (date(2026, 9, 5), "Adobe Systems 800-833-6687 CA", 22.99),
+        (date(2026, 9, 8), "EXXONMOBIL 4471 PORTLAND ME 04101", 41.35),
+        (date(2026, 9, 9), "SQ *JOES DINER 02108 BOSTON MA", 14.50),
+        (date(2026, 9, 10), "ULINE *SHIP SUPPLIES 800-295-5510 WI", 87.12),
+        (date(2026, 9, 11), "USPS PO 1187 CONCORD NH 03301", 9.85),
+        (date(2026, 9, 12), "PAYPAL *FEE TRANSFER 402-935-7733", 6.18),
+        (date(2026, 9, 15), "shell oil 12009 PORTSMOUTH NH", 52.60),
+        (date(2026, 9, 16), "ZOOM.US 888-799-9666 CA", 15.99),
+        (date(2026, 9, 17), "STAMPS.COM POSTAGE 800-782-6724", 40.00),
+        (date(2026, 9, 18), "OFFICE DEPOT #2211 WORCESTER MA 01608", 29.47),
+        (date(2026, 9, 19), "MARKET BOOTH DEPOSIT ACH", 75.00),
+        (date(2026, 9, 22), "ETSY INC LISTING FEE BROOKLYN NY", 4.80),
+        (date(2026, 9, 23), "SHELL OIL 57442 MANCHESTER NH", 44.10),
+        (date(2026, 9, 24), "QUICKBOOKS *INTUIT 888-246-8648 CA", 30.00),
+        (date(2026, 9, 25), "USPS PO 0245 BOSTON MA 02108", 5.40),
+        (date(2026, 9, 26), "Staples Inc 0118 NASHUA NH", 18.20),
+        (date(2026, 9, 29), "CHECK 1042", 120.00),
+        (date(2026, 9, 29), "ADOBE *CREATIVE CLOUD", 22.99),
+        (date(2026, 9, 30), "EXXONMOBIL 4471 PORTLAND ME 04101", 38.77),
+        (date(2026, 9, 30), "PAYPAL *FEE TRANSFER 402-935-7733", 3.22),
+        (date(2026, 9, 30), "DUNKIN #3349 SALEM NH 03079", 8.45),
+    ]
+    for r in range(2, 201):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+        ws[f"D{r}"] = (
+            f'=IF(B{r}="","",IFERROR(INDEX(Keywords!$B$2:$B$40,MATCH(1,INDEX((Keywords!$A$2:$A$40<>"")'
+            f'*(Keywords!$B$2:$B$40<>"")*ISNUMBER(SEARCH(Keywords!$A$2:$A$40,B{r})),0),0)),"Review"))')
+        ws[f"D{r}"].fill = FORMULA_FILL
+    for r, (d, desc, amt) in enumerate(rows, start=2):
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = d, desc, amt
+    ws.conditional_formatting.add("A2:D200", FormulaRule(formula=['$D2="Review"'], fill=ALERT_FILL))
+    ws.column_dimensions["E"].width = 3
+    ws.column_dimensions["F"].width = 40
+    ws.column_dimensions["G"].width = 14
+    _head_row(ws, 1, ["Date", "Bank description", "Amount", "Category", "", "Category total", "Amount"],
+              [12, 44, 12, 14, 3, 40, 14])
+    cats = ["Fuel", "Postage", "Fees", "Supplies", "Software"]
+    for i, c in enumerate(cats, start=2):
+        ws[f"F{i}"] = c
+        ws[f"F{i}"].fill = INPUT_FILL
+        ws[f"G{i}"] = f'=SUMIF($D$2:$D$200,F{i},$C$2:$C$200)'
+        ws[f"G{i}"].number_format = USD
+        ws[f"G{i}"].fill = FORMULA_FILL
+    ws["F7"] = "Review"
+    ws["G7"] = '=SUMIF($D$2:$D$200,F7,$C$2:$C$200)'
+    ws["G7"].number_format = USD
+    ws["G7"].fill = FORMULA_FILL
+    _summary_block(ws, "F", "G", [
+        (8, "Total of all amounts", "=SUM(C2:C200)", USD),
+        (9, "Lines marked Review", '=COUNTIF(D2:D200,"Review")', "0"),
+        (10, "Check: category totals add up to the total",
+         '=IF(AND(ROUND(SUM(G2:G7)-G8,2)=0,COUNTA(C2:C200)=COUNT(C2:C200),'
+         'SUMPRODUCT((B2:B200="")*(C2:C200<>""))=0),"OK","CHECK")', "General"),
+    ])
+    _ok_format(ws, "G10")
+    ws.freeze_panes = "A2"
+
+    kw = wb.create_sheet("Keywords", 1)
+    header(kw, ["Keyword (part of the description)", "Category"], [36, 18])
+    pairs = [
+        ("shell", "Fuel"), ("exxon", "Fuel"), ("usps", "Postage"), ("stamps.com", "Postage"),
+        ("etsy", "Fees"), ("paypal", "Fees"), ("staples", "Supplies"), ("uline", "Supplies"),
+        ("office depot", "Supplies"), ("adobe", "Software"), ("zoom", "Software"), ("quickbooks", "Software"),
+    ]
+    for r in range(2, 41):
+        kw[f"A{r}"].fill = INPUT_FILL
+        kw[f"B{r}"].fill = INPUT_FILL
+    for r, (k, c) in enumerate(pairs, start=2):
+        kw[f"A{r}"], kw[f"B{r}"] = k, c
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Auto-Categorize Expenses From Bank Descriptions",
+        "",
+        "1. Keywords tab: type a word that appears in the bank description (A) and the category you want (B). Rows 2 to 40 are read. Yellow. The sample has 12 keywords. Categories are your own choice; the sheet does not say what is deductible.",
+        "2. Expenses tab: paste the date, bank description and amount in A:C (rows 2 to 200). Yellow. The sample is 25 fictional lines.",
+        "3. Category, D2: =IF(B2=\"\",\"\",IFERROR(INDEX(Keywords!$B$2:$B$40,MATCH(1,INDEX((Keywords!$A$2:$A$40<>\"\")*(Keywords!$B$2:$B$40<>\"\")*ISNUMBER(SEARCH(Keywords!$A$2:$A$40,B2)),0),0)),\"Review\")). SEARCH ignores capital letters. The first keyword in the table that is found in the description wins, so put the more specific keyword higher up. A line with no matching keyword shows Review (red).",
+        "4. The two <>\"\" tests keep an empty keyword row from matching. Without them, a blank keyword cell is not handled the same way in every app (in LibreOffice the unguarded lookup returned #N/A for every line). A keyword row with no category is skipped.",
+        "5. SEARCH treats * and ? in a keyword as wildcards (and ~ cancels a wildcard; in LibreOffice a keyword of * matched every description). Avoid those characters in keywords.",
+        "6. Category totals, F2:G7: SUMIF on column D. Type your category names in F2:F6 (yellow); if you add a new category in Keywords, add it here too. G10 shows OK when the category totals add up to the total in G8.",
+        "7. Bank descriptions are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Expenses"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-categorize-expenses-by-keyword.xlsx")
+
+
+def dimensional_weight():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Calculator"
+    ws["A1"] = "Dimensional weight and billable weight for one box"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type in the yellow cells. Inches and pounds. Fictional example."
+    ws["A2"].font = Font(italic=True)
+    ws.column_dimensions["A"].width = 34
+    ws.column_dimensions["B"].width = 18
+    ws.column_dimensions["C"].width = 56
+    labels = [(4, "Length (in)", 12), (5, "Width (in)", 10), (6, "Height (in)", 8),
+              (7, "Actual weight (lb)", 4.2), (8, "Divisor (check your carrier)", 139)]
+    for r, lab, v in labels:
+        ws[f"A{r}"] = lab
+        ws[f"A{r}"].font = Font(bold=True)
+        ws[f"B{r}"] = v
+        ws[f"B{r}"].fill = INPUT_FILL
+    ws["C8"] = "Carrier divisors differ and change. Look up the current one on your carrier's site."
+    ws["C8"].font = Font(italic=True)
+    ok = 'AND(COUNT(B4:B8)=5,B4>0,B5>0,B6>0,B7>=0,B8>0)'
+    _summary_block(ws, "A", "B", [
+        (10, "Volume (cubic inches)", f'=IF({ok},B4*B5*B6,"Check inputs")', "#,##0.##"),
+        (11, "Dimensional weight (lb, rounded up)", f'=IF({ok},ROUNDUP(ROUND(B4*B5*B6/B8,8),0),"Check inputs")', "0"),
+        (12, "Actual weight (lb, rounded up)", f'=IF({ok},ROUNDUP(ROUND(B7,8),0),"Check inputs")', "0"),
+        (13, "Billable weight (lb)", f'=IF({ok},MAX(B11,B12),"Check inputs")', "0"),
+        (14, "Which one applies", f'=IF({ok},IF(B11>B12,"Dimensional","Actual"),"Check inputs")', "General"),
+    ])
+    ws["A13"].font = Font(bold=True, size=12)
+    ws["B13"].font = Font(bold=True, size=12)
+
+    pk = wb.create_sheet("Packages")
+    header(pk, ["Box", "Length (in)", "Width (in)", "Height (in)", "Actual (lb)", "Dimensional (lb)",
+                "Billable (lb)", "Applies"], [26, 11, 11, 11, 11, 14, 12, 14])
+    boxes = [
+        ("Candle set, small", 8, 6, 6, 2.4), ("Candle set, large", 12, 10, 8, 4.2),
+        ("Ceramic mug pair", 9, 9, 6, 3.1), ("Tote bag order", 14, 12, 4, 1.8),
+        ("Soap gift box", 7, 5, 4, 1.2), ("Print, framed 16x20", 22, 18, 3, 6.5),
+        ("Pillow cover bundle", 16, 14, 10, 2.0), ("Jewelry mailer", 6, 4, 2, 0.4),
+        ("Tea tin case", 10, 10, 10, 8.7), ("Planter, medium", 12, 12, 12, 9.0),
+        ("Sticker roll tube", 24, 4, 4, 1.1), ("Wall art, large", 30, 20, 4, 5.5),
+    ]
+    for r in range(2, 101):
+        for col in "ABCDE":
+            pk[f"{col}{r}"].fill = INPUT_FILL
+        chk = f'AND(COUNT(B{r}:E{r})=4,B{r}>0,C{r}>0,D{r}>0,E{r}>=0,ISNUMBER(Calculator!$B$8),Calculator!$B$8>0)'
+        pk[f"F{r}"] = f'=IF(A{r}="","",IF({chk},ROUNDUP(ROUND(B{r}*C{r}*D{r}/Calculator!$B$8,8),0),"Check inputs"))'
+        pk[f"G{r}"] = f'=IF(A{r}="","",IF({chk},MAX(F{r},ROUNDUP(ROUND(E{r},8),0)),"Check inputs"))'
+        pk[f"H{r}"] = f'=IF(A{r}="","",IF({chk},IF(F{r}>ROUNDUP(ROUND(E{r},8),0),"Dimensional","Actual"),"Check inputs"))'
+        for col in "FGH":
+            pk[f"{col}{r}"].fill = FORMULA_FILL
+            pk[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for r, (n, l, w, h, a) in enumerate(boxes, start=2):
+        pk[f"A{r}"], pk[f"B{r}"], pk[f"C{r}"], pk[f"D{r}"], pk[f"E{r}"] = n, l, w, h, a
+    pk.conditional_formatting.add("A2:H100", FormulaRule(formula=['$H2="Dimensional"'], fill=PatternFill("solid", fgColor="DDEBF7")))
+    pk.conditional_formatting.add("A2:H100", FormulaRule(formula=['$H2="Check inputs"'], fill=ALERT_FILL))
+    pk.column_dimensions["I"].width = 3
+    pk.column_dimensions["J"].width = 44
+    pk.column_dimensions["K"].width = 14
+    _summary_block(pk, "J", "K", [
+        (1, "Boxes listed", "=COUNTA(A2:A100)", "0"),
+        (2, "Boxes billed by dimensional weight", '=COUNTIF(H2:H100,"Dimensional")', "0"),
+        (3, "Boxes billed by actual weight", '=COUNTIF(H2:H100,"Actual")', "0"),
+        (4, "Total billable weight (lb)", "=SUM(G2:G100)", "#,##0"),
+        (5, "Divisor used (set on the Calculator tab)", "=Calculator!B8", "0"),
+        (6, "Check: every listed box has numbers",
+         '=IF(AND(COUNT(F2:F100)=COUNTA(A2:A100),COUNTA(A2:A100)>0,'
+         'SUMPRODUCT((A2:A100="")*((B2:B100<>"")+(C2:C100<>"")+(D2:D100<>"")+(E2:E100<>"")))=0),"OK","CHECK")', "General"),
+    ])
+    _ok_format(pk, "K6")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Dimensional Weight and Billable Weight",
+        "",
+        "1. Calculator tab: type length, width and height in inches, the actual weight in pounds and the divisor in the yellow cells B4:B8. The sample is a 12 x 10 x 8 in box that weighs 4.2 lb with divisor 139.",
+        "2. Dimensional weight, B11: =ROUNDUP(B4*B5*B6/B8,0). Length x width x height divided by the divisor, rounded up to the next whole pound. 12 x 10 x 8 = 960 cubic inches; 960 / 139 = 6.91, which rounds up to 7.",
+        "3. Actual weight, B12: =ROUNDUP(B7,0). 4.2 lb rounds up to 5.",
+        "4. Billable weight, B13: =MAX(B11,B12). The larger of the two. B14 shows which one applied (Dimensional, or Actual when they are equal or actual is larger).",
+        "5. In the file the division is wrapped in ROUND(...,8) before ROUNDUP, so a result that should be exactly 7 is not pushed to 8 by tiny floating point error.",
+        "6. If a size is blank, text, 0 or negative, or the divisor is not above 0, the results say Check inputs.",
+        "7. Packages tab: the same math for up to 99 boxes, using the divisor on the Calculator tab. K6 shows OK when every listed box has numbers.",
+        "8. The divisor is not a universal number. Carriers use different divisors for different services and change them, so check your carrier's current rule. This sheet does not give carrier rates or rules.",
+        "",
+        "Boxes are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Packages"].page_setup.orientation = "landscape"
+    wb["Calculator"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-dimensional-weight.xlsx")
+
+
+def simple_gantt_chart():
+    from openpyxl.utils import get_column_letter
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plan"
+    ws["A1"] = "Chart starts on"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = date(2026, 11, 2)
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = US_DATE
+    ws["C1"] = "Fall market booth prep (fictional). Type dates as MM/DD/YYYY."
+    ws["C1"].font = Font(italic=True)
+    heads = ["Task", "Start", "End", "Days", "Workdays"]
+    _head_row(ws, 3, heads, [30, 12, 12, 7, 10], height=60)
+    first, last = 6, 6 + 27
+    for c in range(first, last + 1):
+        col = get_column_letter(c)
+        prev = get_column_letter(c - 1)
+        ws[f"{col}3"] = '=IF(ISNUMBER($B$1),$B$1,"")' if c == first else f'=IF(ISNUMBER({prev}3),{prev}3+1,"")'
+        ws[f"{col}3"].number_format = "mm/dd"
+        ws[f"{col}3"].fill, ws[f"{col}3"].font = HEADER_FILL, HEADER_FONT
+        ws[f"{col}3"].alignment = Alignment(horizontal="center", vertical="center", text_rotation=90)
+        ws[f"{col}2"] = f'=IF(ISNUMBER({col}3),{col}3,"")'
+        ws[f"{col}2"].number_format = "ddd"
+        ws[f"{col}2"].alignment = Alignment(horizontal="center")
+        ws[f"{col}2"].font = Font(size=8)
+        ws.column_dimensions[col].width = 3.3
+    tasks = [
+        ("Pick market and pay booth fee", date(2026, 11, 2), date(2026, 11, 3)),
+        ("Order tote bags and mugs", date(2026, 11, 2), date(2026, 11, 6)),
+        ("Print signs and price tags", date(2026, 11, 5), date(2026, 11, 9)),
+        ("Build display shelves", date(2026, 11, 9), date(2026, 11, 13)),
+        ("Pack inventory and cash box", date(2026, 11, 16), date(2026, 11, 18)),
+        ("Test tent setup in driveway", date(2026, 11, 17), date(2026, 11, 17)),
+        ("Market day", date(2026, 11, 21), date(2026, 11, 22)),
+        ("Count sales and restock", date(2026, 11, 23), date(2026, 11, 27)),
+    ]
+    for r in range(4, 24):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = US_DATE
+        ws[f"D{r}"] = (f'=IF(AND(B{r}="",C{r}=""),"",IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r}),C{r}>=B{r}),'
+                       f'C{r}-B{r}+1,"Check dates"))')
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),NETWORKDAYS(B{r},C{r}),"")'
+        for col in "DE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for r, (n, s, e) in enumerate(tasks, start=4):
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = n, s, e
+    rng = f"{get_column_letter(first)}4:{get_column_letter(last)}23"
+    f0 = get_column_letter(first)
+    ws.conditional_formatting.add(rng, FormulaRule(
+        formula=[f"AND(ISNUMBER($B4),ISNUMBER($C4),{f0}$3>=$B4,{f0}$3<=$C4)"],
+        fill=PatternFill("solid", bgColor="2E5E4E", fgColor="2E5E4E"), stopIfTrue=True))
+    ws.conditional_formatting.add(rng, FormulaRule(
+        formula=[f"WEEKDAY({f0}$3,2)>5"], fill=PatternFill("solid", bgColor="E7E6E6", fgColor="E7E6E6")))
+    ws.conditional_formatting.add("D4:D23", FormulaRule(formula=['D4="Check dates"'], fill=ALERT_FILL))
+    gl = get_column_letter(last + 2)
+    ws.column_dimensions[get_column_letter(last + 1)].width = 3
+    ws.column_dimensions[gl].width = 40
+    ws.column_dimensions[get_column_letter(last + 3)].width = 14
+    vl = get_column_letter(last + 3)
+    _summary_block(ws, gl, vl, [
+        (3, "Tasks listed", "=COUNTA(A4:A23)", "0"),
+        (4, "Last day in the chart", f"={get_column_letter(last)}3", US_DATE),
+        (5, "Tasks that run past the chart",
+         f'=IF(ISNUMBER({get_column_letter(last)}3),COUNTIF(C4:C23,">"&{get_column_letter(last)}3),"")', "0"),
+        (6, "Check: every task has a name and valid dates",
+         '=IF(AND(COUNTA(A4:A23)=COUNT(B4:B23),COUNT(B4:B23)=COUNT(C4:C23),COUNTIF(D4:D23,"Check dates")=0,'
+         'COUNTA(B4:C23)=2*COUNT(B4:B23),ISNUMBER(B1)),"OK","CHECK")', "General"),
+    ])
+    _ok_format(ws, f"{vl}6")
+    ws.freeze_panes = "B4"
+    ws.print_area = f"A1:{get_column_letter(last)}23"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Simple Gantt Chart With One Conditional Formatting Rule",
+        "",
+        "1. Plan tab: type the first day of the chart in B1, then each task (A), its start date (B) and end date (C). Yellow. Rows 4 to 23 are used. The sample is eight fictional tasks for a fall market booth.",
+        "2. The 28 date columns start in F3 (=$B$1, left blank if B1 is not a date) and each next one adds a day: G3 is =F3+1. Row 2 shows the weekday name from the date above it, in the format ddd.",
+        "3. Days, D4: =C4-B4+1 counts both the start and end day. Workdays, E4: =NETWORKDAYS(B4,C4) skips Saturday and Sunday. It does not know about holidays.",
+        "4. The bars are one conditional formatting rule applied to F4:AG23 with this formula: =AND(ISNUMBER($B4),ISNUMBER($C4),F$3>=$B4,F$3<=$C4). $B4 locks the column and F$3 locks the row, so one rule works for every cell. Weekend cells get a light gray fill from a second rule: =WEEKDAY(F$3,2)>5.",
+        "5. To make your own: select the grid, then Excel: Home > Conditional Formatting > New Rule > Use a formula to determine which cells to format; Google Sheets: Format > Conditional formatting > Custom formula is. Paste the formula for the first cell of your selection.",
+        "6. If an end date is before its start date, or a date is typed as text, D shows Check dates and no bar is drawn. The check cell AJ6 shows OK when every task has a name and two valid dates.",
+        "7. A task that runs past the 28th day is cut off at the edge of the chart; AJ5 counts them. Change B1 to move the chart.",
+        "8. There is no today line. TODAY() is not used, so the file never changes by itself.",
+        "",
+        "Project and dates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx (check that the conditional formatting came across).",
+    ])
+    finish_letter(wb)
+    wb["Plan"].page_setup.orientation = "landscape"
+    wb["Plan"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-simple-gantt-chart.xlsx")
+
+
+def total_hours_over_24():
+    from datetime import time
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Hours"
+    header(ws, ["Date", "Hours worked (h:mm)"], [13, 14])
+    # (day offset from 09/07/2026, hours, minutes); weekdays Mon..Sun for 3 weeks
+    week1 = [(9, 30), (8, 15), (10, 0), None, None, None, None]
+    week2 = [(8, 0), (9, 45), (7, 30), (8, 30), (6, 15), (3, 0), None]
+    week3 = [(10, 15), (9, 0), (8, 45), (9, 30), (7, 0), None, (4, 30)]
+    allw = week1 + week2 + week3
+    start = date(2026, 9, 7)
+    for i in range(21):
+        r = 2 + i
+        ws[f"A{r}"] = start.fromordinal(start.toordinal() + i)
+        ws[f"A{r}"].number_format = "ddd mm/dd/yyyy"
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = "h:mm"
+        if allw[i]:
+            h, m = allw[i]
+            ws[f"B{r}"] = time(h, m)
+    ws.column_dimensions["A"].width = 18
+    ws.column_dimensions["C"].width = 3
+    _head_row(ws, 1, ["Date", "Hours worked (h:mm)"], [18, 14])
+    heads = ["Week", "Week starts", "Total shown as h:mm (wrong)", "Total shown as [h]:mm", "Decimal hours",
+             "Pay at the rate below", "Total as text, TEXT()", "Total minutes"]
+    for i, (t, w) in enumerate(zip(heads, [8, 13, 18, 16, 11, 14, 16, 12])):
+        c = ws.cell(row=1, column=4 + i)
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+        ws.column_dimensions[c.column_letter].width = w
+    ws.row_dimensions[1].height = 45
+    for k in range(3):
+        r = 2 + k
+        a, b = 2 + 7 * k, 8 + 7 * k
+        ws[f"D{r}"] = k + 1
+        ws[f"E{r}"] = f"=A{a}"
+        ws[f"E{r}"].number_format = US_DATE
+        ws[f"F{r}"] = f"=SUM(B{a}:B{b})"
+        ws[f"F{r}"].number_format = "h:mm"
+        ws[f"G{r}"] = f"=SUM(B{a}:B{b})"
+        ws[f"G{r}"].number_format = "[h]:mm"
+        ws[f"H{r}"] = f"=ROUND(SUM(B{a}:B{b})*24,2)"
+        ws[f"H{r}"].number_format = "0.00"
+        ws[f"I{r}"] = f'=IF(ISNUMBER($E$8),ROUND(SUM(B{a}:B{b})*24*$E$8,2),"Check rate")'
+        ws[f"I{r}"].number_format = USD
+        ws[f"J{r}"] = f'=TEXT(SUM(B{a}:B{b}),"[h]:mm")'
+        ws[f"K{r}"] = f"=ROUND(SUM(B{a}:B{b})*1440,0)"
+        ws[f"K{r}"].number_format = "0"
+    ws["D5"] = "All"
+    ws["F5"] = "=SUM(B2:B22)"
+    ws["F5"].number_format = "h:mm"
+    ws["G5"] = "=SUM(B2:B22)"
+    ws["G5"].number_format = "[h]:mm"
+    ws["H5"] = "=ROUND(SUM(B2:B22)*24,2)"
+    ws["H5"].number_format = "0.00"
+    ws["I5"] = '=IF(ISNUMBER($E$8),ROUND(SUM(B2:B22)*24*$E$8,2),"Check rate")'
+    ws["I5"].number_format = USD
+    ws["J5"] = '=TEXT(SUM(B2:B22),"[h]:mm")'
+    ws["K5"] = "=ROUND(SUM(B2:B22)*1440,0)"
+    for r in range(2, 6):
+        for col in "DEFGHIJK":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for col in "DEFGHIJK":
+        ws[f"{col}5"].font = Font(bold=True)
+    ws["D8"] = "Hourly rate"
+    ws["D8"].font = Font(bold=True)
+    ws["E8"] = 45
+    ws["E8"].fill = INPUT_FILL
+    ws["E8"].number_format = USD
+    ws.column_dimensions["D"].width = 12
+    _summary_block(ws, "D", "G", [
+        (10, "Check: every hours cell is a time under 24 h", '=IF(AND(COUNTA(B2:B22)=COUNT(B2:B22),COUNTIF(B2:B22,"<0")=0,COUNTIF(B2:B22,">=1")=0,ISNUMBER(E8)),"OK","CHECK")', "General"),
+        (11, "Check: TEXT() totals match the minutes",
+         '=IF(AND(J2=INT(K2/60)&":"&TEXT(MOD(K2,60),"00"),J3=INT(K3/60)&":"&TEXT(MOD(K3,60),"00"),'
+         'J4=INT(K4/60)&":"&TEXT(MOD(K4,60),"00"),J5=INT(K5/60)&":"&TEXT(MOD(K5,60),"00")),"OK","CHECK")', "General"),
+    ])
+    ws.merge_cells("D10:F10")
+    ws.merge_cells("D11:F11")
+    _ok_format(ws, "G10")
+    _ok_format(ws, "G11")
+    ws.print_area = "A1:K22"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Add Up Hours Over 24 Without the Total Resetting",
+        "",
+        "1. Hours tab: type each day's time in B2:B22 as H:MM, for example 9:30 for nine and a half hours. Yellow. The sample is three fictional weeks. Week 1 is only three days: 9:30 + 8:15 + 10:00.",
+        "2. Total, F2 and G2 are the same formula: =SUM(B2:B8). Week 1 adds to 27 hours 45 minutes. F2 is formatted h:mm, which shows only the part of the total left over after whole days, so it displays 3:45. G2 is formatted [h]:mm, with square brackets around the h, which keeps counting hours past 24 and displays 27:45. The stored number is identical; only the format differs.",
+        "3. To set it: select the cell, then Excel: Home > Number Format > More Number Formats > Custom, type [h]:mm. Google Sheets: Format > Number > Custom number format, type [h]:mm (Sheets also has Format > Number > Duration).",
+        "4. Decimal hours, H2: =ROUND(SUM(B2:B8)*24,2). A time is stored as a fraction of a day, so times 24 gives hours: 27:45 is 27.75.",
+        "5. Pay, I2: =ROUND(SUM(B2:B8)*24*$E$8,2). Type your rate in E8.",
+        "6. Text version, J2: =TEXT(SUM(B2:B8),\"[h]:mm\"). It shows 27:45 as text, which you can join into a sentence, but it cannot be added any more.",
+        "7. K2 gives whole minutes (=ROUND(SUM(B2:B8)*1440,0)). G10 shows OK when every hours cell is a real time under 24 hours (a time typed as text, such as one with a leading apostrophe, is not added by SUM and turns it to CHECK). G11 shows OK when the TEXT() results match the minutes.",
+        "8. A negative time cannot be shown in the default 1900 date system and appears as ####. Subtract the smaller from the larger instead.",
+        "",
+        "Hours and rate are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Hours"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-total-hours-over-24.xlsx")
+
+
+def expenses_by_category_and_month():
+    wb = Workbook()
+    ex = wb.active
+    ex.title = "Expenses"
+    header(ex, ["Date", "Category", "Amount"], [13, 14, 12])
+    cats = ["Fuel", "Postage", "Supplies", "Fees", "Software"]
+    # (month, category) -> amounts; deterministic fictional data, 60 lines
+    rows = []
+    for m in range(1, 7):
+        for ci, cat in enumerate(cats):
+            if cat == "Fuel":
+                amts = {1: [40.00, 35.00], 2: [50.00], 3: [38.50, 41.25, 36.00]}.get(m, [44.00, 39.75])
+            else:
+                base = 12 + 7 * ci
+                amts = [round(base + 3.25 * m, 2), round(base * 1.5 + 2.1 * m, 2)]
+            for j, a in enumerate(amts):
+                day = 2 + ((m * 5 + ci * 6 + j * 11) % 26)
+                rows.append((date(2026, m, day), cat, a))
+    rows.sort(key=lambda t: (t[0], t[1]))
+    assert len(rows) == 60, len(rows)
+    for r in range(2, 501):
+        for col in "ABC":
+            ex[f"{col}{r}"].fill = INPUT_FILL
+        ex[f"A{r}"].number_format = US_DATE
+        ex[f"C{r}"].number_format = USD
+    for r, (d, c, a) in enumerate(rows, start=2):
+        ex[f"A{r}"], ex[f"B{r}"], ex[f"C{r}"] = d, c, a
+
+    sm = wb.create_sheet("Summary", 0)
+    sm["A1"] = "Category"
+    sm["A1"].fill, sm["A1"].font = HEADER_FILL, HEADER_FONT
+    sm.column_dimensions["A"].width = 30
+    for i, col in enumerate("BCDEFG"):
+        c = sm[f"{col}1"]
+        c.value = date(2026, 1, 1) if i == 0 else f"=EDATE({'BCDEFG'[i - 1]}1,1)"
+        c.number_format = "mmm yyyy"
+        c.fill, c.font = HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(horizontal="center")
+        sm.column_dimensions[col].width = 12
+    sm["B1"].fill = INPUT_FILL
+    sm["B1"].font = Font(bold=True)
+    sm["H1"] = "Total"
+    sm["H1"].fill, sm["H1"].font = HEADER_FILL, HEADER_FONT
+    sm["H1"].alignment = Alignment(horizontal="center")
+    sm.column_dimensions["H"].width = 13
+    for i, cat in enumerate(cats, start=2):
+        sm[f"A{i}"] = cat
+        sm[f"A{i}"].fill = INPUT_FILL
+        for col in "BCDEFG":
+            sm[f"{col}{i}"] = (
+                f'=SUMIFS(Expenses!$C$2:$C$500,Expenses!$B$2:$B$500,$A{i},'
+                f'Expenses!$A$2:$A$500,">="&DATE(YEAR({col}$1),MONTH({col}$1),1),'
+                f'Expenses!$A$2:$A$500,"<"&EDATE(DATE(YEAR({col}$1),MONTH({col}$1),1),1))')
+            sm[f"{col}{i}"].number_format = USD
+            sm[f"{col}{i}"].fill = FORMULA_FILL
+        sm[f"H{i}"] = f"=SUM(B{i}:G{i})"
+        sm[f"H{i}"].number_format = USD
+        sm[f"H{i}"].fill = FORMULA_FILL
+    sm["A7"] = "Total"
+    sm["A7"].font = Font(bold=True)
+    for col in "BCDEFGH":
+        sm[f"{col}7"] = f"=SUM({col}2:{col}6)"
+        sm[f"{col}7"].number_format = USD
+        sm[f"{col}7"].font = Font(bold=True)
+        sm[f"{col}7"].fill = FORMULA_FILL
+    sm.column_dimensions["I"].width = 3
+    sm.column_dimensions["J"].width = 44
+    sm.column_dimensions["K"].width = 16
+    _summary_block(sm, "J", "K", [
+        (1, "Biggest month", '=IF(MAX(B7:G7)=0,"",INDEX($B$1:$G$1,MATCH(MAX(B7:G7),B7:G7,0)))', "mmm yyyy"),
+        (2, "Biggest month total", "=MAX(B7:G7)", USD),
+        (3, "All amounts on the Expenses tab", "=SUM(Expenses!C2:C500)", USD),
+        (4, "On the Expenses tab but not in this table", "=ROUND(K3-H7,2)", USD),
+        (5, "Check: every expense row is in the table",
+         '=IF(AND(K4=0,COUNTA(Expenses!C2:C500)=COUNT(Expenses!C2:C500),COUNTA(Expenses!A2:A500)=COUNT(Expenses!A2:A500),'
+         'COUNTA(Expenses!A2:A500)=COUNTA(Expenses!C2:C500)),"OK","CHECK")', "General"),
+    ])
+    _ok_format(sm, "K5")
+    sm.freeze_panes = "B2"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Total Expenses by Category and Month With One SUMIFS Formula",
+        "",
+        "1. Expenses tab: type or paste the date (A), category (B) and amount (C), rows 2 to 500. Yellow. The sample is 60 fictional lines from January to June 2026.",
+        "2. Summary tab: type the first month in B1 (any date in that month works) and your categories in A2:A6. Yellow. C1 to G1 are =EDATE(B1,1), one month later each.",
+        "3. Each cell, B2: =SUMIFS(Expenses!$C$2:$C$500,Expenses!$B$2:$B$500,$A2,Expenses!$A$2:$A$500,\">=\"&DATE(YEAR(B$1),MONTH(B$1),1),Expenses!$A$2:$A$500,\"<\"&EDATE(DATE(YEAR(B$1),MONTH(B$1),1),1)). It adds the amounts with this category whose date is on or after the first of the month and before the first of the next month. Copy it across and down; $A2 and B$1 lock the right parts.",
+        "4. Using less than the first of the next month, instead of the last day of the month, also counts a date that has a time on it, such as 03/31/2026 2:30 PM.",
+        "5. The DATE(YEAR(),MONTH(),1) part makes the formula work even if a header is typed as the 15th. The headers show only month and year.",
+        "6. Totals: row 7 and column H use SUM. K1 shows the month with the biggest total.",
+        "7. K5 shows OK when every dollar on the Expenses tab is in the table. It turns to CHECK if a category is misspelled or missing from A2:A6, a date is typed as text, a date falls outside the six months, or an amount is text.",
+        "8. Categories are yours. The sheet adds numbers; it does not say what is deductible.",
+        "",
+        "Amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Summary"].page_setup.orientation = "landscape"
+    wb["Summary"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-expenses-by-category-and-month.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -7914,4 +8409,9 @@ if __name__ == "__main__":
     trailing_12_month_sales()
     inventory_count_variance()
     weighted_score_matrix()
+    categorize_expenses_by_keyword()
+    dimensional_weight()
+    simple_gantt_chart()
+    total_hours_over_24()
+    expenses_by_category_and_month()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

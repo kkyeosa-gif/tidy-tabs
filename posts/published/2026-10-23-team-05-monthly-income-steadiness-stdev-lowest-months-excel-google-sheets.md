@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De4aPqQEecV
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-measure-how-much-your-monthly.html
 title: How to Measure How Much Your Monthly Income Varies With STDEV in Excel and Google Sheets
 labels: excel-formulas, freelancers, small-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model (statistics.stdev and a Decimal average), including 16 edited variants: 12 identical months, two months, one month, no months, a blank month, text entries such as n/a, all zeros, zero months among twelve, negative months, large numbers and tied lowest months. No mismatches in the final run. Excel and Google Sheets were not opened.

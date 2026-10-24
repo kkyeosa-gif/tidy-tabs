@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De2zPgLjdGg
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-number-items-within-each-order.html
 title: How to Number Items Within Each Order in Excel and Google Sheets
 labels: excel-formulas, small-business, orders
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model, including edited copies: rows of one order not next to each other, a1003 in lower case, a trailing and a leading space, a blank order ID with an item, an ID with no item, a blank row in the middle, one row only, no rows, 199 random IDs, numeric IDs, IDs with * or ?, and "007" against the number 7. Excel and Google Sheets were not opened.

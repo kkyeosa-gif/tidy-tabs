@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De48lJPIJqn
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-make-monthly-calendar-that.html
 title: How to Make a Monthly Calendar That Changes With the Month and Year in Excel and Google Sheets
 labels: excel-formulas, small-business, calendar
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model and Python calendar, including 59 edited variants (every month of 2026 and 2027, February in 2015, 2021, 2024, 2028, 2100, years 1901 and 9999, month 13, 0, -1, 2.5, text and blank, year as text, 1900 and 10000, an event with a time part, an event typed as text, no events). No mismatches in the final run. Excel and Google Sheets were not opened.

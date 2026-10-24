@@ -15,6 +15,8 @@ Format the total cell with the custom number format `[h]:mm`, because plain `h:m
 
 ![Spreadsheet example with columns Week, Shown as h:mm (wrong), Shown as [h]:mm, Decimal hours](images/2026-10-25-team-04-add-up-hours-over-24-hours-h-mm-format-excel-google-sheets/how-to-sum-hours-over-24-in-excel-and-google-sheet-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
 
+![Spreadsheet example with columns Week, Shown as h:mm (wrong), Shown as [h]:mm, Decimal hours](images/2026-10-25-team-04-add-up-hours-over-24-hours-h-mm-format-excel-google-sheets/how-to-sum-hours-over-24-in-excel-and-google-sheet-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
+
 ![Hours sheet with three weeks of times and totals shown as h:mm, [h]:mm, decimal hours and pay](images/2026-10-25-team-04-add-up-hours-over-24-hours-h-mm-format-excel-google-sheets/total-hours-over-24-template.png) *caption: PDF export of the template with fictional sample data from LibreOffice Calc 24.2*
 
 ## Steps

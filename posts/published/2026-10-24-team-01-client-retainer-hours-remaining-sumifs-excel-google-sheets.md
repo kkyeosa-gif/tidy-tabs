@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De4n-1wGjzH
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-track-prepaid-retainer-hours.html
 title: How to Track Prepaid Retainer Hours Remaining for Each Client in Excel and Google Sheets
 labels: excel-formulas, freelancers, time-tracking
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model, including 29 edited variants (a client with no log rows, hours used up exactly, hours bought 0, a trailing space in a Log or Clients name, capital letters, text hours, a typo client, a duplicate client row, the 20 percent boundary, negative hours, Log rows 200 and 201). No mismatches in the final run. Excel and Google Sheets were not opened.

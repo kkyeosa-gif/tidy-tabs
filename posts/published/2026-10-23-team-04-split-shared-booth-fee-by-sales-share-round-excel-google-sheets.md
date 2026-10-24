@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De4F7BBoML2
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-split-shared-booth-fee-between.html
 title: How to Split a Shared Booth Fee Between Sellers by Sales Share in Excel and Google Sheets
 labels: excel-formulas, small-business, expenses
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model, including 32 edited variants (three equal sellers on $100.00, a tie for the largest sales, leftovers of minus one, plus one and minus two cents, a seller with $0.00 sales, all sales 0, negative and text sales, a text total, a total with a fraction of a cent, a $0.05 bill). No mismatches in the final run. Excel and Google Sheets were not opened.

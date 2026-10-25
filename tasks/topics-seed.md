@@ -141,3 +141,10 @@
 - How to Make a Simple Gantt Chart With Conditional Formatting in Excel and Google Sheets - `simple-gantt-chart-conditional-formatting-excel-google-sheets`
 - Why Your Total Hours Reset After 24 and How to Fix It in Excel and Google Sheets - `add-up-hours-over-24-hours-h-mm-format-excel-google-sheets`
 - How to Total Expenses by Category and Month in One Table With SUMIFS in Excel and Google Sheets - `expenses-by-category-by-month-two-way-sumifs-excel-google-sheets`
+
+## 2026-10-26 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice Calc 24.2 에서 확인, 차트는 빌드 때 확인)
+- How to Find the Most Common Value in a List in Excel and Google Sheets - `most-common-value-mode-index-match-countif-excel-google-sheets`
+- How to Make a Monthly Sales Chart With a Goal Line in Excel and Google Sheets - `monthly-sales-column-chart-with-goal-line-excel-google-sheets`
+- How to Flag Email Addresses That Look Wrong in a List in Excel and Google Sheets - `flag-invalid-email-addresses-find-substitute-len-excel-google-sheets`
+- How to Turn Order Numbers Into Clickable Links With HYPERLINK in Excel and Google Sheets - `clickable-order-links-from-order-numbers-hyperlink-excel-google-sheets`
+- How to Find the Next Anniversary of a Date and the Days Until It in Excel and Google Sheets - `next-anniversary-date-days-until-date-year-month-day-excel-google-sheets`

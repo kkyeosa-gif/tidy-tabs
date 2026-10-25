@@ -8302,6 +8302,397 @@ def expenses_by_category_and_month():
     wb.save(OUT / "tidy-tabs-expenses-by-category-and-month.xlsx")
 
 
+def most_common_value():
+    import random
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    heads = ["Order", "Item size or scent", "Quantity", "Times this item is listed", "First time this item is listed (1 = yes)",
+             "Sort key (count minus row/100000)", "Times this quantity is listed", "First time this quantity is listed (1 = yes)"]
+    _head_row(ws, 1, heads, [11, 22, 10, 14, 16, 16, 14, 16], height=62)
+    ws.freeze_panes = "A2"
+    counts = {"Lavender": 11, "Cedar": 9, "Vanilla": 8, "Citrus": 7, "Sandalwood": 5}
+    seq = [k for k, n in counts.items() for _ in range(n)]
+    rng = random.Random(25)
+    rng.shuffle(seq)
+    qtys = [1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 6]
+    qs = [qtys[rng.randrange(len(qtys))] for _ in seq]
+    for r in range(2, 501):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"D{r}"] = f'=IF(B{r}="","",COUNTIF($B$2:$B$500,B{r}))'
+        ws[f"E{r}"] = f'=IF(B{r}="","",IF(COUNTIF($B$2:B{r},B{r})=1,1,0))'
+        ws[f"F{r}"] = f'=IF(E{r}=1,D{r}-ROW()/100000,"")'
+        ws[f"G{r}"] = f'=IF(ISNUMBER(C{r}),COUNTIF($C$2:$C$500,C{r}),"")'
+        ws[f"H{r}"] = f'=IF(ISNUMBER(C{r}),IF(COUNTIF($C$2:C{r},C{r})=1,1,0),"")'
+        for col in "DEFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"F{r}"].number_format = "0.00000"
+    for i, (it, q) in enumerate(zip(seq, qs)):
+        r = 2 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = f"E-{2001 + i}", it, q
+    ws.print_area = "A1:H50"
+
+    sm = wb.create_sheet("Summary", 1)
+    sm.column_dimensions["A"].width = 34
+    sm.column_dimensions["B"].width = 30
+    sm.column_dimensions["C"].width = 3
+    for col, w in zip("DEFG", [7, 22, 10, 10]):
+        sm.column_dimensions[col].width = w
+    O = "Orders!"
+    B, C, D, E, F, G, H = (f"{O}${x}$2:${x}$500" for x in "BCDEFGH")
+    _summary_block(sm, "A", "B", [
+        (1, "Orders counted", f'=SUMPRODUCT(--({B}<>""))', "0"),
+        (2, "Most common item", f'=IFERROR(INDEX({B},MATCH(MAX({D}),{D},0)),"")', "General"),
+        (3, "Times it appears", f'=IF(B1=0,"",MAX({D}))', "0"),
+        (4, "Share of orders", '=IF(B1=0,"",B3/B1)', "0.0%"),
+        (5, "Tie?", f'=IF(B1=0,"",IF(COUNTIFS({D},B3,{E},1)>1,COUNTIFS({D},B3,{E},1)&" items tie at "&B3&" orders; the first one listed is shown","No tie"))', "General"),
+        (6, "Most common quantity", f'=IF(COUNT({C})=0,"",IFERROR(MODE({C}),"No repeats"))', "General"),
+        (7, "Times that quantity appears", f'=IF(ISNUMBER(B6),COUNTIF({C},B6),"")', "0"),
+        (8, "Quantity tie?", f'=IF(ISNUMBER(B6),IF(COUNTIFS({G},B7,{H},1)>1,COUNTIFS({G},B7,{H},1)&" quantities tie at "&B7&" times; MODE returns one of them","No tie"),"")', "General"),
+        (9, "Check: counts add up to the rows", f'=IF(AND(SUMIF({E},1,{D})=B1,SUMIF({H},1,{G})=COUNT({C}),COUNTA({C})=COUNT({C}),SUMPRODUCT(({B}="")*({C}<>""))=0),"OK","CHECK")', "General"),
+    ])
+    _ok_format(sm, "B9")
+    for col, t in zip("DEFG", ["Rank", "Item", "Orders", "Share"]):
+        sm[f"{col}1"] = t
+        sm[f"{col}1"].fill, sm[f"{col}1"].font = HEADER_FILL, HEADER_FONT
+    for k in range(1, 6):
+        r = 1 + k
+        sm[f"D{r}"] = k
+        sm[f"E{r}"] = f'=IFERROR(INDEX({B},MATCH(LARGE({F},D{r}),{F},0)),"")'
+        sm[f"F{r}"] = f'=IFERROR(INDEX({D},MATCH(LARGE({F},D{r}),{F},0)),"")'
+        sm[f"G{r}"] = f'=IF(F{r}="","",F{r}/$B$1)'
+        sm[f"G{r}"].number_format = "0.0%"
+        for col in "EFG":
+            sm[f"{col}{r}"].fill = FORMULA_FILL
+    sm.print_area = "A1:G9"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Most Common Value in a List With COUNTIF, INDEX and MATCH",
+        "",
+        "1. Orders tab: type or paste the order (A), the item size or scent (B) and the quantity (C), rows 2 to 500. Yellow. The sample is 40 fictional candle orders.",
+        "2. Column D counts how often each row's item is listed: =IF(B2=\"\",\"\",COUNTIF($B$2:$B$500,B2)). Every row of the same item gets the same count.",
+        "3. Summary B2 returns the item with the biggest count: =IFERROR(INDEX(Orders!$B$2:$B$500,MATCH(MAX(Orders!$D$2:$D$500),Orders!$D$2:$D$500,0)),\"\"). MATCH finds the first row with the biggest count, so with a tie the item listed first is shown.",
+        "4. Tie test: column E marks the first row of each item with a 1, and B5 counts how many of those first rows have the biggest count. More than one means a tie.",
+        "5. Most common quantity, B6, uses =MODE(Orders!$C$2:$C$500) for numbers. If every quantity is different, MODE has no answer and B6 shows No repeats. With a tie, MODE returns one of the tied numbers (B8 says when there is one); in the LibreOffice check it was the one listed first.",
+        "6. The top 5 table (D1:G6) ranks each different item by its count. Column F on Orders is a sort key: the count minus a tiny amount from the row number, so tied items come out in the order they were first listed.",
+        "7. COUNTIF ignores upper and lower case, so Cedar and cedar are one item (the spelling listed first is shown). A trailing space makes a separate item: Cedar and Cedar followed by a space are counted apart. A star or question mark typed inside an item name acts as a wildcard in COUNTIF and was not tested.",
+        "8. B9 shows OK when the counts add up to the number of filled rows, every quantity is a number and no quantity sits on a row without an item. A quantity typed as text turns it to CHECK and MODE skips that cell.",
+        "9. This counts how often a value appears. It does not rank dollars and does not say what to stock.",
+        "",
+        "Orders are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_title_rows = "1:1"
+    wb["Summary"].page_setup.orientation = "landscape"
+    wb["Summary"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-most-common-value.xlsx")
+
+
+def sales_vs_goal_chart():
+    from openpyxl.chart import BarChart, LineChart, Reference
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Chart"
+    ws["A1"] = "Monthly goal"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = 4000
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = USD
+    ws["C1"] = "Gift shop sales by month (fictional). Type the goal once in B1."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Month", "Sales", "Goal", "Difference"], [13, 13, 13, 14], height=24)
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    sales = [3184.50, 2860.00, 3642.25, 4118.00, 4655.75, 4290.00, 3915.50, 4430.25, 3748.00, 4902.50, 5811.00, 7236.25]
+    for i, (m, s) in enumerate(zip(months, sales)):
+        r = 5 + i
+        ws[f"A{r}"], ws[f"B{r}"] = m, s
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = USD
+        ws[f"C{r}"] = "=$B$1"
+        ws[f"D{r}"] = f'=IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r})),B{r}-C{r},"")'
+        for col in "CD":
+            ws[f"{col}{r}"].number_format = USD
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    ws.freeze_panes = None
+    ws.column_dimensions["E"].width = 3
+    items = [
+        (18, "Months at or above goal", '=COUNTIF(D5:D16,">=0")', "0"),
+        (19, "Months with sales entered", "=COUNT(B5:B16)", "0"),
+        (20, "Best month", '=IFERROR(INDEX(A5:A16,MATCH(MAX(B5:B16),B5:B16,0)),"")', "General"),
+        (21, "Best month sales", '=IF(COUNT(B5:B16)=0,"",MAX(B5:B16))', USD),
+        (22, "Total sales", "=SUM(B5:B16)", USD),
+        (23, "Goal for the months entered", "=SUMPRODUCT(--ISNUMBER(B5:B16),C5:C16)", USD),
+        (24, "Total sales minus goal", "=D22-D23", USD),
+        (25, "Check: goal is a number, sales are numbers",
+         '=IF(AND(ISNUMBER(B1),COUNT(B5:B16)=COUNTA(B5:B16),SUMPRODUCT((A5:A16="")*(B5:B16<>""))=0),"OK","CHECK")', "General"),
+    ]
+    _summary_block(ws, "A", "D", items)
+    _ok_format(ws, "D25")
+
+    bar = BarChart()
+    bar.type = "col"
+    bar.grouping = "clustered"
+    bar.title = "Monthly sales vs goal (fictional gift shop)"
+    bar.y_axis.title = "Sales (US dollars)"
+    bar.x_axis.title = "Month"
+    bar.y_axis.number_format = '"$"#,##0'
+    bar.add_data(Reference(ws, min_col=2, min_row=4, max_row=16), titles_from_data=True)
+    bar.set_categories(Reference(ws, min_col=1, min_row=5, max_row=16))
+    bar.series[0].graphicalProperties.solidFill = "2E5E4E"
+    bar.series[0].graphicalProperties.line.solidFill = "2E5E4E"
+    bar.gapWidth = 60
+    line = LineChart()
+    line.add_data(Reference(ws, min_col=3, min_row=4, max_row=16), titles_from_data=True)
+    s = line.series[0]
+    s.graphicalProperties.line.solidFill = "C0392B"
+    s.graphicalProperties.line.width = 28575
+    s.graphicalProperties.line.dashStyle = "dash"
+    s.marker.symbol = "none"
+    s.smooth = False
+    bar.x_axis.delete = False
+    bar.y_axis.delete = False
+    bar.legend.position = "b"
+    bar.dispBlanksAs = "gap"
+    bar += line
+    bar.width, bar.height = 19.5, 11.5
+    ws.add_chart(bar, "F3")
+    ws.print_area = "A1:R25"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Monthly Sales Chart With a Goal Line",
+        "",
+        "1. Chart tab: type the monthly goal in B1 and each month's sales in B5:B16. Yellow. The months in A5:A16 are typed text. The sample is 12 fictional gift shop months, some under and some over the $4,000.00 goal.",
+        "2. Goal, C5: =$B$1, the same in every row, so one cell sets the whole line. Difference, D5: =IF(AND(ISNUMBER(B5),ISNUMBER(C5)),B5-C5,\"\") is sales minus goal; a month with no sales entered stays blank.",
+        "3. The chart is a real chart object, not cell shading. Sales (B4:B16) is a clustered column series. Goal (C4:C16) is a line series on the same axis, with the months in A5:A16 as the labels.",
+        "4. Change B1 and the Goal column and the line move. Clear a Sales cell and that month has no column (a gap, not a zero); the Goal line still crosses it.",
+        "5. Summary, A18:D25: months at or above goal (difference of 0 or more), best month, total sales, the goal for the months that have sales, and the difference. D25 shows OK when the goal is a number and every sales cell is a number on a row with a month name.",
+        "6. To build your own: select the month, Sales and Goal columns, insert a column chart, then change the Goal series to a line. Excel: Insert > Chart, then Change Series Chart Type. Google Sheets: Insert > Chart, then Customize > Series > Format. After importing this file, check that both series came across.",
+        "7. The file sets the paper to US Letter, landscape, one page wide.",
+        "",
+        "Sales are fictional. Checked in LibreOffice Calc only (the chart was seen in its PDF export); not opened in Excel or Google Sheets. This sheet does not suggest a goal.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    cs = wb["Chart"]
+    cs.page_setup.orientation = "landscape"
+    cs.print_title_rows = None
+    cs.page_setup.fitToHeight = 1
+    wb.save(OUT / "tidy-tabs-sales-vs-goal-chart.xlsx")
+
+
+def flag_bad_emails():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Emails"
+    _head_row(ws, 1, ["Name", "Email", "Status", "Reason"], [20, 34, 10, 36], height=24)
+    ws.freeze_panes = "A2"
+    rows = [
+        ("Ana Reyes", "ana@shop.com"), ("Ben Carter", "ben.carter@mail.co.uk"), ("Cora Lin", "cora_lin@harborcoffee.com"),
+        ("Dev Patel", "dev.patel@mail.shop.com"), ("Elena Ortiz", "elena.ortiz@cedarandco.com"),
+        ("Frank Moore", "frank.moore.shop.com"), ("Grace Kim", "grace@birchbakery.com"),
+        ("Hank Diaz", "hank@@pinehill.com"), ("Ivy Chen", "ivy.chen@lakeview.org"),
+        ("Jon Park", "jon park@oaklane.com"), ("Kara Webb", "kara+orders@mail.com"),
+        ("Leo Grant", "leo@birch.net"), ("Mia Scott", "@birchbakery.com"), ("Nate Lopez", "nate@hillside.com"),
+        ("Olive Hart", "olive.hart@yogastudio.com"), ("Paul Young", "paul@shop"), ("Quinn Ross", "quinn@mapleandco.com"),
+        ("Rosa Bell", "rosa.bell@market.org"), ("Sam Cole", "sam@florist..com"), ("Tina Fox", "tina@cedarlane.com"),
+        ("Uma Shah", "uma@bakery."), ("Vic Long", "vic.long@print.shop.com"), ("Wes Hall", "wes@candles.com"),
+        ("Xena Roy", ""), ("Yara Nash", "yara@totes.com"), ("Zed Marsh", "zed@lakeview.org"),
+        ("Amy Stone", "AMY.STONE@MAIL.COM"), ("Bo Tran", "bo.tran@giftshop.com"), ("Cy Reid", "cy@a.io"),
+        ("Dina Cruz", "dina@craftfair.org"),
+    ]
+    assert len(rows) == 30
+    for r in range(2, 201):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"C{r}"] = (f'=IF(AND(A{r}="",B{r}=""),"",IF(B{r}="","Check",IF(ISNUMBER(FIND(" ",B{r})),"Check",'
+                       f'IF(LEN(B{r})-LEN(SUBSTITUTE(B{r},"@",""))<>1,"Check",IF(FIND("@",B{r})<2,"Check",'
+                       f'IF(ISERROR(FIND(".",B{r},FIND("@",B{r})+2)),"Check",'
+                       f'IF(OR(RIGHT(B{r},1)=".",ISNUMBER(FIND("..",B{r}))),"Check","OK")))))))')
+        ws[f"D{r}"] = (f'=IF(AND(A{r}="",B{r}=""),"",IF(B{r}="","Email is empty",IF(ISNUMBER(FIND(" ",B{r})),"Has a space",'
+                       f'IF(LEN(B{r})-LEN(SUBSTITUTE(B{r},"@",""))<>1,"Needs exactly one @",IF(FIND("@",B{r})<2,"Nothing before the @",'
+                       f'IF(ISERROR(FIND(".",B{r},FIND("@",B{r})+2)),"No dot after the @",'
+                       f'IF(OR(RIGHT(B{r},1)=".",ISNUMBER(FIND("..",B{r}))),"Ends with a dot or has two dots in a row","")))))))')
+        for col in "CD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    for i, (n, e) in enumerate(rows):
+        ws[f"A{2 + i}"] = n
+        if e:
+            ws[f"B{2 + i}"] = e
+    ws.conditional_formatting.add("C2:D200", FormulaRule(formula=['$C2="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("C2:C200", FormulaRule(formula=['$C2="OK"'], fill=DONE_FILL))
+    ws.column_dimensions["E"].width = 3
+    ws.column_dimensions["F"].width = 42
+    ws.column_dimensions["G"].width = 10
+    _summary_block(ws, "F", "G", [
+        (1, "Rows checked", '=SUMPRODUCT(--(((A2:A200<>"")+(B2:B200<>""))>0))', "0"),
+        (2, "OK", '=COUNTIF(C2:C200,"OK")', "0"),
+        (3, "Check", '=COUNTIF(C2:C200,"Check")', "0"),
+        (4, "Check: every row has a Status and Reason", '=IF(AND(G1=G2+G3,SUMPRODUCT((C2:C200="Check")*(D2:D200=""))=0,SUMPRODUCT((C2:C200="OK")*(D2:D200<>""))=0,COUNTA(A201:B1000)=0),"OK","CHECK")', "General"),
+    ])
+    _ok_format(ws, "G4")
+    ws.print_area = "A1:G32"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Flag Email Addresses That Look Wrong",
+        "",
+        "1. Emails tab: type or paste the name (A) and the email (B), rows 2 to 200. Yellow. The sample is 30 fictional rows; 8 are broken on purpose: no @, two @, a space, nothing before the @, no dot after the @, two dots in a row, a final dot, and an empty email.",
+        "2. Status, C2, runs these tests in order and stops at the first that fails: a space anywhere; the number of @ signs, from LEN(B2)-LEN(SUBSTITUTE(B2,\"@\",\"\")), is not 1; FIND(\"@\",B2) is less than 2 (nothing before the @); no dot after the @ (FIND(\".\",B2,FIND(\"@\",B2)+2) is an error); the address ends with a dot or contains two dots in a row. Anything that passes is OK.",
+        "3. Reason, D2, repeats the same tests and says in words which one failed. It is blank for an OK row.",
+        "4. A row with a name and no email is Check (Email is empty). A row with nothing in A or B stays blank.",
+        "5. This checks the shape only. An address can pass every test and still not exist or not be read by anyone. The tests do not look at upper or lower case, a plus sign, accented letters or length, and they do not check the ending after the last dot. A dot straight after the @ or straight before it is only caught in the first case (a@.com).",
+        "6. Summary, F1:G4: rows checked, OK, Check. G4 shows OK when rows checked equals OK plus Check, every Check has a Reason, and nothing is typed below row 200.",
+        "7. Fix the red rows, then paste the Email column into your own tool. Nothing here sends mail.",
+        "",
+        "Names and addresses are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Emails"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-flag-bad-emails.xlsx")
+
+
+def order_links():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Base address"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = "https://example.com/orders/"
+    ws["B1"].fill = INPUT_FILL
+    ws["A2"] = "example.com is a placeholder: replace B1 with your own store, carrier or CRM address. No web request is made."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 3, ["Order number", "Link", "Address it opens", "Characters in address"], [16, 32, 52, 12], height=32)
+    nums = [10482, 10483, "A 12", 10490, "SH-2031", 10497, 10501, "B 7", 10512, 10515, "WEB-88", 10533, 10540, "C 104", 10562]
+    assert len(nums) == 15
+    for r in range(4, 204):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"B{r}"] = f'=IF(TRIM(A{r})="","",HYPERLINK($B$1&SUBSTITUTE(TRIM(A{r})," ","%20"),"Order "&TRIM(A{r})))'
+        ws[f"C{r}"] = f'=IF(TRIM(A{r})="","",$B$1&SUBSTITUTE(TRIM(A{r})," ","%20"))'
+        ws[f"D{r}"] = f'=IF(C{r}="","",LEN(C{r}))'
+        ws[f"A{r}"].alignment = Alignment(horizontal="left")
+        ws[f"B{r}"].font = Font(color="0563C1", underline="single")
+        for col in "BCD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    for i, n in enumerate(nums):
+        ws[f"A{4 + i}"] = n
+    ws.freeze_panes = "A4"
+    ws.column_dimensions["E"].width = 3
+    ws.column_dimensions["F"].width = 40
+    ws.column_dimensions["G"].width = 10
+    _summary_block(ws, "F", "G", [
+        (4, "Order numbers listed", "=COUNTA(A4:A203)", "0"),
+        (5, "Links built", "=COUNT(D4:D203)", "0"),
+        (6, "Longest address (characters)", "=MAX(D4:D203)", "0"),
+        (7, "Check: base address and every row",
+         '=IF(AND(LEFT(B1,8)="https://",OR(RIGHT(B1,1)="/",RIGHT(B1,1)="="),ISERROR(FIND(" ",B1)),G4=G5,G6<=255),"OK","CHECK")', "General"),
+    ])
+    _ok_format(ws, "G7")
+    ws.print_area = "A1:G35"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Clickable Order Links With HYPERLINK",
+        "",
+        "1. Orders tab: type the base address in B1 and the order numbers in A4:A203. Yellow. The base address is the part of the web address that is the same for every order and ends in a slash or an equals sign. The sample base address is the placeholder https://example.com/orders/; replace it with your own store, carrier or CRM address.",
+        "2. Link, B4: =IF(TRIM(A4)=\"\",\"\",HYPERLINK($B$1&SUBSTITUTE(TRIM(A4),\" \",\"%20\"),\"Order \"&TRIM(A4))). HYPERLINK takes the address to open, then the text to show. The text is Order and the number.",
+        "3. TRIM removes extra spaces around the order number. SUBSTITUTE changes a space inside the number to %20, which is how a space is written in a web address. The sample has one with a space (A 12) and some with letters.",
+        "4. Address it opens, C4, is the same text without HYPERLINK, so you can read exactly where each link points before you send it to a customer or a helper. D4 counts its characters.",
+        "5. G7 shows OK when B1 starts with https://, ends with a slash or an equals sign, has no space, every order number built a link, and no address is longer than 255 characters. Microsoft's HYPERLINK help gives 255 characters as the limit for the address in Excel; that limit was not tested here.",
+        "6. Only the space is changed. Other special characters in an order number (such as & # ? /) are not encoded. A number with leading zeros typed as a number loses them; format A as Text first.",
+        "7. The formula does not use the web. The links were not clicked and no page was opened in this check.",
+        "",
+        "Order numbers are fictional. Checked in LibreOffice Calc only (the displayed text and the address column); not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].page_setup.orientation = "landscape"
+    wb["Orders"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-order-links.xlsx")
+
+
+def next_anniversary():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Customers"
+    ws["A1"] = "As-of date"
+    ws["A2"] = "Coming up window (days)"
+    ws["A1"].font = ws["A2"].font = Font(bold=True)
+    ws["B1"] = date(2026, 10, 26)
+    ws["B1"].number_format = US_DATE
+    ws["B2"] = 30
+    ws["B1"].fill = ws["B2"].fill = INPUT_FILL
+    ws["C1"] = "Typed, not TODAY(). Dates are MM/DD/YYYY."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Name", "First order date", "Next anniversary", "Days until", "Years completed on that date", "Coming up"],
+              [24, 14, 14, 9, 14, 10], height=48)
+    cust = [
+        ("Birch Street Bakery", date(2020, 2, 29)), ("Lakeview Dental Office", date(2019, 10, 26)),
+        ("Pine Hill Yoga", date(2018, 10, 25)), ("Cedar & Co. Realty", date(2021, 12, 31)),
+        ("Oak Lane Florist", date(2022, 11, 10)), ("Harbor Coffee", date(2023, 11, 25)),
+        ("Maple Print Shop", date(2023, 11, 26)), ("Sunny Day Daycare", date(2024, 1, 15)),
+        ("Riverbend Pottery", date(2017, 3, 8)), ("Elm Street Books", date(2025, 10, 27)),
+        ("Willow Craft Fair", date(2021, 6, 30)), ("Hilltop Candle Co.", date(2022, 11, 1)),
+        ("Greenleaf Market", date(2019, 8, 19)), ("Stone Bridge Cafe", date(2024, 10, 28)),
+        ("North Shore Surf Shop", date(2020, 12, 5)), ("Redwood Tailors", date(2018, 11, 18)),
+        ("Blue Door Gallery", date(2026, 3, 14)), ("Juniper Spa", date(2016, 9, 2)),
+        ("Copper Kettle Tea", date(2021, 11, 24)), ("Fox Run Farm Stand", date(2023, 5, 12)),
+    ]
+    for r in range(5, 205):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"C{r}"] = (f'=IF(B{r}="","",IF(AND(ISNUMBER(B{r}),ISNUMBER($B$1)),'
+                       f'DATE(YEAR($B$1)+(DATE(YEAR($B$1),MONTH(B{r}),DAY(B{r}))<$B$1),MONTH(B{r}),DAY(B{r})),"Check date"))')
+        ws[f"C{r}"].number_format = US_DATE
+        ws[f"D{r}"] = f'=IF(ISNUMBER(C{r}),C{r}-$B$1,"")'
+        ws[f"E{r}"] = f'=IF(ISNUMBER(C{r}),YEAR(C{r})-YEAR(B{r}),"")'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(D{r}),IF(D{r}<=$B$2,"Yes",""),"")'
+        for col in "CDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        ws[f"D{r}"].number_format = "0"
+        ws[f"E{r}"].number_format = "0"
+    for i, (n, d) in enumerate(cust):
+        ws[f"A{5 + i}"], ws[f"B{5 + i}"] = n, d
+    ws.conditional_formatting.add("A5:F204", FormulaRule(formula=['$F5="Yes"'], fill=DONE_FILL))
+    ws.conditional_formatting.add("C5:C204", FormulaRule(formula=['$C5="Check date"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 40
+    ws.column_dimensions["I"].width = 24
+    _summary_block(ws, "H", "I", [
+        (5, "Coming up in the window", '=COUNTIF(F5:F204,"Yes")', "0"),
+        (6, "Nearest anniversary", '=IFERROR(INDEX(A5:A204,MATCH(MIN(D5:D204),D5:D204,0)),"")', "General"),
+        (7, "Days until it", '=IF(COUNT(D5:D204)=0,"",MIN(D5:D204))', "0"),
+        (8, "Check: dates and window are valid",
+         '=IF(AND(ISNUMBER(B1),ISNUMBER(B2),B2>=0,COUNT(B5:B204)=COUNTA(B5:B204),COUNTIF(B5:B204,">"&B1)=0),"OK","CHECK")', "General"),
+    ])
+    _ok_format(ws, "I8")
+    ws.print_area = "A1:I30"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Next Yearly Anniversary and Days Until It",
+        "",
+        "1. Customers tab: type the date you count from in B1 and the window in days in B2. Then type the name (A) and the first order date (B), rows 5 to 204. Yellow. The sample is 20 fictional businesses and an as-of date of 10/26/2026.",
+        "2. Next anniversary, C5: =DATE(YEAR($B$1)+(DATE(YEAR($B$1),MONTH(B5),DAY(B5))<$B$1),MONTH(B5),DAY(B5)). It builds the anniversary in the as-of year; if that date is before B1, it builds it in the next year instead. A date equal to B1 counts as today (0 days).",
+        "3. Days until, D5: =C5-$B$1. Years completed on that date, E5: =YEAR(C5)-YEAR(B5). Coming up, F5: Yes when Days until is no more than the window in B2. Rows that are Yes turn green.",
+        "4. A 02/29 date: in a year with no February 29, DATE rolls it to 03/01, so the next anniversary of 02/29/2020 is 03/01/2027. In a leap year it stays 02/29. The first row of the sample shows this.",
+        "5. B1 is typed so the file never changes by itself. To use today's date, type it again, or put =TODAY() in B1 yourself.",
+        "6. A first order date typed as text shows Check date. A first order date after B1 is counted in I8 and turns it to CHECK; its Years completed is zero or negative.",
+        "7. Summary, H5:I8: how many are coming up, the name of the nearest anniversary (the first listed if two are equal), its days, and the check. The check also fails if B1 or B2 is not a number.",
+        "8. Dates and names only. The sheet sends nothing and does not say whether to contact anyone.",
+        "",
+        "Names and dates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Customers"].page_setup.orientation = "landscape"
+    wb["Customers"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-next-anniversary.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -8414,4 +8805,9 @@ if __name__ == "__main__":
     simple_gantt_chart()
     total_hours_over_24()
     expenses_by_category_and_month()
+    most_common_value()
+    sales_vs_goal_chart()
+    flag_bad_emails()
+    order_links()
+    next_anniversary()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

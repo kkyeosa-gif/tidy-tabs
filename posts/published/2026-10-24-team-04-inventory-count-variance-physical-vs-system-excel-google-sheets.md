@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De6rNUDG4A6
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-compare-physical-inventory-count.html
 title: How to Compare a Physical Inventory Count With Expected Stock in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model, including 25 edited variants (all items counted, none counted, a typed 0 against a blank, expected 0 with a count, negative or text counts, text or blank cost, fractional counts, half cent products, numbers in a row with no item name, a row 16 added, rows 100 and 101). No mismatches in the final run. Excel and Google Sheets were not opened.

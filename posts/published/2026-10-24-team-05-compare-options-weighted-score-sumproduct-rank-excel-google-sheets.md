@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De6_CkEm9fB
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-compare-vendors-with-weighted.html
 title: How to Compare Vendors With a Weighted Score in Excel and Google Sheets
 labels: excel-formulas, small-business, vendors
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model, including 25 edited variants (weights that add to 100 or 25, all weights 0, a negative, blank or text weight, one weight 0, ties of identical and of different rows, a blank or text score, scores of 0, 11 and 7.5, an option name with no scores, cleared rows). No mismatches in the final run. Excel and Google Sheets were not opened.

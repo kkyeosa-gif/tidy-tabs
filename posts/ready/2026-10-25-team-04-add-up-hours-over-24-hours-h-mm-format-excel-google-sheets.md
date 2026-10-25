@@ -11,13 +11,7 @@ Format the total cell with the custom number format `[h]:mm`, because plain `h:m
 
 > Works in: LibreOffice Calc 24.2.7.2 (Linux), where the template was built and every number below was recalculated and compared with a Python model. The Excel steps follow Microsoft's help page and the Google Sheets steps follow Google's. Neither Excel nor Google Sheets was opened for this post. The Google Sheets duration format menu differs from Excel's and was not tested.
 
-![Spreadsheet example with columns Week, Shown as h:mm (wrong), Shown as [h]:mm, Decimal hours](images/2026-10-25-team-04-add-up-hours-over-24-hours-h-mm-format-excel-google-sheets/how-to-sum-hours-over-24-in-excel-and-google-sheet-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
-
-![Spreadsheet example with columns Week, Shown as h:mm (wrong), Shown as [h]:mm, Decimal hours](images/2026-10-25-team-04-add-up-hours-over-24-hours-h-mm-format-excel-google-sheets/how-to-sum-hours-over-24-in-excel-and-google-sheet-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
-
-![Spreadsheet example with columns Week, Shown as h:mm (wrong), Shown as [h]:mm, Decimal hours](images/2026-10-25-team-04-add-up-hours-over-24-hours-h-mm-format-excel-google-sheets/how-to-sum-hours-over-24-in-excel-and-google-sheet-example.png) *The example from this post laid out in a spreadsheet. Rendered with LibreOffice Calc.*
-
-![Hours sheet with three weeks of times and totals shown as h:mm, [h]:mm, decimal hours and pay](images/2026-10-25-team-04-add-up-hours-over-24-hours-h-mm-format-excel-google-sheets/total-hours-over-24-template.png) *caption: PDF export of the template with fictional sample data from LibreOffice Calc 24.2*
+![Hours sheet with three weeks of times and totals shown as h:mm, bracketed hours, decimal hours and pay](images/2026-10-25-team-04-add-up-hours-over-24-hours-h-mm-format-excel-google-sheets/total-hours-over-24-template.png) *caption: PDF export of the template with fictional sample data from LibreOffice Calc 24.2*
 
 ## Steps
 

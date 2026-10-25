@@ -87,7 +87,7 @@ def process(path):
     if not m:
         return
     front, body = m.group(1), m.group(2)
-    if re.search(r"^!\[[^\]]*\]\((?!https?:)", body, re.M):
+    if re.search(r"^!\[.*\]\((?!https?:)", body, re.M):
         return  # already has a repo image (custom hero or screenshot)
     rows = example_table(body)
     if not rows:

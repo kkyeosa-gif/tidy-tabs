@@ -431,7 +431,25 @@ def heroes_2026_10_25():
          render(t + "tidy-tabs-expenses-by-category-and-month.xlsx", "Summary", hide_cols="IJK", name="catmonth"))
 
 
+def heroes_2026_10_26():
+    t = "templates/"
+    d = "images/2026-10-26-team-0%d-%s/"
+    save(d % (1, "most-common-value-mode-index-match-countif-excel-google-sheets") + "most-common-value-template.png",
+         render(t + "tidy-tabs-most-common-value.xlsx", "Summary", name="mostcommon"))
+    save(d % (2, "monthly-sales-column-chart-with-goal-line-excel-google-sheets") + "monthly-sales-chart-with-goal-line-template.png",
+         render(t + "tidy-tabs-sales-vs-goal-chart.xlsx", "Chart", name="goalchart"))
+    save(d % (3, "flag-invalid-email-addresses-find-substitute-len-excel-google-sheets") + "flag-bad-email-addresses-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-flag-bad-emails.xlsx", "Emails", 20, "bademail"), "Emails", hide_cols="EFG", name="bademail"))
+    save(d % (4, "clickable-order-links-from-order-numbers-hyperlink-excel-google-sheets") + "clickable-order-links-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-order-links.xlsx", "Orders", 18, "orderlinks"), "Orders", name="orderlinks"))
+    save(d % (5, "next-anniversary-date-days-until-date-year-month-day-excel-google-sheets") + "next-anniversary-and-days-until-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-next-anniversary.xlsx", "Customers", 25, "anniv"), "Customers", name="anniv"))
+
+
 def main():
+    if "--only-2026-10-26" in sys.argv:
+        heroes_2026_10_26()
+        return
     if "--only-2026-10-25" in sys.argv:
         heroes_2026_10_25()
         return

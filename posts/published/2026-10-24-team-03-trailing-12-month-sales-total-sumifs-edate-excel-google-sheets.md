@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De5YC-2D2jg
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-trailing-12-month.html
 title: How to Calculate Trailing 12 Month Sales in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Decimal model, including 26 edited variants (end months at a year boundary, windows with 5, 9 and 11 months of data, a missing month, a mid-month end date, a mid-month date in the data, a duplicate month, text in a sales cell, a text date, unsorted rows, a previous 12 total of 0, 199 monthly rows). No mismatches in the final run. Excel and Google Sheets were not opened.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De9xkgcidos
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-make-simple-gantt-chart-with.html
 title: How to Make a Simple Gantt Chart With Conditional Formatting in Excel and Google Sheets
 labels: excel-formulas, conditional-formatting, project-planning
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The rule formula was copied into plain cells over all 20 x 28 grid cells and matched a Python date check with 0 mismatches, as did the weekend rule. The rules were read back from the saved .xlsx with openpyxl, and a PDF export (US Letter landscape) showed the bars and gray weekends. Edge cases tried: end before start, text dates, a start with no end, a one-day task, tasks cut at the chart edges, a chart start that crosses into 2027, and text in B1. Excel and Google Sheets were not opened, and the rule import into them was not checked.

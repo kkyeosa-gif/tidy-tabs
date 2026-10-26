@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De-GK93GgmW
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-sum-hours-over-24-in-excel-and.html
 title: How to Sum Hours Over 24 in Excel and Google Sheets
 labels: excel-formulas, small-business, time-tracking
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with Python integer-minute math, including 40 random sheets (all matched), a time typed as text, a 36 hour entry, a negative time, 23:59 plus three 10:00 entries and seven 0:59 entries. Displayed values were read from a CSV export with cell content saved as shown. Excel and Google Sheets were not opened, and negative totals were not tested.

@@ -194,7 +194,13 @@ export function aiImagePath(file, meta) {
   return `images/${postSlug(file)}/${slugify(meta.title || postSlug(file))}-photo.jpg`;
 }
 
-export async function generateAiImage(prompt) {
+// OpenAI retired/renamed image models before (2026-10-24: "The model
+// 'gpt-image-1' does not exist" held every post). Try the configured model
+// first, then the known fallbacks, and remember the one that worked.
+const FALLBACK_IMAGE_MODELS = ["gpt-image-1", "gpt-image-1.5", "gpt-image-1-mini", "gpt-image-2"];
+let workingImageModel = null;
+
+async function requestImage(model, prompt) {
   const res = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: {
@@ -202,7 +208,7 @@ export async function generateAiImage(prompt) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-1",
+      model,
       prompt: `${prompt}\n\nStyle: ${IMAGE_STYLE}`,
       size: "1536x1024",
       quality: process.env.OPENAI_IMAGE_QUALITY || "medium",
@@ -211,8 +217,33 @@ export async function generateAiImage(prompt) {
       n: 1,
     }),
   });
-  if (!res.ok) throw new Error(`image generation failed: ${res.status} ${await res.text()}`);
-  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(`image generation failed (${model}): ${res.status} ${await res.text()}`);
+    err.modelMissing = res.status === 404 || (res.status === 400 && /model/i.test(err.message) && /does not exist|not found|invalid_value|do not have access/i.test(err.message));
+    throw err;
+  }
+  return res.json();
+}
+
+export async function generateAiImage(prompt) {
+  const wanted = process.env.OPENAI_IMAGE_MODEL || FALLBACK_IMAGE_MODELS[0];
+  const models = workingImageModel
+    ? [workingImageModel]
+    : [wanted, ...FALLBACK_IMAGE_MODELS.filter((m) => m !== wanted)];
+  let data;
+  let lastErr;
+  for (const model of models) {
+    try {
+      data = await requestImage(model, prompt);
+      workingImageModel = model;
+      break;
+    } catch (err) {
+      lastErr = err;
+      if (!err.modelMissing) throw err;
+      console.warn(`Model ${model} unavailable, trying the next one.`);
+    }
+  }
+  if (!data) throw lastErr;
   const b64 = data.data?.[0]?.b64_json;
   if (!b64) throw new Error(`image generation returned no image: ${JSON.stringify(data).slice(0, 200)}`);
   return Buffer.from(b64, "base64");

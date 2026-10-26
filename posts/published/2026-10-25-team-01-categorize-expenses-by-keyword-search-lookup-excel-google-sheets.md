@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De9QCnTFZ3C
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-auto-categorize-expenses-from.html
 title: How to Auto-Categorize Expenses From Bank Descriptions in Excel and Google Sheets
 labels: excel-formulas, small-business, expenses
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python lowercase substring search on all 199 expense rows in 7 edited copies (duplicate keywords, blank keyword rows, a keyword with no category, case changes, blank descriptions, numeric cells, wildcard keywords). Excel and Google Sheets were not opened.

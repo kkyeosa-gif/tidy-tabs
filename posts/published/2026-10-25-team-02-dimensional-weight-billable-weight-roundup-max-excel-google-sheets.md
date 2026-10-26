@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De9j1gpoH5d
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-dimensional-weight-and.html
 title: How to Calculate Dimensional Weight and Billable Weight in Excel and Google Sheets
 labels: excel-formulas, small-business, shipping
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with Python math, including the 12 sample boxes at divisors 139 and 166, an exactly divisible box (139 x 1 x 1 at divisor 139), fractional sizes, a tie between the two weights, an actual weight of 0, and zero, negative, text or blank sizes and divisors. No mismatches in the final run. Excel and Google Sheets were not opened.

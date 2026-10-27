@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De-hohilbLF
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-total-expenses-by-category-and.html
 title: How to Total Expenses by Category and Month With SUMIFS in Excel and Google Sheets
 labels: excel-formulas, small-business, expenses
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and all 30 category-by-month cells were compared with a Python Decimal sum. Edited copies checked: a header typed as 01/15/2026, a start month that crosses a year, a misspelled category, a date outside the six months, a text date, a text amount, a date with a time, month-end dates, row 500 versus row 501, a blank row, and an empty Expenses tab. Excel and Google Sheets were not opened.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfAIpXhkZMJ
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-make-monthly-sales-chart-with.html
 title: How to Make a Monthly Sales Chart With a Goal Line in Excel and Google Sheets
 labels: excel-charts, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was built with a script, recalculated there and compared with a Python model, including edited copies (goal 5000, goal 0, a blank month, text typed as sales or as the goal, every month exactly $4,000). The chart XML was read back and the page was exported to PDF and viewed as an image. Excel and Google Sheets were not opened, and whether the chart imports there was not tested.

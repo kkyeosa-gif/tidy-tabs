@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfAWXrwEb-O
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-flag-email-addresses-that-look.html
 title: How to Flag Email Addresses That Look Wrong in a List in Excel and Google Sheets
 labels: excel-text-functions, small-business, data-cleanup
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was built with a script, recalculated there and compared with a Python model of the same rules, including edited copies (a space before or after an address, two @ signs, a double dot, a final dot, uppercase, a plus sign, accented letters, a blank row in the middle, an empty list). The page was exported to PDF. Excel and Google Sheets were not opened, and the formula does not check that any address exists or receives mail.

@@ -446,7 +446,35 @@ def heroes_2026_10_26():
          render(short_sheet_copy(t + "tidy-tabs-next-anniversary.xlsx", "Customers", 25, "anniv"), "Customers", name="anniv"))
 
 
+def note_cleared_copy(src, sheet, last_row, cell, name):
+    """Short copy of a tab with one long note cell emptied so the hero does not show clipped text."""
+    path = short_sheet_copy(src, sheet, last_row, name)
+    wb = load_workbook(path)
+    wb[sheet][cell] = None
+    wb.save(path)
+    return path
+
+
+def heroes_2026_10_28():
+    t = "templates/"
+    d = "images/2026-10-28-team-0%d-%s/"
+    save(d % (1, "loan-payment-schedule-ipmt-ppmt-remaining-balance-excel-google-sheets") + "loan-payment-schedule-template.png",
+         render(note_cleared_copy(t + "tidy-tabs-loan-payment-schedule.xlsx", "Schedule", 22, "D1", "loansched"), "Schedule", name="loansched"))
+    save(d % (2, "recurring-billing-dates-twice-monthly-every-14-days-eomonth-excel-google-sheets") + "recurring-billing-dates-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-recurring-billing-dates.xlsx", "Dates", 22, "billdates"), "Dates", name="billdates"))
+    save(d % (3, "find-closest-value-in-a-list-abs-min-index-match-excel-google-sheets") + "closest-match-size-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-closest-match.xlsx", "Sizes", 24, "closest"), "Sizes", hide_cols="QRS", name="closest"))
+    save(d % (4, "convert-decimal-inches-to-fractions-sixteenths-mround-text-excel-google-sheets") + "decimal-inches-to-fractions-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-inches-to-fractions.xlsx", "Inches", 24, "inchfrac"), "Inches", name="inchfrac"))
+    save(d % (5, "split-order-list-into-batches-and-assign-helpers-int-mod-index-excel-google-sheets") + "order-batches-and-helper-rotation-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-batches-and-rotation.xlsx", "Orders", 28, "batches"), "Orders", name="batches"),
+         render(t + "tidy-tabs-batches-and-rotation.xlsx", "Summary", name="batchsummary"))
+
+
 def main():
+    if "--only-2026-10-28" in sys.argv:
+        heroes_2026_10_28()
+        return
     if "--only-2026-10-26" in sys.argv:
         heroes_2026_10_26()
         return

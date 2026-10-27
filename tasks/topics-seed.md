@@ -148,3 +148,9 @@
 - How to Flag Email Addresses That Look Wrong in a List in Excel and Google Sheets - `flag-invalid-email-addresses-find-substitute-len-excel-google-sheets`
 - How to Turn Order Numbers Into Clickable Links With HYPERLINK in Excel and Google Sheets - `clickable-order-links-from-order-numbers-hyperlink-excel-google-sheets`
 - How to Find the Next Anniversary of a Date and the Days Until It in Excel and Google Sheets - `next-anniversary-date-days-until-date-year-month-day-excel-google-sheets`
+## 2026-10-28 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice Calc 24.2 에서 확인)
+- How to Make a Loan Payment Schedule With Interest and Principal in Excel and Google Sheets - `loan-payment-schedule-ipmt-ppmt-remaining-balance-excel-google-sheets`
+- How to List Twice-Monthly and Every-14-Days Billing Dates in Excel and Google Sheets - `recurring-billing-dates-twice-monthly-every-14-days-eomonth-excel-google-sheets`
+- How to Find the Closest Value to a Number in a List in Excel and Google Sheets - `find-closest-value-in-a-list-abs-min-index-match-excel-google-sheets`
+- How to Convert Decimal Inches to Fractions (1/16 or 1/8) in Excel and Google Sheets - `convert-decimal-inches-to-fractions-sixteenths-mround-text-excel-google-sheets`
+- How to Split a Long Order List Into Batches of 10 and Assign Helpers in Turn in Excel and Google Sheets - `split-order-list-into-batches-and-assign-helpers-int-mod-index-excel-google-sheets`

@@ -8693,6 +8693,435 @@ def next_anniversary():
     wb.save(OUT / "tidy-tabs-next-anniversary.xlsx")
 
 
+def loan_payment_schedule():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Schedule"
+    for i, t in enumerate(["Loan amount", "Yearly rate", "Months (1 to 60)", "First payment date", "Input check"], start=1):
+        ws[f"A{i}"] = t
+        ws[f"A{i}"].font = Font(bold=True)
+    ws["C1"], ws["C2"], ws["C3"], ws["C4"] = 12000, 0.07, 36, date(2026, 11, 28)
+    for a in ("C1", "C2", "C3", "C4"):
+        ws[a].fill = INPUT_FILL
+    ws["C1"].number_format = USD
+    ws["C2"].number_format = "0.00%"
+    ws["C3"].number_format = "0"
+    ws["C4"].number_format = US_DATE
+    ws["C5"] = ('=IF(AND(ISNUMBER(C1),ISNUMBER(C2),ISNUMBER(C3),ISNUMBER(C4)),'
+                'IF(C1<=0,"Amount must be above 0",IF(OR(C2<0,C2>1),"Rate must be 0% to 100%",'
+                'IF(OR(C3<1,C3>60,C3<>INT(C3)),"Months must be a whole number from 1 to 60","OK"))),'
+                '"Type a number in each yellow cell")')
+    ws["C5"].fill = FORMULA_FILL
+    ws["D1"] = "Fictional loan. Rate is a yearly percent; dates are MM/DD/YYYY."
+    ws["D1"].font = Font(italic=True)
+    _head_row(ws, 7, ["Payment no.", "Date", "Payment", "Interest", "Principal", "Balance after"],
+              [12, 13, 13, 13, 13, 14], height=32)
+    first, last = 8, 67
+    for r in range(first, last + 1):
+        prev = "$C$1" if r == first else f"F{r - 1}"
+        ws[f"A{r}"] = f'=IF($C$5="OK",IF(ROWS(A${first}:A{r})<=$C$3,ROWS(A${first}:A{r}),""),"")'
+        ws[f"B{r}"] = f'=IF(A{r}="","",EDATE($C$4,A{r}-1))'
+        ws[f"C{r}"] = f'=IF(A{r}="","",IF(A{r}=$C$3,{prev}+D{r},$I$1))'
+        ws[f"D{r}"] = f'=IF(A{r}="","",IF($C$2=0,0,ROUND(-IPMT($C$2/12,A{r},$C$3,$C$1),2)))'
+        ws[f"E{r}"] = f'=IF(A{r}="","",ROUND(C{r}-D{r},2))'
+        ws[f"F{r}"] = f'=IF(A{r}="","",ROUND({prev}-E{r},2))'
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"A{r}"].number_format = "0"
+        for col in "CDEF":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "ABCDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"A{r}"].alignment = Alignment(horizontal="center")
+    ws.freeze_panes = "A8"
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 30
+    ws.column_dimensions["I"].width = 16
+    rng = lambda c: f"{c}{first}:{c}{last}"
+    _summary_block(ws, "H", "I", [
+        (1, "Monthly payment", '=IF(C5="OK",IF(C2=0,ROUND(C1/C3,2),ROUND(-PMT(C2/12,C3,C1),2)),"")', USD),
+        (2, "Last payment", f'=IF(C5="OK",INDEX({rng("C")},C3),"")', USD),
+        (3, "Total interest", f'=SUM({rng("D")})', USD),
+        (4, "Total paid", f'=SUM({rng("C")})', USD),
+        (5, "Last payment date", f'=IF(C5="OK",INDEX({rng("B")},C3),"")', US_DATE),
+        (6, "Check: principal adds up, balance ends at $0.00",
+         f'=IF(C5<>"OK","CHECK",IF(AND(ROUND(SUM({rng("E")})-C1,2)=0,INDEX({rng("F")},C3)=0,'
+         f'ROUND(I4-I3-C1,2)=0,COUNT({rng("A")})=C3),"OK","CHECK"))', "General"),
+    ])
+    ws.column_dimensions["H"].width = 44
+    _ok_format(ws, "I6")
+    ws.conditional_formatting.add("C5", FormulaRule(formula=['$C$5<>"OK"'], fill=ALERT_FILL))
+    ws.print_area = "A1:I43"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Loan Payment Schedule With Interest and Principal",
+        "",
+        "1. Schedule tab: type the loan amount (C1), the yearly rate as a percent (C2), the number of monthly payments (C3, 1 to 60) and the first payment date (C4). Yellow. The sample is a fictional $12,000.00 loan at 7.00% over 36 months with the first payment on 11/28/2026.",
+        "2. C5 shows OK when all four are numbers, the amount is above 0, the rate is 0% to 100% and the months are a whole number from 1 to 60. Anything else shows a message and the table stays empty.",
+        "3. Monthly payment, I1: =ROUND(-PMT(C2/12,C3,C1),2). With a 0% rate PMT has nothing to divide by interest, so the sheet uses =ROUND(C1/C3,2). The payment is rounded to cents because a real bill is.",
+        "4. Interest, D8: =ROUND(-IPMT($C$2/12,A8,$C$3,$C$1),2). IPMT is the interest part of payment number A8. Principal, E8: =ROUND(C8-D8,2), what is left of the payment after interest. Balance after, F8: =ROUND(C1-E8,2) for the first row, then the balance above minus this row's principal.",
+        "5. Rounding: every payment but the last is the rounded monthly payment. The last payment is the balance still owed plus that month's interest, so the balance ends at exactly $0.00 and the principal column adds up to the loan amount. The last payment can differ from the others by a few cents; I2 shows it (in the sample, $370.38 against $370.53). Interest uses IPMT on the exact schedule and is rounded each month, so a very small loan over many months can have a last payment that differs by more.",
+        "6. Date, B8: =EDATE($C$4,A8-1). EDATE counts from the first date each time, so a first payment on 01/31 gives 02/28 (or 02/29), then 03/31, not 03/28.",
+        "7. Rows are numbered 1 to the number of months; rows after that stay blank. The table has room for 60 payments (rows 8 to 67). The print area covers the first 36 rows.",
+        "8. Summary, H1:I6: monthly payment, last payment, total interest (sum of the Interest column), total paid, last payment date. I6 shows OK when the principal adds up to the loan amount, the last balance is $0.00, total paid minus total interest equals the loan and every payment row is filled.",
+        "9. This shows arithmetic on the numbers you type. It does not say whether to borrow, what a lender will charge, or how interest is treated for tax. A real lender's schedule can differ by a few cents or by days (for example daily interest).",
+        "",
+        "Loan is fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Schedule"].page_setup.orientation = "landscape"
+    wb["Schedule"].print_title_rows = "7:7"
+    wb.save(OUT / "tidy-tabs-loan-payment-schedule.xlsx")
+
+
+def recurring_billing_dates():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Dates"
+    for i, t in enumerate(["Start date", "How often", "Dates to list (1-26)", "Input check"], start=1):
+        ws[f"A{i}"] = t
+        ws[f"A{i}"].font = Font(bold=True)
+    ws["C1"], ws["C2"], ws["C3"] = date(2026, 11, 15), "Twice a month", 24
+    for a in ("C1", "C2", "C3"):
+        ws[a].fill = INPUT_FILL
+    ws["C1"].number_format = US_DATE
+    ws["C3"].number_format = "0"
+    dv = DataValidation(type="list", formula1='"Twice a month,Every 14 days"', allow_blank=False)
+    ws.add_data_validation(dv)
+    dv.add("C2")
+    ws["C4"] = ('=IF(ISNUMBER(C1),IF(OR(C2="Twice a month",C2="Every 14 days"),IF(ISNUMBER(C3),'
+                'IF(AND(C3>=1,C3<=26,C3=INT(C3)),"OK","Dates to list must be a whole number from 1 to 26"),'
+                '"Type a number in C3"),"Pick Twice a month or Every 14 days in C2"),"Type a date in C1")')
+    ws["C4"].fill = FORMULA_FILL
+    ws["D1"] = "Typed, MM/DD/YYYY. Twice a month = the 15th and the last day of the month."
+    ws["D1"].font = Font(italic=True)
+    _head_row(ws, 6, ["No.", "Date", "Weekday", "Weekend?"], [10, 14, 20, 12], height=24)
+    first, last = 7, 32
+    for r in range(first, last + 1):
+        ws[f"A{r}"] = f'=IF($C$4="OK",IF(ROWS(A${first}:A{r})<=$C$3,ROWS(A${first}:A{r}),""),"")'
+        if r == first:
+            ws[f"B{r}"] = (f'=IF(A{r}="","",IF($C$2="Every 14 days",$C$1,IF(DAY($C$1)<=15,'
+                           f'DATE(YEAR($C$1),MONTH($C$1),15),EOMONTH($C$1,0))))')
+        else:
+            ws[f"B{r}"] = (f'=IF(A{r}="","",IF($C$2="Every 14 days",B{r - 1}+14,IF(DAY(B{r - 1})=15,'
+                           f'EOMONTH(B{r - 1},0),DATE(YEAR(B{r - 1}),MONTH(B{r - 1})+1,15))))')
+        ws[f"C{r}"] = f'=IF(B{r}="","",TEXT(B{r},"ddd"))'
+        ws[f"D{r}"] = f'=IF(B{r}="","",IF(WEEKDAY(B{r},2)>5,"Weekend",""))'
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"A{r}"].number_format = "0"
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"A{r}"].alignment = Alignment(horizontal="center")
+    ws.conditional_formatting.add(f"A{first}:D{last}", FormulaRule(formula=[f'$D{first}="Weekend"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("C4", FormulaRule(formula=['$C$4<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A7"
+    ws.column_dimensions["E"].width = 3
+    ws.column_dimensions["F"].width = 40
+    ws.column_dimensions["G"].width = 14
+    b = f"B{first}:B{last}"
+    _summary_block(ws, "F", "G", [
+        (7, "First date", f'=IF(C4="OK",B{first},"")', US_DATE),
+        (8, "Last date", f'=IF(C4="OK",INDEX({b},C3),"")', US_DATE),
+        (9, "Dates listed", f"=COUNT({b})", "0"),
+        (10, "Dates on a Saturday or Sunday", f'=COUNTIF(D{first}:D{last},"Weekend")', "0"),
+        (11, "Check: every date is later than the one above",
+         f'=IF(C4<>"OK","CHECK",IF(AND(G9=C3,SUMPRODUCT(--(A{first + 1}:A{last}<>""),--(B{first + 1}:B{last}>B{first}:B{last - 1}))=G9-1),"OK","CHECK"))',
+         "General"),
+    ])
+    _ok_format(ws, "G11")
+    ws.print_area = "A1:G32"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Twice-Monthly and Every-14-Days Billing Dates",
+        "",
+        "1. Dates tab: type the start date (C1), pick Twice a month or Every 14 days from the list in C2, and type how many dates you want (C3, 1 to 26). Yellow. The sample starts 11/15/2026, twice a month, 24 dates.",
+        "2. C4 shows OK when C1 is a date, C2 is one of the two choices and C3 is a whole number from 1 to 26. Anything else shows a message and the list stays empty.",
+        "3. Every 14 days: the first date is the start date and each date is the one above plus 14, =B7+14. Dates stay on the same weekday.",
+        "4. Twice a month: the first date is the 15th of the start month if the start day is 1 to 15, otherwise the last day of the start month, =IF(DAY($C$1)<=15,DATE(YEAR($C$1),MONTH($C$1),15),EOMONTH($C$1,0)). A start of 11/15 gives 11/15; 11/10 gives 11/15; 11/16 gives 11/30. So the list never starts before the start date.",
+        "5. After that, each date is =IF(DAY(B7)=15,EOMONTH(B7,0),DATE(YEAR(B7),MONTH(B7)+1,15)): after a 15th comes the last day of the same month (28, 29, 30 or 31), after a last day comes the 15th of the next month. February needs no special case.",
+        "6. Weekday, C7: =TEXT(B7,\"ddd\"). Weekend?, D7: =IF(WEEKDAY(B7,2)>5,\"Weekend\",\"\"). Weekend rows turn red. Dates are flagged only, never moved: if you bill on the Friday before or the Monday after, change that date yourself.",
+        "7. Summary, F7:G11: first date, last date, dates listed, how many fall on a Saturday or Sunday. G11 shows OK when the number of dates equals C3 and each date is later than the one above (so no date repeats).",
+        "8. Dates only. The sheet does not say when a client must pay or what a contract requires.",
+        "",
+        "Dates are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Dates"].page_setup.orientation = "landscape"
+    wb["Dates"].print_title_rows = "6:6"
+    wb.save(OUT / "tidy-tabs-recurring-billing-dates.xlsx")
+
+
+def closest_match():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sizes"
+    first, last = 9, 108
+    for i, t in enumerate(["Orders with a length", "Closest size is smaller", "Longer than every size", "Largest gap (in)", "Check"], start=1):
+        ws[f"A{i}"] = t
+        ws[f"A{i}"].font = Font(bold=True)
+    ws["H6"] = "Standard sizes in inches (type across H7:S7, up to 12)"
+    ws["H6"].font = Font(italic=True)
+    sizes = [8, 10, 12, 14, 16, 18, 20, 24, 30]
+    for j in range(12):
+        c = ws.cell(row=7, column=8 + j)
+        c.fill = INPUT_FILL
+        if j < len(sizes):
+            c.value = sizes[j]
+    _head_row(ws, 8, ["Order", "Item length (in)", "Closest size (in)", "Off by (in)", "Next size that fits (in)", "Note"],
+              [16, 13, 13, 12, 15, 24], height=48)
+    for j in range(12):
+        c = ws.cell(row=8, column=8 + j)
+        L = c.column_letter
+        c.value = f'=IF({L}7="","","Off from "&{L}7)'
+        c.fill, c.font = HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True, horizontal="center")
+        ws.column_dimensions[L].width = 9
+    ws.column_dimensions["G"].width = 3
+    orders = [("PR-2101", 9), ("PR-2102", 11.5), ("PR-2103", 13), ("PR-2104", 15.25), ("PR-2105", 17),
+              ("PR-2106", 18), ("PR-2107", 21), ("PR-2108", 22), ("PR-2109", 26), ("PR-2110", 27),
+              ("PR-2111", 29), ("PR-2112", 31.5), ("PR-2113", 5), ("PR-2114", 35), ("PR-2115", 24)]
+    assert len(orders) == 15
+    for r in range(first, last + 1):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].fill = INPUT_FILL
+        for j in range(12):
+            L = ws.cell(row=1, column=8 + j).column_letter
+            ws[f"{L}{r}"] = f'=IF(AND(ISNUMBER($B{r}),ISNUMBER({L}$7)),ROUND(ABS($B{r}-{L}$7),6),"")'
+            ws[f"{L}{r}"].fill = FORMULA_FILL
+        ws[f"C{r}"] = (f'=IF($B{r}="","",IF(ISNUMBER($B{r}),IF(COUNT($H{r}:$S{r})=0,"No sizes",'
+                       f'INDEX($H$7:$S$7,MATCH(MIN($H{r}:$S{r}),$H{r}:$S{r},0))),"Check length"))')
+        ws[f"D{r}"] = f'=IF(ISNUMBER(C{r}),MIN($H{r}:$S{r}),"")'
+        ws[f"E{r}"] = (f'=IF(ISNUMBER(C{r}),IF(COUNTIF($H$7:$S$7,">="&B{r})=0,"None",'
+                       f'SMALL($H$7:$S$7,COUNTIF($H$7:$S$7,"<"&B{r})+1)),"")')
+        ws[f"F{r}"] = f'=IF(ISNUMBER(C{r}),IF(COUNTIF($H{r}:$S{r},D{r})>1,"Tie, first listed used",""),"")'
+        for col in "CDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (o, ln) in enumerate(orders):
+        ws[f"A{first + i}"], ws[f"B{first + i}"] = o, ln
+    ws.conditional_formatting.add(f"A{first}:F{last}", FormulaRule(formula=[f'$F{first}<>""'], fill=DONE_FILL))
+    ws.conditional_formatting.add(f"C{first}:C{last}", FormulaRule(formula=[f'$C{first}="Check length"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A9"
+    for r, f, fmt in [
+        (1, f"=COUNT(B{first}:B{last})", "0"),
+        (2, f"=SUMPRODUCT(--ISNUMBER(C{first}:C{last}),--(C{first}:C{last}<B{first}:B{last}))", "0"),
+        (3, f'=COUNTIF(E{first}:E{last},"None")', "0"),
+        (4, f'=IF(COUNT(D{first}:D{last})=0,"",MAX(D{first}:D{last}))', "0.00"),
+        (5, (f'=IF(AND(COUNT(H7:S7)>0,COUNT(H7:S7)=COUNTA(H7:S7),COUNT(B{first}:B{last})=COUNTA(B{first}:B{last}),'
+             f'COUNT(D{first}:D{last})=COUNT(B{first}:B{last}),'
+             f'SUMPRODUCT(--(COUNTIF(H7:S7,H7:S7)>1),--ISNUMBER(H7:S7))=0,COUNTA(A{last + 1}:B500)=0),"OK","CHECK")'), "General"),
+    ]:
+        ws[f"D{r}"] = f
+        ws[f"D{r}"].number_format = fmt
+        ws[f"D{r}"].fill = FORMULA_FILL
+        ws[f"D{r}"].alignment = Alignment(horizontal="right")
+    _ok_format(ws, "D5")
+    ws.print_area = "A1:S30"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Find the Closest Size in a List",
+        "",
+        "1. Sizes tab: type the standard sizes in inches across H7:S7 (up to 12, yellow; 9 are filled), then each order name (A) and item length in inches (B), rows 9 to 108. Yellow. The sample is 15 fictional print orders.",
+        "2. Helper columns H:S show how far each size is from the item: =IF(AND(ISNUMBER($B9),ISNUMBER(H$7)),ROUND(ABS($B9-H$7),6),\"\"). They are visible on purpose, so you can see why a size was picked. No array formula and no Ctrl+Shift+Enter. The ROUND to 6 places keeps a gap like 0.1 from looking different from another 0.1 because of binary rounding.",
+        "3. Closest size, C9: =INDEX($H$7:$S$7,MATCH(MIN($H9:$S9),$H9:$S9,0)). Off by, D9: =MIN($H9:$S9).",
+        "4. Tie: when two sizes are equally close, MATCH returns the one that comes first in the list across H7:S7 (left to right, not the smaller one), and F9 says \"Tie, first listed used\". With sizes typed in rising order that is the smaller size. F9: =IF(COUNTIF($H9:$S9,D9)>1,\"Tie, first listed used\",\"\").",
+        "5. Next size that fits, E9: the smallest listed size that is the item length or more, =SMALL($H$7:$S$7,COUNTIF($H$7:$S$7,\"<\"&B9)+1), or None when the item is longer than every size. It works with sizes in any order and does not need a sorted list. An exact match gives that size.",
+        "6. A blank cell in the size list is skipped. A size or length typed as text is not a number: the length row shows Check length and D5 shows CHECK.",
+        "7. Summary, D1:D5: orders with a length, orders where the closest size is smaller than the item (it does not fit and E shows the next one up), orders longer than every size, the largest gap, and the check. D5 shows OK when every size and length is a number, there is at least one size, no size is listed twice, and every length found a closest size.",
+        "8. Counting and measuring only. The sheet does not say what to quote or sell.",
+        "",
+        "Orders and sizes are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Sizes"].page_setup.orientation = "landscape"
+    wb["Sizes"].print_title_rows = "8:8"
+    wb.save(OUT / "tidy-tabs-closest-match.xlsx")
+
+
+def inches_to_fractions():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Inches"
+    ws["A1"], ws["A2"] = "Round to 1/ (8, 16 or 32)", "Precision check"
+    ws["A1"].font = ws["A2"].font = Font(bold=True)
+    ws["C1"] = 16
+    ws["C1"].fill = INPUT_FILL
+    dv = DataValidation(type="list", formula1='"8,16,32"', allow_blank=False)
+    ws.add_data_validation(dv)
+    dv.add("C1")
+    ws["C2"] = '=IF(OR(C1=8,C1=16,C1=32),"OK","Pick 8, 16 or 32 in C1")'
+    ws["C2"].fill = FORMULA_FILL
+    ws["D1"] = "16 means the nearest 1/16 inch. Fictional measurements."
+    ws["D1"].font = Font(italic=True)
+    first, last = 5, 104
+    _head_row(ws, 4, ["Decimal inches", "Rounded (number)", "Fraction (TEXT)", "Whole inches", "Parts of an inch",
+                      "Reduced fraction", "Feet and inches", "Rounded minus typed"],
+              [14, 13, 14, 10, 10, 14, 16, 12], height=48)
+    vals = [0.3125, 2.7, 5, 11.875, 0.03, 12.999, 0.5, 7.0625, 36.4, 0.09375, 24.25, 48.5, 1.03125, 0, 3.14159,
+            15.9, 72, 100.4375, 8.5, 0.96875]
+    assert len(vals) == 20
+    N = "$C$1"
+    for r in range(first, last + 1):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].alignment = Alignment(horizontal="right")
+        ws[f"B{r}"] = (f'=IF(A{r}="","",IF($C$2<>"OK","Check precision",IF(ISNUMBER(A{r}),'
+                       f'IF(A{r}<0,"Check number",MROUND(A{r},1/{N})),"Check number")))')
+        ws[f"C{r}"] = f'=IF(ISNUMBER(B{r}),IF(B{r}=0,"0",TRIM(TEXT(B{r},"# ?/"&{N}))),"")'
+        ws[f"D{r}"] = f'=IF(ISNUMBER(B{r}),INT(B{r}),"")'
+        ws[f"E{r}"] = f'=IF(ISNUMBER(B{r}),ROUND((B{r}-D{r})*{N},0),"")'
+        ws[f"F{r}"] = (f'=IF(ISNUMBER(B{r}),IF(E{r}=0,D{r}&"",IF(D{r}=0,"",D{r}&" ")&E{r}/GCD(E{r},{N})&"/"&{N}/GCD(E{r},{N})),"")')
+        ip = f"(B{r}-12*INT(B{r}/12))"
+        w = f"INT({ip})"
+        s = f"ROUND(({ip}-{w})*{N},0)"
+        inch = f'IF({s}=0,{w}&"",IF({w}=0,"",{w}&" ")&{s}/GCD({s},{N})&"/"&{N}/GCD({s},{N}))'
+        ws[f"G{r}"] = f'=IF(ISNUMBER(B{r}),IF(B{r}<12,"",INT(B{r}/12)&" ft ")&{inch}&" in","")'
+        ws[f"H{r}"] = f'=IF(ISNUMBER(B{r}),ROUND(B{r}-A{r},8),"")'
+        ws[f"B{r}"].number_format = "0.000000"
+        ws[f"H{r}"].number_format = "0.0000"
+        for col in "BCDEFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, v in enumerate(vals):
+        ws[f"A{first + i}"] = v
+    ws.conditional_formatting.add(f"B{first}:B{last}", FormulaRule(formula=[f'ISTEXT($B{first})*(LEFT($B{first},5)="Check")'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    ws.column_dimensions["I"].width = 3
+    ws.column_dimensions["J"].width = 40
+    ws.column_dimensions["K"].width = 12
+    a, b, h = f"A{first}:A{last}", f"B{first}:B{last}", f"H{first}:H{last}"
+    _summary_block(ws, "J", "K", [
+        (5, "Numbers rounded", f"=COUNT({b})", "0"),
+        (6, "Rounded up", f'=COUNTIF({h},">0")', "0"),
+        (7, "Rounded down", f'=COUNTIF({h},"<0")', "0"),
+        (8, "Largest difference (inches)", f'=IF(COUNT({h})=0,"",MAX(MAX({h}),-MIN({h})))', "0.0000"),
+        (9, "Check: every number rounds within half a step",
+         f'=IF(C2<>"OK","CHECK",IF(AND(COUNT({a})=COUNTA({a}),COUNT({a})=COUNT({b}),SUMPRODUCT(--({a}<0))=0,'
+         f'OR(K5=0,K8<=0.5/C1+0.000000001),COUNTA(A{last + 1}:A500)=0),"OK","CHECK"))', "General"),
+    ])
+    _ok_format(ws, "K9")
+    ws.print_area = "A1:K30"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Decimal Inches to Fractions (1/8, 1/16, 1/32)",
+        "",
+        "1. Inches tab: pick 8, 16 or 32 in C1 (the nearest 1/8, 1/16 or 1/32 inch), then type decimal inches in A5:A104. Yellow. The sample is 20 fictional sign, frame and fabric cuts.",
+        "2. Rounded (number), B5: =MROUND(A5,1/$C$1). MROUND rounds to the nearest multiple of 1/16 (or 1/8, 1/32). A value exactly halfway goes up (0.09375 at 1/16 becomes 0.125). MROUND cannot take a negative number in this layout, so negative numbers show Check number.",
+        "3. Fraction (TEXT), C5: =IF(B5=0,\"0\",TRIM(TEXT(B5,\"# ?/\"&$C$1))). The format \"# ?/16\" writes a whole number, a space and a fraction over 16. TEXT leaves spaces at the start or end (\" 5/16\", \"5   \"), so TRIM removes them. The denominator stays 16, so a half shows as 8/16. A whole number shows without a fraction. Zero is written as 0 by the IF, because TEXT gives blank spaces for 0.",
+        "4. Whole inches, D5: =INT(B5). Parts of an inch, E5: =ROUND((B5-D5)*$C$1,0), the number of 1/16 (or 1/8, 1/32) steps past the whole inch. Reduced fraction, F5: the same fraction divided by GCD, ruler style (8/16 becomes 1/2). It is built from D and E, not from TEXT.",
+        "5. Feet and inches, G5: feet from INT(B5/12), then the inches left over with the same reduced fraction. Under 12 inches the feet are left out.",
+        "6. Rounded minus typed, H5: =ROUND(B5-A5,8). Positive means rounded up. It is never more than half a step.",
+        "7. Summary, J5:K9: how many numbers were rounded, how many up and down, the largest difference. K9 shows OK when every typed value is a number of 0 or more, every number rounded and the largest difference is no more than half a step.",
+        "8. A number typed as text, a negative number, or a letter shows Check number and K9 shows CHECK. A blank row stays blank. A value that rounds up to the next whole inch (12.999 becomes 13) shows as that whole number.",
+        "9. This rounds for display and cut lists. It says nothing about tolerances or whether a part fits.",
+        "",
+        "Measurements are fictional. Checked in LibreOffice Calc only; the way Excel and Google Sheets write a TEXT fraction was not tested.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Inches"].page_setup.orientation = "landscape"
+    wb["Inches"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-inches-to-fractions.xlsx")
+
+
+def batches_and_rotation():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"], ws["A2"] = "Batch size", "Batch size check"
+    ws["A1"].font = ws["A2"].font = Font(bold=True)
+    ws["B1"] = 10
+    ws["B1"].fill = INPUT_FILL
+    ws["B2"] = ('=IF(ISNUMBER(B1),IF(AND(B1>=1,B1=INT(B1)),"OK","Batch size must be a whole number, 1 or more"),'
+                '"Batch size must be a number")')
+    ws["B2"].fill = FORMULA_FILL
+    first, last = 5, 204
+    _head_row(ws, 4, ["Order number", "Item no.", "Batch", "Position in batch", "Helper"], [16, 10, 10, 12, 16], height=32)
+    for r in range(first, last + 1):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].alignment = Alignment(horizontal="left")
+        ws[f"B{r}"] = f'=IF(A{r}="","",COUNTA($A${first}:A{r}))'
+        ws[f"C{r}"] = f'=IF(B{r}="","",IF($B$2="OK",INT((B{r}-1)/$B$1)+1,"Check batch size"))'
+        ws[f"D{r}"] = f'=IF(B{r}="","",IF($B$2="OK",MOD(B{r}-1,$B$1)+1,"Check batch size"))'
+        ws[f"E{r}"] = (f'=IF(B{r}="","",IF(COUNTA(Helpers!$A$4:$A$8)=0,"No helper",'
+                       f'INDEX(Helpers!$A$4:$A$8,MOD(B{r}-1,COUNTA(Helpers!$A$4:$A$8))+1)&""))')
+        for col in "BCDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i in range(45):
+        ws[f"A{first + i}"] = 4101 + i
+    ws.conditional_formatting.add(f"A{first}:E{last}", FormulaRule(formula=[f'AND(ISNUMBER($D{first}),$D{first}=1)'], fill=DONE_FILL))
+    ws.conditional_formatting.add("B2", FormulaRule(formula=['$B$2<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+
+    hp = wb.create_sheet("Helpers")
+    hp["A1"] = "Type 1 to 5 helper first names, no empty row between them. Orders are dealt out in this order."
+    hp["A1"].font = Font(italic=True)
+    _head_row(hp, 3, ["Helper"], [24], height=24)
+    for i in range(5):
+        hp[f"A{4 + i}"].fill = INPUT_FILL
+    for i, n in enumerate(["Ana", "Ben", "Cora"]):
+        hp[f"A{4 + i}"] = n
+    hp.freeze_panes = None
+
+    sm = wb.create_sheet("Summary")
+    sm.column_dimensions["A"].width = 36
+    sm.column_dimensions["B"].width = 12
+    sm.column_dimensions["C"].width = 3
+    sm.column_dimensions["D"].width = 30
+    sm.column_dimensions["E"].width = 12
+    oa = f"Orders!A{first}:A{last}"
+    _summary_block(sm, "A", "B", [
+        (1, "Orders counted", f"=COUNTA({oa})", "0"),
+        (2, "Batch size", '=IF(Orders!B2="OK",Orders!B1,"")', "0"),
+        (3, "Number of batches", '=IF(B2="","",ROUNDUP(B1/B2,0))', "0"),
+        (4, "Orders in the last batch", '=IF(OR(B2="",B1=0),"",B1-(B3-1)*B2)', "0"),
+        (5, "Helpers listed", "=COUNTA(Helpers!A4:A8)", "0"),
+        (6, "Check: counts add up and helpers are fair",
+         (f'=IF(AND(Orders!B2="OK",B5>=1,SUMPRODUCT((Helpers!A4:A8<>"")*(ROW(Helpers!A4:A8)-ROW(Helpers!A4)+1<=B5))=B5,'
+          f'SUMPRODUCT(--(Helpers!A4:A8<>""),--(COUNTIF(Helpers!A4:A8,Helpers!A4:A8)>1))=0,E7=B1,E8<=1,'
+          f'COUNTA(Orders!A{last + 1}:A1000)=0,MAX(Orders!C{first}:C{last})=B3),"OK","CHECK")'), "General"),
+    ])
+    sm["D1"], sm["E1"] = "Helper", "Orders"
+    for c in (sm["D1"], sm["E1"]):
+        c.fill, c.font = HEADER_FILL, HEADER_FONT
+    for i in range(5):
+        r = 2 + i
+        sm[f"D{r}"] = f'=IF(Helpers!A{4 + i}="","",Helpers!A{4 + i})'
+        sm[f"E{r}"] = f'=IF(D{r}="","",COUNTIF(Orders!$E${first}:$E${last},D{r}))'
+        sm[f"D{r}"].fill = sm[f"E{r}"].fill = FORMULA_FILL
+        sm[f"E{r}"].alignment = Alignment(horizontal="right")
+    _summary_block(sm, "D", "E", [
+        (7, "Total", "=SUM(E2:E6)", "0"),
+        (8, "Most minus fewest", '=IF(COUNT(E2:E6)=0,"",MAX(E2:E6)-MIN(E2:E6))', "0"),
+    ])
+    _ok_format(sm, "B6")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Split an Order List Into Batches and Assign Helpers in Turn",
+        "",
+        "1. Orders tab: type the batch size in B1 (yellow, 10) and the order numbers in A5:A204. Yellow. The sample is 45 fictional order numbers. Helpers tab: type 1 to 5 first names in A4:A8, with no empty row between them (the sample has 3).",
+        "2. B2 shows OK when the batch size is a whole number of 1 or more. Otherwise Batch and Position show Check batch size.",
+        "3. Item no., B5: =IF(A5=\"\",\"\",COUNTA($A$5:A5)). It counts only filled rows, so an empty row in the middle of the list is skipped and the numbering stays 1, 2, 3 with no gap. A cell that holds only a space counts as filled.",
+        "4. Batch, C5: =INT((B5-1)/$B$1)+1. Position in batch, D5: =MOD(B5-1,$B$1)+1. With a batch size of 10, items 1 to 10 are batch 1 and item 11 is batch 2, position 1. The first row of each batch turns green.",
+        "5. Helper, E5: =INDEX(Helpers!$A$4:$A$8,MOD(B5-1,COUNTA(Helpers!$A$4:$A$8))+1)&\"\". MOD cycles 0, 1, 2, 0, 1, 2 for three helpers, so the helpers are dealt orders in turn and each one gets no more than one order more than another. The helper rotation does not restart at a new batch.",
+        "6. Summary tab: orders counted, batch size, number of batches =ROUNDUP(B1/B2,0), orders in the last batch (smaller when the count does not divide evenly), the helpers listed, and a table of orders per helper with =COUNTIF. B6 shows OK when the helper counts add up to the orders, the most and fewest differ by 1 or less, the helpers have no empty row or duplicate name, the number of batches matches the highest batch number, and nothing is typed below row 204.",
+        "7. With no orders every result stays blank or 0. Delete a helper by clearing the cell and moving the names above up, so there is no empty row.",
+        "8. This splits and deals a list. It does not weigh how long an order takes.",
+        "",
+        "Order numbers and names are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].page_setup.orientation = "portrait"
+    wb["Orders"].print_area = "A1:E50"
+    wb["Helpers"].print_title_rows = None
+    wb["Summary"].print_title_rows = None
+    wb["Summary"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-batches-and-rotation.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -8810,4 +9239,9 @@ if __name__ == "__main__":
     flag_bad_emails()
     order_links()
     next_anniversary()
+    loan_payment_schedule()
+    recurring_billing_dates()
+    closest_match()
+    inches_to_fractions()
+    batches_and_rotation()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

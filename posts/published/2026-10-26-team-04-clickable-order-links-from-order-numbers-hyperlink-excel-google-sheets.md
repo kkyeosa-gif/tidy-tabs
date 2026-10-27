@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfAq9dtFK_e
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-turn-order-numbers-into.html
 title: How to Turn Order Numbers Into Clickable Links With HYPERLINK in Excel and Google Sheets
 labels: excel-formulas, small-business, orders
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and the displayed text and address of each row were compared with Python string building on the sample and on 15 edited copies (spaces inside and around order numbers, numbers, blank rows, a base address without the trailing slash, an http:// base, a 255 and a 256 character address). No link was clicked, no web page was opened, and the formula makes no web request. Excel and Google Sheets were not opened.

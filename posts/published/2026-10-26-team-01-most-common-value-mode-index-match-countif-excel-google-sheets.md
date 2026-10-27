@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/De_01vJG5XI
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-most-common-value-in-list.html
 title: How to Find the Most Common Value in a List in Excel and Google Sheets
 labels: excel-formulas, small-business, orders
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and every result was compared with a Python Counter on the sample and on 15 edited copies (a tie, all items different, one item only, blank rows in the middle, upper and lower case, a trailing space, quantities typed as text, numbers as items). Excel and Google Sheets were not opened.

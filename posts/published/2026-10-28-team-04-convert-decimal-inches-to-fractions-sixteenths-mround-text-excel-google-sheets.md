@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfDPxTbgUYj
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-convert-decimal-inches-to.html
 title: How to Convert Decimal Inches to Fractions (1/16 or 1/8) in Excel and Google Sheets
 labels: excel-formulas, small-business, measurements
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python Fraction model on the sample and 14 edited copies. Checked: precision 8, 16 and 32, values exactly halfway between steps, 0, 0.03, 12.999, values that round up to the next whole inch, blank rows, negative numbers, numbers typed as text, and a bad precision cell. Excel and Google Sheets output of TEXT with a fraction pattern was not tested.

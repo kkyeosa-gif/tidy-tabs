@@ -9122,6 +9122,422 @@ def batches_and_rotation():
     wb.save(OUT / "tidy-tabs-batches-and-rotation.xlsx")
 
 
+def hide_div_zero_errors():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Examples"
+    ws["A1"] = "Weekly orders and visits for a fictional stall. Yellow cells are yours to change. Red-text errors in D, F and the typo demo are on purpose."
+    ws["A1"].font = Font(italic=True)
+    ws["A2"] = "The last two columns are the ones to copy."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Week", "Orders", "Visits", "Raw: =B5/C5", "IFERROR(B5/C5,\"\")",
+                      "IF(C5=0,\"\",B5/C5)", "IF number and not 0"],
+              [10, 10, 10, 14, 16, 16, 18], height=44)
+    first, last = 5, 16
+    data = [(14, 410), (9, 0), (22, 655), (0, 0), (18, None), (11, "n/a"),
+            (30, 812), (7, 240), (0, 380), (16, 500), (25, 0), (12, 360)]
+    for i, (o, v) in enumerate(data):
+        r = first + i
+        ws[f"A{r}"] = f"Week {i + 1}"
+        ws[f"B{r}"], ws[f"C{r}"] = o, v
+        ws[f"B{r}"].fill = ws[f"C{r}"].fill = INPUT_FILL
+        ws[f"D{r}"] = f"=B{r}/C{r}"
+        ws[f"E{r}"] = f'=IFERROR(B{r}/C{r},"")'
+        ws[f"F{r}"] = f'=IF(C{r}=0,"",B{r}/C{r})'
+        ws[f"G{r}"] = f'=IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r})),IF(C{r}<>0,B{r}/C{r},""),"")'
+        ws[f"B{r}"].number_format = ws[f"C{r}"].number_format = "#,##0"
+        for col in "DEFG":
+            ws[f"{col}{r}"].number_format = "0.0%"
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ws.freeze_panes = "A5"
+    ws.conditional_formatting.add(f"D{first}:F{last}", FormulaRule(formula=[f'ISERROR(D{first})'], font=Font(color="C00000")))
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 50
+    ws.column_dimensions["J"].width = 16
+    rng = lambda c: f"{c}{first}:{c}{last}"
+    _summary_block(ws, "I", "J", [
+        (5, "Errors in the raw column D", f"=SUMPRODUCT(--ISERROR({rng('D')}))", "0"),
+        (6, "Rates shown in column G", f"=COUNT({rng('G')})", "0"),
+        (7, "Average of column G (blanks skipped)", f'=IF(COUNT({rng("G")})=0,"No rates",AVERAGE({rng("G")}))', "0.0%"),
+        (8, "Average of raw column D (error on purpose)", f"=AVERAGE({rng('D')})", "0.0%"),
+        (9, "Check: no errors in E or G, every valid row has a rate",
+         (f'=IF(AND(SUMPRODUCT(--ISERROR({rng("E")}))=0,SUMPRODUCT(--ISERROR({rng("G")}))=0,'
+          f'COUNT({rng("G")})=SUMPRODUCT(--ISNUMBER({rng("B")}),--ISNUMBER({rng("C")}),--(C{first}:C{last}<>0))),"OK","CHECK")'), "General"),
+    ])
+    _ok_format(ws, "J9")
+    ws["I11"] = "Typo demo: the formulas below use the name Visits, which does not exist"
+    ws["I11"].font = Font(bold=True)
+    _summary_block(ws, "I", "J", [
+        (12, "Typo: =B5/Visits", "=B5/Visits", "0.0%"),
+        (13, "IFERROR hides the typo: =IFERROR(B5/Visits,\"\")", '=IFERROR(B5/Visits,"")', "0.0%"),
+        (14, "IF still shows it: =IF(C5=0,\"\",B5/Visits)", '=IF(C5=0,"",B5/Visits)', "0.0%"),
+    ])
+    ws.print_area = "A1:J16"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Fix and Hide the #DIV/0! Error",
+        "",
+        "1. Examples tab: Orders (B) and Visits (C) are yellow. The sample is 12 fictional weeks with some zero, blank and text (\"n/a\") visits.",
+        "2. Column D, =B5/C5, is the plain division. It shows #DIV/0! when Visits is 0 or blank (and 0 / 0), and #VALUE! when Visits is text. The red text marks errors on purpose.",
+        "3. Column E, =IFERROR(B5/C5,\"\"), shows nothing for any error. Short, but it also hides errors you did not expect (see step 6).",
+        "4. Column F, =IF(C5=0,\"\",B5/C5), hides only the divide-by-zero case (zero and blank Visits). Text in Visits still shows #VALUE!, which is the point: you see a bad entry.",
+        "5. Column G, =IF(AND(ISNUMBER(B5),ISNUMBER(C5)),IF(C5<>0,B5/C5,\"\"),\"\"), shows a rate only when both cells are numbers and Visits is not 0. Text, blank and zero give nothing.",
+        "6. Typo demo, J12:J14: the formula uses a name that does not exist (Visits instead of C5). The plain formula shows #NAME?, IFERROR turns it into blank, and the IF version still shows #NAME?. A blank from IFERROR can mean a real mistake, not only a zero.",
+        "7. Summary, I5:J9: errors in the raw column, rates shown, the average of column G (AVERAGE skips the blank-looking \"\" cells) and the average of the raw column D, which shows #DIV/0! because AVERAGE returns the first error it meets. J9 shows OK when columns E and G have no errors and every row with numbers in Orders and Visits (Visits not 0) has a rate.",
+        "8. A \"\" result is text. Adding to it (for example =G5+1) gives #VALUE!, while SUM, AVERAGE and COUNT skip it.",
+        "9. This only changes how a division shows. It does not say which rows to trust or what a rate should be.",
+        "",
+        "Weeks and numbers are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Examples"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-hide-div-zero-errors.xlsx")
+
+
+def totals_off_by_a_cent():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Invoice"
+    ws["A1"] = "Fictional supplies invoice. Qty and Unit price (yellow) can have fractions of a cent. Line = Qty x Unit price."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Item", "Qty", "Unit price", "Line, unrounded", "Line, rounded to cents", "Rounded minus unrounded", "Line in cents"],
+              [28, 8, 12, 14, 16, 16, 12], height=44)
+    first, last = 5, 24
+    lines = [("Soy wax flakes (oz)", 3, 0.335), ("Cotton wick", 7, 1.145), ("Paper label", 12, 0.0425),
+             ("Tin lid", 5, 2.349), ("Fragrance oil (ml)", 9, 0.875), ("Gift tag", 24, 0.1675),
+             ("Kraft sleeve", 6, 3.4575), ("Twine (ft)", 15, 0.085)]
+    for i in range(last - first + 1):
+        r = first + i
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        if i < len(lines):
+            ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = lines[i]
+        ws[f"D{r}"] = f'=IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r})),B{r}*C{r},"")'
+        ws[f"E{r}"] = f'=IF(D{r}="","",ROUND(D{r},2))'
+        ws[f"F{r}"] = f'=IF(D{r}="","",ROUND(E{r}-D{r},4))'
+        ws[f"G{r}"] = f'=IF(E{r}="","",ROUND(E{r}*100,0))'
+        ws[f"B{r}"].number_format = "#,##0.##"
+        ws[f"C{r}"].number_format = '"$"#,##0.0000'
+        ws[f"D{r}"].number_format = USD
+        ws[f"E{r}"].number_format = USD
+        ws[f"F{r}"].number_format = '"$"#,##0.0000'
+        ws[f"G{r}"].number_format = "#,##0"
+        for col in "DEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ws.freeze_panes = "A5"
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 54
+    ws.column_dimensions["J"].width = 16
+    rng = lambda c: f"{c}{first}:{c}{last}"
+    _summary_block(ws, "I", "J", [
+        (5, "Total of the unrounded lines (what plain SUM of D shows)", f"=SUM({rng('D')})", USD),
+        (6, "Total of the lines rounded to cents (what is printed)", f"=SUM({rng('E')})", USD),
+        (7, "Difference between the two totals, shown to cents", "=ROUND(ROUND(J5,2)-J6,2)", USD),
+        (8, "Lines counted", f"=COUNT({rng('D')})", "0"),
+        (9, "Check: printed lines add up to the printed total",
+         (f'=IF(AND(COUNT({rng("B")})=COUNTA({rng("B")}),COUNT({rng("C")})=COUNTA({rng("C")}),'
+          f'COUNT({rng("B")})=COUNT({rng("C")}),ROUND(SUM({rng("G")})-J6*100,0)=0,'
+          f'ABS(J7)<=0.005*J8+0.005),"OK","CHECK")'), "General"),
+    ])
+    _ok_format(ws, "J9")
+    ws.print_area = "A1:J24"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Make Invoice Lines Add Up to the Total",
+        "",
+        "1. Invoice tab: type the item, Qty (B) and Unit price (C) in the yellow cells. The sample is 8 fictional lines whose unit prices have fractions of a cent (for example 3 x $0.335).",
+        "2. Line, unrounded, D5: =B5*C5. The cell is shown to 2 decimals, so a line of $1.005 is displayed as a whole number of cents, but the cell still holds the full value and a plain SUM adds the full values.",
+        "3. Line, rounded, E5: =ROUND(D5,2). This is the amount a printed invoice shows. Rounding half a cent goes up (away from zero).",
+        "4. Totals, J5:J7: J5 =SUM(D5:D24) adds the full values; J6 =SUM(E5:E24) adds the rounded lines; J7 is J5 shown to cents minus J6. When J7 is not $0.00, the printed lines add up to a different amount than a plain SUM of the unrounded column. In the sample the unrounded total is $55.19, the rounded-lines total is $55.22 and the difference is -$0.03.",
+        "5. Column G turns each rounded line into whole cents so J9 can compare them without decimals. J9 shows OK when every line has a Qty and a price, the cents add up to the printed total and the difference is no more than half a cent per line plus half a cent.",
+        "6. Rounding each line first is one way to make the page add up. This sheet does not say which method an invoice, a customer or a tax rule requires.",
+        "7. Excel's \"Set precision as displayed\" option changes stored values for the whole workbook and cannot be undone, so this sheet uses ROUND instead.",
+        "8. Amounts are checked here with decimal arithmetic. Half-cent results can round differently in programs that use binary floating point, so the sample uses values checked in LibreOffice Calc.",
+        "",
+        "Items and prices are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Invoice"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-totals-off-by-a-cent.xlsx")
+
+
+def giveaway_random_winners():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Entries"
+    ws["A1"] = "Type or paste entries in A5:B34. Each row is one entry, so a name typed twice has two chances."
+    ws["A1"].font = Font(italic=True)
+    ws["A2"] = "RAND picks new numbers every time anything changes. Copy C5:D34, then Paste special > Values only, to freeze a draw."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Name", "City", "Random number", "Draw order", "Result"], [16, 16, 14, 11, 10], height=32)
+    first, last = 5, 34
+    people = [("Alma", "Denver"), ("Ben", "Tulsa"), ("Cora", "Austin"), ("Dev", "Boise"), ("Elena", "Reno"),
+              ("Felix", "Omaha"), ("Grace", "Mesa"), ("Hugo", "Provo"), ("Iris", "Salem"), ("Jonah", "Fargo"),
+              ("Kira", "Macon"), ("Leo", "Dayton"), ("Maya", "Eugene"), ("Nate", "Tampa"), ("Opal", "Ogden"),
+              ("Priya", "Akron"), ("Quinn", "Boise"), ("Rosa", "Laredo"), ("Sam", "Toledo"), ("Tess", "Elgin"),
+              ("Uma", "Yuma"), ("Vic", "Fresno"), ("Wren", "Bend"), ("Xavi", "Plano"), ("Yara", "Biloxi"),
+              ("Zane", "Joplin"), ("Abby", "Tulsa"), ("Brent", "Reno"), ("Cleo", "Mesa"), ("Dante", "Salem")]
+    for i, (n, c) in enumerate(people):
+        r = first + i
+        ws[f"A{r}"], ws[f"B{r}"] = n, c
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"C{r}"] = f'=IF(A{r}="","",RAND())'
+        ws[f"D{r}"] = f'=IF(A{r}="","",RANK(C{r},$C${first}:$C${last})+COUNTIF($C${first}:C{r},C{r})-1)'
+        ws[f"E{r}"] = f'=IF(D{r}="","",IF(D{r}<=Winners!$F$2,"Winner",""))'
+        ws[f"C{r}"].number_format = "0.000000"
+        ws[f"D{r}"].number_format = "0"
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add(f"A{first}:E{last}", FormulaRule(formula=[f'$E{first}="Winner"'], fill=DONE_FILL))
+    ws.freeze_panes = "A5"
+
+    wn = wb.create_sheet("Winners")
+    wn["A1"], wn["A2"] = "Number of winners (1 to 10)", "Winners check"
+    wn["A1"].font = wn["A2"].font = Font(bold=True)
+    wn["B1"] = 3
+    wn["B1"].fill = INPUT_FILL
+    ent = f"Entries!$A${first}:$A${last}"
+    wn["B2"] = (f'=IF(ISNUMBER(B1),IF(AND(B1>=1,B1<=10,B1=INT(B1)),IF(F1=0,"Add names on the Entries tab",'
+                f'IF(B1>F1,"Fewer entries ("&F1&") than winners: all of them win","OK")),"Winners must be a whole number from 1 to 10"),'
+                f'"Winners must be a number")')
+    wn["B2"].fill = FORMULA_FILL
+    _head_row(wn, 4, ["No.", "Winner", "City"], [22, 24, 16], height=24)
+    wr = range(5, 15)
+    for r in wr:
+        wn[f"A{r}"] = f'=IF(ROWS(A$5:A{r})<=$F$2,ROWS(A$5:A{r}),"")'
+        wn[f"B{r}"] = f'=IF(A{r}="","",INDEX({ent},MATCH(A{r},Entries!$D${first}:$D${last},0))&"")'
+        wn[f"C{r}"] = f'=IF(A{r}="","",INDEX(Entries!$B${first}:$B${last},MATCH(A{r},Entries!$D${first}:$D${last},0))&"")'
+        for col in "ABC":
+            wn[f"{col}{r}"].fill = FORMULA_FILL
+        wn[f"A{r}"].alignment = Alignment(horizontal="center")
+    wn.column_dimensions["D"].width = 3
+    wn.column_dimensions["E"].width = 40
+    wn.column_dimensions["F"].width = 16
+    dv = DataValidation(type="whole", operator="between", formula1="1", formula2="10", allow_blank=False)
+    wn.add_data_validation(dv)
+    dv.add("B1")
+    oc = f"Entries!$D${first}:$D${last}"
+    _summary_block(wn, "E", "F", [
+        (1, "Entries counted", f"=COUNTA({ent})", "0"),
+        (2, "Winners to draw", '=IF(ISNUMBER(B1),IF(AND(B1>=1,B1<=10,B1=INT(B1)),MIN(B1,F1),0),0)', "0"),
+        (3, "Winners listed", "=SUMPRODUCT(--(B5:B14<>\"\"))", "0"),
+        (4, "Rows marked Winner on Entries", f'=COUNTIF(Entries!$E${first}:$E${last},"Winner")', "0"),
+        (5, "Check: no repeats, all in the list, right count",
+         (f'=IF(AND(F1>=1,F2>=1,F3=F2,F4=F2,MAX({oc})=F1,COUNT({oc})=F1,'
+          f'SUMPRODUCT(({oc}<>"")*(COUNTIF({oc},{oc})>1))=0,'
+          f'SUMPRODUCT(--(B5:B14<>""),--(COUNTIF({ent},B5:B14)>0))=F3,COUNTA(Entries!A{last + 1}:A500)=0),"OK","CHECK")'), "General"),
+    ])
+    _ok_format(wn, "F5")
+    wn.conditional_formatting.add("B2", FormulaRule(formula=['$B$2<>"OK"'], fill=ALERT_FILL))
+    wn.print_area = "A1:F14"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Pick Random Giveaway Winners With No Repeats",
+        "",
+        "1. Entries tab: type the name and city of each entry in A5:B34 (yellow, 30 rows; the sample is 30 fictional names). Each row is one entry. Winners tab: type how many winners to draw in B1 (yellow, 1 to 10, the sample is 3).",
+        "2. Random number, C5: =IF(A5=\"\",\"\",RAND()). RAND gives a new number between 0 and 1 every time the sheet recalculates, which is whenever you edit a cell or open the file. So the draw changes on every edit and the winners on this file differ each time it opens.",
+        "3. Draw order, D5: =IF(A5=\"\",\"\",RANK(C5,$C$5:$C$34)+COUNTIF($C$5:C5,C5)-1). RANK puts the biggest random number first. Adding COUNTIF($C$5:C5,C5)-1 breaks a tie, so every filled row gets its own order number 1, 2, 3 ... up to the number of entries, with none repeated.",
+        "4. Winners, Winners!B5: =IF(A5=\"\",\"\",INDEX(Entries!$A$5:$A$34,MATCH(A5,Entries!$D$5:$D$34,0))&\"\"). The winners are the rows whose draw order is 1, 2, 3 and so on up to the number you asked for. A row can win only once. Winning rows turn green on the Entries tab.",
+        "5. To freeze a draw: select Entries C5:D34, Copy, then Paste special > Values only (Google Sheets: Edit > Paste special > Values only). The numbers stay put and the winners stop changing. Do this before you share the result or edit anything.",
+        "6. If the winners number is larger than the entries, B2 says so and every entry is listed. A blank row in the list is skipped. Two entries with the same name are two rows, so both can win (or only one).",
+        "7. Check, Winners!F5: shows OK when the draw order is 1 to N with no repeats, the number of winners listed equals the number asked for (or the entries, if fewer), every winner is in the list and nothing is typed below row 34.",
+        "8. RAND is pseudo-random and has no audit trail. This sheet does not say how to run a giveaway, what rules apply or how to announce results.",
+        "",
+        "Names and cities are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Entries"].page_setup.orientation = "portrait"
+    wb["Entries"].print_area = "A1:E34"
+    wb["Winners"].print_title_rows = None
+    wb["Winners"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-giveaway-random-winners.xlsx")
+
+
+def average_ignore_zeros():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Daily sales"
+    ws["A1"] = "Fictional market stall, 28 days. Zero = closed or rained out. Sales (yellow) can be zero, blank or text."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Day", "Sales"], [9, 12], height=24)
+    first, last = 5, 32
+    sales = [212.5, 180, 0, 245.25, 198, 0, 160.75, 230, 205.5, 0, 187.25, 219, 0, "rain", 175.5,
+             241, 192.75, None, 208, 0, 226.5, 183, 199.25, 214, 0, 172.5, 237, 201.75]
+    for i, v in enumerate(sales):
+        r = first + i
+        ws[f"A{r}"] = i + 1
+        ws[f"B{r}"] = v
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = USD
+        ws[f"A{r}"].alignment = Alignment(horizontal="center")
+    ws.freeze_panes = "A5"
+    ws.column_dimensions["C"].width = 3
+    ws.column_dimensions["D"].width = 48
+    ws.column_dimensions["E"].width = 16
+    ws.column_dimensions["F"].width = 3
+    ws.column_dimensions["G"].width = 14
+    R = f"B{first}:B{last}"
+    _summary_block(ws, "D", "E", [
+        (5, "Average, zeros counted: =AVERAGE(range)", f"=AVERAGE({R})", USD),
+        (6, "Average, zeros skipped: =AVERAGEIF(range,\">0\")", f'=AVERAGEIF({R},">0")', USD),
+        (7, "Same without AVERAGEIF: SUMIF / COUNTIF", f'=IF(E9=0,"No days",SUMIF({R},">0")/E9)', USD),
+        (8, "Safe version: No days when nothing is above 0", f'=IF(COUNTIF({R},">0")=0,"No days",AVERAGEIF({R},">0"))', USD),
+        (9, "Days counted (above 0)", f'=COUNTIF({R},">0")', "0"),
+        (10, "Days at exactly 0 (skipped)", f"=COUNTIF({R},0)", "0"),
+        (11, "Negative values (skipped)", f'=COUNTIF({R},"<0")', "0"),
+        (12, "Text entries (skipped)", f"=COUNTA({R})-COUNT({R})", "0"),
+        (13, "Blank cells (skipped)", f"=ROWS({R})-COUNTA({R})", "0"),
+        (14, "Check: counts add up, three averages agree",
+         (f'=IF(AND(SUMPRODUCT(--ISERROR({R}))=0,E9+E10+E11=COUNT({R}),E12+E13+COUNT({R})=ROWS({R}),'
+          f'IF(E9=0,E8="No days",AND(ROUND(E7-E6,6)=0,ROUND(E8-E6,6)=0))),"OK","CHECK")'), "General"),
+    ])
+    _ok_format(ws, "E14")
+    ws["G4"] = "Error demo"
+    ws["G4"].fill, ws["G4"].font = HEADER_FILL, HEADER_FONT
+    for i, v in enumerate([40, "=NA()", 0, 55.5, 30]):
+        c = ws[f"G{5 + i}"]
+        c.value = v
+        c.fill = INPUT_FILL
+    ws["D16"] = "Error demo: one #N/A among the five values in G5:G9 (separate from the main range)"
+    ws["D16"].font = Font(bold=True)
+    _summary_block(ws, "D", "E", [
+        (17, "AVERAGE(G5:G9) with an #N/A inside", "=AVERAGE(G5:G9)", USD),
+        (18, "AVERAGEIF(G5:G9,\">0\") with the same range", '=AVERAGEIF(G5:G9,">0")', USD),
+    ])
+    ws.print_area = "A1:G32"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Average That Ignores Zeros, Blanks and Text",
+        "",
+        "1. Daily sales tab: type each day's sales in B5:B32 (yellow). The sample is 28 fictional market days: 6 days at $0.00 (closed or rained out), 1 blank, 1 text (\"rain\") and 20 days with sales.",
+        "2. E5, =AVERAGE(B5:B32): adds the numbers and divides by how many numbers there are. Blank cells and text are left out, but a 0 is a number, so the six zero days pull the average down.",
+        "3. E6, =AVERAGEIF(B5:B32,\">0\"): averages only the cells above 0. Zeros, negatives, blanks and text are left out. No array formula is needed.",
+        "4. E7 does the same by hand, =SUMIF(B5:B32,\">0\")/E9, so you can see where the number comes from: the sum of the days above 0 divided by the days counted in E9.",
+        "5. E8, =IF(COUNTIF(B5:B32,\">0\")=0,\"No days\",AVERAGEIF(B5:B32,\">0\")): AVERAGEIF gives #DIV/0! when no cell is above 0 (every day closed, or an empty list). This version shows No days instead.",
+        "6. E9:E13 count what fed the average and what was skipped: days counted, days at 0, negative values, text entries and blank cells. Read E9 next to the average so you know how many days it covers.",
+        "7. Whether a closed day with $0.00 belongs in an average is your choice: a $0.00 day you were open belongs in; a day you were closed may not. This sheet shows both.",
+        "8. Error demo, E17:E18: a single #N/A inside the range makes AVERAGE return #N/A. AVERAGEIF with \">0\" skips the error cell in LibreOffice Calc. These two cells are on purpose; the main range should not hold errors (E14 shows CHECK if it does).",
+        "9. E14 shows OK when the counted, zero and negative days add up to the numbers in the range, the numbers, text and blanks add up to all 28 rows, and the three ways of averaging agree (or all say No days).",
+        "10. Numbers stored as text (for example '45) count as text here. Convert them first.",
+        "",
+        "Days and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Daily sales"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-average-ignore-zeros.xlsx")
+
+
+def customer_tiers():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Customers"
+    ws["A1"] = "Fictional customers. Change the cutoffs on the Cutoffs tab; labels and dollars-to-next-level update."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Customer", "City", "Lifetime spend", "Label", "To next label", "Label, nested IF"],
+              [20, 14, 15, 12, 14, 16], height=32)
+    first, last = 5, 104
+    people = [("Alma R.", "Denver", 1240.50), ("Ben T.", "Tulsa", 85.00), ("Cora L.", "Austin", 500.00),
+              ("Dev K.", "Boise", 499.99), ("Elena M.", "Reno", 1000.00), ("Felix O.", "Omaha", 310.25),
+              ("Grace H.", "Mesa", 2210.00), ("Hugo P.", "Provo", 0), ("Iris W.", "Salem", 640.75),
+              ("Jonah B.", "Fargo", 975.40), ("Kira S.", "Macon", 45.50), ("Leo N.", "Dayton", 1500.00),
+              ("Maya C.", "Eugene", 720.00), ("Nate D.", "Tampa", 150.00), ("Opal F.", "Ogden", 999.99),
+              ("Priya G.", "Akron", 410.00), ("Quinn J.", "Boise", 1875.25), ("Rosa V.", "Laredo", 260.00),
+              ("Sam Y.", "Toledo", 505.00), ("Tess Z.", "Elgin", 33.00), ("Uma A.", "Yuma", 880.00),
+              ("Vic E.", "Fresno", 1120.00), ("Wren I.", "Bend", 499.00), ("Xavi U.", "Plano", 590.60),
+              ("Yara Q.", "Biloxi", 75.25)]
+    for i in range(last - first + 1):
+        r = first + i
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        if i < len(people):
+            ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = people[i]
+        ws[f"C{r}"].number_format = USD
+        ws[f"D{r}"] = (f'=IF(C{r}="","",IF(Cutoffs!$B$4<>"OK","Check cutoffs",IF(OR(NOT(ISNUMBER(C{r})),C{r}<0),"Check spend",'
+                       f'_xlfn.IFS(C{r}>=Cutoffs!$B$3,"Gold",C{r}>=Cutoffs!$B$2,"Silver",TRUE,"Bronze"))))')
+        ws[f"E{r}"] = (f'=IF(OR(D{r}="Silver",D{r}="Bronze"),ROUND(IF(D{r}="Silver",Cutoffs!$B$3,Cutoffs!$B$2)-C{r},2),"")')
+        ws[f"F{r}"] = (f'=IF(C{r}="","",IF(Cutoffs!$B$4<>"OK","Check cutoffs",IF(OR(NOT(ISNUMBER(C{r})),C{r}<0),"Check spend",'
+                       f'IF(C{r}>=Cutoffs!$B$3,"Gold",IF(C{r}>=Cutoffs!$B$2,"Silver","Bronze")))))')
+        ws[f"E{r}"].number_format = USD
+        for col in "DEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ws.freeze_panes = "A5"
+    for lab, color in (("Gold", "FFE699"), ("Silver", "D9D9D9"), ("Bronze", "F4CCAC")):
+        ws.conditional_formatting.add(f"D{first}:D{last}", FormulaRule(formula=[f'D{first}="{lab}"'], fill=PatternFill("solid", fgColor=color)))
+    ws.conditional_formatting.add(f"D{first}:D{last}", FormulaRule(formula=[f'LEFT(D{first},5)="Check"'], fill=ALERT_FILL))
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 40
+    ws.column_dimensions["I"].width = 12
+    ws.column_dimensions["J"].width = 16
+    L, C = f"D{first}:D{last}", f"C{first}:C{last}"
+    ws["H4"], ws["I4"], ws["J4"] = "Label", "Customers", "Spend"
+    for c in (ws["H4"], ws["I4"], ws["J4"]):
+        c.fill, c.font = HEADER_FILL, HEADER_FONT
+    for i, lab in enumerate(["Gold", "Silver", "Bronze"]):
+        r = 5 + i
+        ws[f"H{r}"] = lab
+        ws[f"I{r}"] = f'=COUNTIF({L},H{r})'
+        ws[f"J{r}"] = f'=SUMIF({L},H{r},{C})'
+        ws[f"J{r}"].number_format = USD
+        ws[f"I{r}"].fill = ws[f"J{r}"].fill = FORMULA_FILL
+    _summary_block(ws, "H", "I", [
+        (8, "Rows that need a look (Check ...)", f'=COUNTIF({L},"Check*")', "0"),
+        (9, "Customers with a spend entered", f"=COUNTA({C})", "0"),
+        (10, "Check: counts add up, IFS agrees with nested IF",
+         (f'=IF(AND(Cutoffs!B4="OK",I5+I6+I7+I8=I9,SUMPRODUCT(--(D{first}:D{last}<>F{first}:F{last}))=0,'
+          f'COUNTA(C{last + 1}:C500)=0),"OK","CHECK")'), "General"),
+    ])
+    _ok_format(ws, "I10")
+    ws.print_area = "A1:J40"
+
+    ct = wb.create_sheet("Cutoffs")
+    ct["A1"], ct["B1"] = "Label", "Lifetime spend from"
+    for c in (ct["A1"], ct["B1"]):
+        c.fill, c.font = HEADER_FILL, HEADER_FONT
+    ct["A2"], ct["B2"] = "Silver", 500
+    ct["A3"], ct["B3"] = "Gold", 1000
+    ct["A4"] = "Cutoff check"
+    ct["A4"].font = Font(bold=True)
+    for a in ("B2", "B3"):
+        ct[a].fill = INPUT_FILL
+        ct[a].number_format = USD
+    ct["B4"] = ('=IF(AND(ISNUMBER(B2),ISNUMBER(B3)),IF(AND(B2>0,B2<B3),"OK","Silver must be above 0 and below Gold"),'
+                '"Type a number in each yellow cell")')
+    ct["B4"].fill = FORMULA_FILL
+    ct["A6"] = "Bronze is anyone below the Silver cutoff. Exactly on a cutoff gets the higher label."
+    ct["A6"].font = Font(italic=True)
+    ct.column_dimensions["A"].width = 16
+    ct.column_dimensions["B"].width = 40
+    ct.conditional_formatting.add("B4", FormulaRule(formula=['$B$4<>"OK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Label Customers Bronze, Silver or Gold by Spend",
+        "",
+        "1. Cutoffs tab: type the Silver cutoff in B2 and the Gold cutoff in B3 (yellow). The sample is Silver from $500.00 and Gold from $1,000.00. B4 shows OK when both are numbers and Silver is above 0 and below Gold.",
+        "2. Customers tab: type the customer, city and lifetime spend in A5:C104 (yellow, 100 rows; the sample is 25 fictional customers).",
+        "3. Label, D5: =IFS(C5>=Cutoffs!$B$3,\"Gold\",C5>=Cutoffs!$B$2,\"Silver\",TRUE,\"Bronze\"). IFS goes down the pairs and uses the first one that is true, so the biggest cutoff goes first. The last pair, TRUE, is a catch-all: without it, a spend below Silver gives #N/A because no test is true. The cell also shows Check cutoffs or Check spend (text or a negative number) instead of a wrong label.",
+        "4. Exactly on a cutoff gets the higher label: $500.00 is Silver, $1,000.00 is Gold, $499.99 stays Bronze.",
+        "5. To next label, E5: =IF(OR(D5=\"Silver\",D5=\"Bronze\"),ROUND(IF(D5=\"Silver\",Cutoffs!$B$3,Cutoffs!$B$2)-C5,2),\"\"). It shows how many more dollars reach the next label; Gold shows nothing.",
+        "6. Label, nested IF, F5: =IF(C5>=Cutoffs!$B$3,\"Gold\",IF(C5>=Cutoffs!$B$2,\"Silver\",\"Bronze\")) (with the same checks). Same answer without IFS, for a version of Excel that does not have IFS. The summary check compares the two columns.",
+        "7. Summary, H4:J10: customers and spend per label with =COUNTIF and =SUMIF, the rows that need a look, and the customers with a spend entered. I10 shows OK when the label counts add up to the customers, the IFS and nested IF labels agree, the cutoffs are valid and nothing is typed below row 104.",
+        "8. These are labels only. They do not say what a customer should get or be owed.",
+        "",
+        "Customers and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Customers"].page_setup.orientation = "landscape"
+    wb["Cutoffs"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-customer-tiers.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -9244,4 +9660,9 @@ if __name__ == "__main__":
     closest_match()
     inches_to_fractions()
     batches_and_rotation()
+    hide_div_zero_errors()
+    totals_off_by_a_cent()
+    giveaway_random_winners()
+    average_ignore_zeros()
+    customer_tiers()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

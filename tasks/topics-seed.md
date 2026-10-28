@@ -154,3 +154,10 @@
 - How to Find the Closest Value to a Number in a List in Excel and Google Sheets - `find-closest-value-in-a-list-abs-min-index-match-excel-google-sheets`
 - How to Convert Decimal Inches to Fractions (1/16 or 1/8) in Excel and Google Sheets - `convert-decimal-inches-to-fractions-sixteenths-mround-text-excel-google-sheets`
 - How to Split a Long Order List Into Batches of 10 and Assign Helpers in Turn in Excel and Google Sheets - `split-order-list-into-batches-and-assign-helpers-int-mod-index-excel-google-sheets`
+
+## Researcher 2026-10-29 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice Calc 에서 일부 확인; IFS 는 .xlsx 로 재확인 필요, 상세는 tasks/team-topics-2026-10-29.md)
+- How to Fix and Hide the #DIV/0! Error in Excel and Google Sheets - `hide-div-zero-error-iferror-if-excel-google-sheets`
+- Why Your Excel Total Is Off by One Cent and How to Fix It With ROUND - `totals-off-by-one-cent-round-each-line-excel-google-sheets`
+- How to Pick Random Giveaway Winners From a List in Excel and Google Sheets - `pick-random-giveaway-winners-no-repeats-rand-rank-excel-google-sheets`
+- How to Average a Range and Ignore Zeros, Blanks and Text in Excel and Google Sheets - `average-ignore-zeros-blanks-text-averageif-excel-google-sheets`
+- How to Label Customers Bronze, Silver or Gold by Total Spend in Excel and Google Sheets - `label-customers-bronze-silver-gold-by-spend-ifs-excel-google-sheets`

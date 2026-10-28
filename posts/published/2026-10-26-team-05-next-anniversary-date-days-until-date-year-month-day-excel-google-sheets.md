@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfBGbSDDaAv
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-next-anniversary-of-date.html
 title: How to Find the Next Anniversary of a Date and the Days Until It in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with Python datetime. Checked: all 366 month and day pairs against six as-of dates, 02/29 in a non leap year and in 2028, a date equal to the as-of date, 12/31 and 01/01 as-of dates, a window of 0, a first order date after the as-of date, a date typed as text, an as-of date typed as text, a date with a time, and an empty list. Excel, Google Sheets and TODAY were not used.

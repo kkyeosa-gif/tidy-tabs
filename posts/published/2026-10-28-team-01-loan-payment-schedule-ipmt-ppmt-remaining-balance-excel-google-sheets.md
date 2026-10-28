@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfCZoHPFUvW
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-make-loan-payment-schedule-with.html
 title: How to Make a Loan Payment Schedule With Interest and Principal in Excel and Google Sheets
 labels: excel-formulas, small-business, loans
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model that rounds to cents. Checked: the sample loan, 0 percent, a 1 month loan, 60 months, $500.00 and $250,000.00 loans, 4.25 percent, a first payment on 01/31 and 02/29/2028, and bad inputs (rate typed as 7, months 61 or 12.5, amount 0, numbers typed as text). Excel and Google Sheets were not opened.

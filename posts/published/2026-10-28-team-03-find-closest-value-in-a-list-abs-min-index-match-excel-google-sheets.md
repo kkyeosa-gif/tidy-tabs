@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfC7SUzFDmp
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-find-closest-value-to-number-in.html
 title: How to Find the Closest Value to a Number in a List in Excel and Google Sheets
 labels: excel-formulas, small-business, lookup
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with Python. Checked: ties, an unsorted size list, a blank cell in the list, decimals, a length below the smallest and above the largest size, an exact match, one size only, a duplicate size, a length or size typed as text, no sizes at all, and 100 order rows. Excel and Google Sheets were not used.

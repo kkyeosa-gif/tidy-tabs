@@ -471,7 +471,25 @@ def heroes_2026_10_28():
          render(t + "tidy-tabs-batches-and-rotation.xlsx", "Summary", name="batchsummary"))
 
 
+def heroes_2026_10_29():
+    t = "templates/"
+    d = "images/2026-10-29-team-0%d-%s/"
+    save(d % (1, "hide-div-zero-error-iferror-if-excel-google-sheets") + "hide-div-zero-errors-template.png",
+         render(note_cleared_copy(t + "tidy-tabs-hide-div-zero-errors.xlsx", "Examples", 16, "A1", "divzero"), "Examples", hide_cols="IJ", name="divzero"))
+    save(d % (2, "totals-off-by-one-cent-round-each-line-excel-google-sheets") + "round-each-line-invoice-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-totals-off-by-a-cent.xlsx", "Invoice", 12, "cents"), "Invoice", hide_cols="G", widths={"I": 60}, name="cents"))
+    save(d % (3, "pick-random-giveaway-winners-no-repeats-rand-rank-excel-google-sheets") + "giveaway-random-winners-sheet.png",
+         render(short_sheet_copy(t + "tidy-tabs-giveaway-random-winners.xlsx", "Winners", 9, "giveaway"), "Winners", widths={"A": 36}, name="giveaway"))
+    save(d % (4, "average-ignore-zeros-blanks-text-averageif-excel-google-sheets") + "average-ignore-zeros-daily-sales-template.png",
+         render(t + "tidy-tabs-average-ignore-zeros.xlsx", "Daily sales", name="avgzero"))
+    save(d % (5, "label-customers-bronze-silver-gold-by-spend-ifs-excel-google-sheets") + "customer-tiers-bronze-silver-gold-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-customer-tiers.xlsx", "Customers", 29, "tiers"), "Customers", name="tiers"))
+
+
 def main():
+    if "--only-2026-10-29" in sys.argv:
+        heroes_2026_10_29()
+        return
     if "--only-2026-10-28" in sys.argv:
         heroes_2026_10_28()
         return

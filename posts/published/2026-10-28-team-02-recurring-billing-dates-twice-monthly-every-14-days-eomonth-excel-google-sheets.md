@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfCtbY3kWmg
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-list-twice-month-and-every-14.html
 title: How to List Twice a Month and Every 14 Days Billing Dates in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and every date, weekday and weekend flag was compared with Python calendar and datetime for 13 start dates in both modes. Checked: 01/31, 02/15, 02/28, 12/31 and 02/29/2028 starts, 1 and 26 dates, and bad inputs (text date, Weekly, count 27 or 0). Excel and Google Sheets were not used.

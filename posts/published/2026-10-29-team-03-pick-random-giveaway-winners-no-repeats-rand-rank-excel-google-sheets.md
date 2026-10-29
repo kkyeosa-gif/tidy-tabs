@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfFf89rmlYo
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-pick-random-giveaway-winners.html
 title: How to Pick Random Giveaway Winners From a List in Excel and Google Sheets
 labels: excel-formulas, small-business, random-draw
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there 200 times and each draw was checked with Python: draw order 1 to 30 with no repeats, 3 winners, every winner in the list. Also checked: 1 and 10 winners, fewer entries than winners, no entries, blank rows, duplicate names and a bad winners number. The Copy and Paste special freeze step was not run in any app. Excel and Google Sheets were not used.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfF0jXVH26V
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-average-range-and-ignore-zeros.html
 title: How to Average a Range and Ignore Zeros, Blanks and Text in Excel and Google Sheets
 labels: excel-formulas, small-business, averages
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model. Checked: all zero, all blank and all text ranges, one value, negatives, text in a number cell, numbers stored as text, the text "0", an #N/A or #DIV/0! typed into the range, and two random mixed lists. Excel and Google Sheets were not used.

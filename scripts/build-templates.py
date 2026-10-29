@@ -9538,6 +9538,598 @@ def customer_tiers():
     wb.save(OUT / "tidy-tabs-customer-tiers.xlsx")
 
 
+
+def billable_time_rounding():
+    from datetime import time
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Time log"
+    ws["A1"] = "Fictional freelance bookkeeper. Block size and rate are on the Settings tab. Yellow cells are yours to change."
+    ws["A1"].font = Font(italic=True)
+    ws["A2"] = "Start and End are clock times on the same day. A row with End before Start shows Check times."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Date", "Client", "Task", "Start", "End", "Minutes worked", "Billed minutes",
+                      "Billed hours", "Amount", "Extra minutes billed"],
+              [12, 22, 20, 11, 11, 11, 11, 10, 12, 12], height=46)
+    first, last = 5, 64
+    rows = [
+        (date(2026, 10, 5), "Maple Dental", "Bank reconciliation", time(9, 2), time(9, 49)),
+        (date(2026, 10, 5), "Harbor Yoga", "Invoices", time(10, 0), time(10, 45)),
+        (date(2026, 10, 5), "Pine Street Bakery", "Payroll prep", time(10, 0), time(10, 46)),
+        (date(2026, 10, 6), "Maple Dental", "Phone call", time(13, 15), time(13, 15)),
+        (date(2026, 10, 6), "Harbor Yoga", "Month-end close", time(8, 30), time(9, 31)),
+        (date(2026, 10, 6), "Cedar Cycles", "Quick question", time(14, 0), time(14, 1)),
+        (date(2026, 10, 7), "Pine Street Bakery", "Sales tax report", time(11, 10), time(12, 40)),
+        (date(2026, 10, 7), "Cedar Cycles", "Receipts sort", time(15, 5), time(15, 20)),
+        (date(2026, 10, 8), "Maple Dental", "Vendor bills", time(9, 0), time(10, 14)),
+        (date(2026, 10, 8), "Harbor Yoga", "Budget review", time(16, 30), time(17, 2)),
+        (date(2026, 10, 9), "Pine Street Bakery", "Cleanup of old entries", time(8, 0), time(11, 0)),
+        (date(2026, 10, 9), "Cedar Cycles", "Email follow-up", time(13, 0), time(13, 7)),
+        (date(2026, 10, 12), "Maple Dental", "Quarter planning", time(10, 20), time(11, 35)),
+        (date(2026, 10, 12), "Harbor Yoga", "Year-end checklist", time(14, 14), time(15, 59)),
+        (date(2026, 10, 13), "Pine Street Bakery", "Invoices", time(9, 45), time(10, 6)),
+    ]
+    for r in range(first, last + 1):
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = ws[f"E{r}"].number_format = "h:mm AM/PM"
+        ws[f"F{r}"] = (f'=IF(AND(D{r}="",E{r}=""),"",IF(AND(ISNUMBER(D{r}),ISNUMBER(E{r})),'
+                       f'IF(E{r}>=D{r},ROUND((E{r}-D{r})*1440,0),"Check times"),"Check times"))')
+        ws[f"G{r}"] = (f'=IF(ISNUMBER(F{r}),IF(Settings!$B$3<>"OK","Check settings",'
+                       f'ROUNDUP(F{r}/Settings!$B$1,0)*Settings!$B$1),"")')
+        ws[f"H{r}"] = f'=IF(ISNUMBER(G{r}),G{r}/60,"")'
+        ws[f"I{r}"] = f'=IF(ISNUMBER(H{r}),ROUND(H{r}*Settings!$B$2,2),"")'
+        ws[f"J{r}"] = f'=IF(ISNUMBER(G{r}),G{r}-F{r},"")'
+        ws[f"F{r}"].number_format = ws[f"G{r}"].number_format = ws[f"J{r}"].number_format = "0"
+        ws[f"H{r}"].number_format = "0.00"
+        ws[f"I{r}"].number_format = USD
+        for col in "FGHIJ":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCDE", row):
+            ws[f"{col}{first + i}"] = v
+    ws.conditional_formatting.add(f"F{first}:G{last}", FormulaRule(formula=[f'LEFT(F{first},5)="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    for col, w in zip("KLM", [3, 44, 14]):
+        ws.column_dimensions[col].width = w
+    F, G, I, J = (f"{c}{first}:{c}{last}" for c in "FGIJ")
+    _summary_block(ws, "L", "M", [
+        (5, "Entries with a number of minutes", f"=COUNT({F})", "0"),
+        (6, "Total actual minutes", f"=SUM({F})", "#,##0"),
+        (7, "Total billed minutes", f"=SUM({G})", "#,##0"),
+        (8, "Extra minutes billed because of rounding", "=M7-M6", "#,##0"),
+        (9, "Total amount", f"=SUM({I})", USD),
+        (10, "Rows that show Check times", f'=COUNTIF({F},"Check*")', "0"),
+        (11, "Check: settings valid, every billed total is a whole number of blocks, extra is under one block",
+         (f'=IF(AND(Settings!B3="OK",COUNT({G})=COUNT({F}),'
+          f'SUMPRODUCT(--ISNUMBER({G}),--(IFERROR(MOD({G},Settings!B1),0)<>0))=0,'
+          f'COUNTIF({J},"<0")=0,COUNTIF({J},">="&Settings!B1)=0,ROUND(M8-SUM({J}),6)=0,'
+          f'COUNTA(A{last + 1}:E500)=0),"OK","CHECK")'), "General"),
+    ])
+    ws["L11"].alignment = Alignment(wrap_text=True, vertical="center")
+    ws.row_dimensions[11].height = 46
+    _ok_format(ws, "M11")
+    ws.print_area = "A1:M64"
+
+    st = wb.create_sheet("Settings")
+    st["A1"], st["B1"] = "Block size in minutes", 15
+    st["A2"], st["B2"] = "Hourly rate", 85
+    st["A3"] = "Settings check"
+    for r in (1, 2, 3):
+        st[f"A{r}"].font = Font(bold=True)
+    st["B1"].fill = st["B2"].fill = INPUT_FILL
+    st["B2"].number_format = USD
+    st["B3"] = ('=IF(AND(ISNUMBER(B1),ISNUMBER(B2)),IF(AND(B1>=1,B1<=480,B1=INT(B1),B2>=0),"OK",'
+                '"Block: whole minutes from 1 to 480. Rate: 0 or more"),"Type a number in each yellow cell")')
+    st["B3"].fill = FORMULA_FILL
+    st["A5"] = "Try 6 for six-minute blocks or 30 for half-hour blocks. A block of 1 bills every minute."
+    st["A5"].font = Font(italic=True)
+    st.column_dimensions["A"].width = 26
+    st.column_dimensions["B"].width = 44
+    st.conditional_formatting.add("B3", FormulaRule(formula=['$B$3<>"OK"'], fill=ALERT_FILL))
+    dv = DataValidation(type="whole", operator="between", formula1="1", formula2="480", allow_blank=False)
+    st.add_data_validation(dv)
+    dv.add("B1")
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Round Billable Time Up to 15-Minute Blocks",
+        "",
+        "1. Settings tab: type the block size in minutes in B1 (yellow, 15) and the hourly rate in B2 (yellow, $85.00). B3 shows OK when the block is a whole number from 1 to 480 and the rate is 0 or more.",
+        "2. Time log tab: one row per entry. Type the date, client, task, start and end time in A5:E64 (yellow). The sample is 15 fictional entries. Start and End are clock times on the same day.",
+        "3. Minutes worked, F5: =ROUND((E5-D5)*1440,0). A time is a fraction of a day, so times 1440 gives whole minutes. Rounding to a whole minute removes the tiny float tail (and any seconds).",
+        "4. Billed minutes, G5: =ROUNDUP(F5/Settings!$B$1,0)*Settings!$B$1. Divide by the block, round up to a whole number of blocks, multiply back. With a 15 minute block, 45 stays 45, 46 becomes 60, 0 stays 0, 1 becomes 15.",
+        "5. Billed hours, H5: =G5/60. Amount, I5: =ROUND(H5*Settings!$B$2,2). Extra minutes billed, J5: =G5-F5, the minutes added by rounding (never negative, always less than one block).",
+        "6. Summary, L5:M11: entries, total actual minutes, total billed minutes, the extra minutes billed because of rounding, the total amount, and the rows that show Check times. M11 shows OK when the settings are valid, every billed number is a whole number of blocks, the extra minutes are under one block and nothing is typed below row 64.",
+        "7. An End before the Start, or a Start without an End, shows Check times and is left out of the totals. A shift that runs past midnight is not handled here.",
+        "8. This is only the rounding arithmetic. It does not say what a client agreement allows.",
+        "",
+        "Clients, tasks and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Time log"].page_setup.orientation = "landscape"
+    wb["Time log"].print_title_rows = "4:4"
+    wb["Settings"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-billable-time-rounding.xlsx")
+
+
+def all_orders_for_customer():
+    import random
+    from datetime import timedelta
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Fictional shop orders. Yellow cells are yours to change. Column F is a helper that numbers the rows for the customer picked on the Customer view tab."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Order #", "Customer", "Order date", "Item", "Amount", "Match no. (helper)"],
+              [10, 22, 12, 24, 12, 12], height=34)
+    first, last = 5, 104
+    names = ["Alma Reyes", "Ben Tran", "Cora Lind", "Dev Kapoor", "Elena Marsh", "Felix Ode", "Grace Hale",
+             "Hugo Park", "Iris Wong", "Jonah Bell"]
+    counts = [12, 7, 6, 5, 4, 3, 1, 1, 1, 0]
+    items = [("Lavender candle", 18.00), ("Oat soap bar", 8.00), ("Brass hoops", 24.00), ("Birthday card", 6.00),
+             ("Cedar candle", 18.00), ("Gift tag set", 4.50), ("Soap trio", 22.00), ("Kraft mailer box", 3.25)]
+    rng = random.Random(30)
+    owners = [n for n, c in zip(names, counts) for _ in range(c)]
+    rng.shuffle(owners)
+    d = date(2026, 7, 1)
+    orders = []
+    for i, who in enumerate(owners):
+        d = d + timedelta(days=rng.choice([0, 1, 1, 2, 2, 3]))
+        item, price = rng.choice(items)
+        qty = rng.choice([1, 1, 2, 3])
+        orders.append((5001 + i, who, d, item, round(price * qty, 2)))
+    for r in range(first, last + 1):
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"C{r}"].number_format = US_DATE
+        ws[f"E{r}"].number_format = USD
+        ws[f"F{r}"] = (f"=IF(AND('Customer view'!$B$1<>\"\",B{r}='Customer view'!$B$1),"
+                       f"COUNTIF($B${first}:B{r},'Customer view'!$B$1),\"\")")
+        ws[f"F{r}"].fill = FORMULA_FILL
+        ws[f"F{r}"].alignment = Alignment(horizontal="right")
+    for i, o in enumerate(orders):
+        for col, v in zip("ABCDE", o):
+            ws[f"{col}{first + i}"] = v
+    ws.conditional_formatting.add(f"A{first}:F{last}", FormulaRule(formula=[f'ISNUMBER($F{first})'], fill=DONE_FILL))
+    ws.freeze_panes = "A5"
+    ws.print_area = "A1:F44"
+
+    cv = wb.create_sheet("Customer view")
+    cv["A1"], cv["A2"], cv["A3"] = "Customer (pick one)", "Orders found", "Total of those orders"
+    for a in ("A1", "A2", "A3"):
+        cv[a].font = Font(bold=True)
+    cv["B1"] = "Alma Reyes"
+    cv["B1"].fill = INPUT_FILL
+    cv["B2"] = f"=IF(B1=\"\",0,COUNTIF(Orders!$B${first}:$B${last},B1))"
+    cv["B3"] = f"=IF(B1=\"\",0,SUMIF(Orders!$B${first}:$B${last},B1,Orders!$E${first}:$E${last}))"
+    cv["B3"].number_format = USD
+    cv["C1"], cv["C2"], cv["C3"] = "Rows listed below (room for 12)", "Check", "Note"
+    for a in ("C1", "C2", "C3"):
+        cv[a].font = Font(bold=True)
+    cv["D1"] = "=SUMPRODUCT(--(A5:A16<>\"\"))"
+    cv["D2"] = ('=IF(B1="","Pick a customer",IF(AND(D1=B2,ROUND(SUM(D5:D16)-B3,2)=0),"OK","CHECK"))')
+    cv["D3"] = ('=IF(B1="","",IF(B2=0,"No orders found for this name",IF(B2>12,"Only the first 12 are listed","")))')
+    for a in ("B2", "B3", "D1", "D2", "D3"):
+        cv[a].fill = FORMULA_FILL
+        cv[a].alignment = Alignment(horizontal="right")
+    _head_row(cv, 4, ["Order #", "Order date", "Item", "Amount"], [20, 14, 34, 16], height=24)
+    srcs = {"A": "A", "B": "C", "C": "D", "D": "E"}
+    for r in range(5, 17):
+        for col, sc in srcs.items():
+            cv[f"{col}{r}"] = (f"=IFERROR(INDEX(Orders!${sc}${first}:${sc}${last},"
+                               f"MATCH(ROWS($A$4:A{r - 1}),Orders!$F${first}:$F${last},0)),\"\")")
+            cv[f"{col}{r}"].fill = FORMULA_FILL
+        cv[f"B{r}"].number_format = US_DATE
+        cv[f"D{r}"].number_format = USD
+        cv[f"A{r}"].alignment = cv[f"B{r}"].alignment = Alignment(horizontal="left")
+    cv.column_dimensions["E"].width = 3
+    cv.column_dimensions["F"].width = 3
+    cv.column_dimensions["G"].width = 3
+    cv.column_dimensions["H"].width = 24
+    cv["H4"] = "Pick-list names"
+    cv["H4"].fill, cv["H4"].font = HEADER_FILL, HEADER_FONT
+    for i in range(20):
+        cv[f"H{5 + i}"].fill = INPUT_FILL
+        if i < len(names):
+            cv[f"H{5 + i}"] = names[i]
+    dv = DataValidation(type="list", formula1="=$H$5:$H$24", allow_blank=True, errorStyle="warning")
+    dv.showErrorMessage = True
+    dv.errorTitle = "Name not in the pick list"
+    dv.error = "This name is not in the pick list. Keep it only if it is spelled exactly as in the Orders tab."
+    cv.add_data_validation(dv)
+    dv.add("B1")
+    cv.conditional_formatting.add("D2", FormulaRule(formula=['AND($D$2<>"OK",$D$2<>"")'], fill=ALERT_FILL))
+    cv.conditional_formatting.add("D3", FormulaRule(formula=['$B$2>12'], fill=ALERT_FILL))
+    cv.print_area = "A1:D16"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: List Every Order for One Customer (No FILTER Function)",
+        "",
+        "1. Orders tab: type the order number, customer, date, item and amount in A5:E104 (yellow). The sample is 40 fictional orders for 9 customers. Keep each customer's name spelled exactly the same way every time.",
+        "2. Customer view tab: pick a customer in B1 (yellow; the dropdown comes from the yellow names in H5:H24, add more names there). B1 also accepts a typed name.",
+        "3. Helper, Orders F5: =IF(AND('Customer view'!$B$1<>\"\",B5='Customer view'!$B$1),COUNTIF($B$5:B5,'Customer view'!$B$1),\"\"). Rows of the picked customer get 1, 2, 3 ... the others stay blank. The green rows on the Orders tab are the matches.",
+        "4. Customer view A5: =IFERROR(INDEX(Orders!$A$5:$A$104,MATCH(ROWS($A$4:A4),Orders!$F$5:$F$104,0)),\"\"). ROWS($A$4:A4) is 1 in the first row, 2 in the next, and so on, so each row asks for the next match. When there is no next match, MATCH gives #N/A and IFERROR turns it into a blank. Each column has its own INDEX that points at a different column of Orders.",
+        "5. Orders found, B2: =COUNTIF(Orders!$B$5:$B$104,B1). Total, B3: =SUMIF(Orders!$B$5:$B$104,B1,Orders!$E$5:$E$104). D1 counts the rows listed. D2 shows OK when the rows listed equal the orders found and the listed amounts add up to the total.",
+        "6. The list has room for 12 rows. If the customer has more, D2 shows CHECK and D3 says only the first 12 are listed. Copy the last row of results down and change the number in ROWS to make room.",
+        "7. Names are matched ignoring capital letters. A trailing space makes a different name. A blank amount or date in Orders shows as 0 in the list.",
+        "8. Newer versions of Excel and Google Sheets have a FILTER function that does this in one cell. This template does not use it and FILTER was not tested here.",
+        "",
+        "Customers, items and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].page_setup.orientation = "landscape"
+    wb["Orders"].print_title_rows = "4:4"
+    wb["Customer view"].page_setup.orientation = "portrait"
+    wb["Customer view"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-all-orders-for-customer.xlsx")
+
+
+def overnight_shift_hours():
+    from datetime import time
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Shifts"
+    ws["A1"], ws["A2"] = "Hourly rate", "Rate check"
+    ws["A1"].font = ws["A2"].font = Font(bold=True)
+    ws["B1"] = 18
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = USD
+    ws["B2"] = '=IF(ISNUMBER(B1),IF(B1>=0,"OK","Rate must be 0 or more"),"Rate must be a number")'
+    ws["B2"].fill = FORMULA_FILL
+    ws["D1"] = "Fictional night-market and event crew. Column I is the plain end minus start, kept to show the problem."
+    ws["D1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Date", "Name", "Start", "End", "Break (minutes)", "Hours worked (h:mm)",
+                      "Decimal hours", "Pay", "Plain end - start (the problem)", "Review"],
+              [12, 14, 11, 11, 10, 13, 10, 11, 17, 40], height=48)
+    first, last = 5, 64
+    rows = [
+        (date(2026, 10, 9), "Maya", time(18, 0), time(2, 0), 30),
+        (date(2026, 10, 9), "Theo", time(17, 30), time(23, 30), 30),
+        (date(2026, 10, 9), "Priya", time(20, 0), time(0, 0), 0),
+        (date(2026, 10, 10), "Maya", time(18, 0), time(2, 0), 30),
+        (date(2026, 10, 10), "Luis", time(21, 0), time(3, 15), 45),
+        (date(2026, 10, 10), "Dana", time(22, 0), time(22, 0), 30),
+        (date(2026, 10, 11), "Theo", time(9, 0), time(17, 0), 60),
+        (date(2026, 10, 11), "Priya", time(23, 0), time(7, 0), 0),
+        (date(2026, 10, 16), "Luis", time(19, 30), time(1, 45), 15),
+        (date(2026, 10, 16), "Dana", time(17, 0), time(17, 20), 30),
+        (date(2026, 10, 17), "Maya", time(16, 0), time(23, 59), 0),
+        (date(2026, 10, 17), "Theo", time(20, 15), time(1, 5), 20),
+        (date(2026, 10, 17), "Priya", time(18, 0), time(0, 30), None),
+        (date(2026, 10, 18), "Luis", time(12, 0), time(20, 0), 30),
+    ]
+    for r in range(first, last + 1):
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = "h:mm AM/PM"
+        ws[f"E{r}"].number_format = "0"
+        ws[f"J{r}"] = (f'=IF(AND(C{r}="",D{r}=""),"",IF(NOT(AND(ISNUMBER(C{r}),ISNUMBER(D{r}),OR(E{r}="",ISNUMBER(E{r})))),'
+                       f'"Review: start, end or break is not a number",IF(MOD(D{r}-C{r},1)=0,"Review: start equals end (0 or 24 hours?)",'
+                       f'IF(E{r}<0,"Review: break is negative",IF(ROUND(MOD(D{r}-C{r},1)*1440-N(E{r}),4)<0,'
+                       f'"Review: break is longer than the shift","OK")))))')
+        ws[f"F{r}"] = f'=IF(J{r}="OK",MAX(0,MOD(D{r}-C{r},1)-N(E{r})/1440),"")'
+        ws[f"G{r}"] = f'=IF(ISNUMBER(F{r}),ROUND(F{r}*24,2),"")'
+        ws[f"H{r}"] = f'=IF(ISNUMBER(G{r}),IF($B$2="OK",ROUND(G{r}*$B$1,2),"Check rate"),"")'
+        ws[f"I{r}"] = f'=IF(AND(ISNUMBER(C{r}),ISNUMBER(D{r})),D{r}-C{r},"")'
+        ws[f"F{r}"].number_format = ws[f"I{r}"].number_format = "[h]:mm"
+        ws[f"G{r}"].number_format = "0.00"
+        ws[f"H{r}"].number_format = USD
+        for col in "FGHIJ":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "FGHI":
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCDE", row):
+            ws[f"{col}{first + i}"] = v
+    ws.conditional_formatting.add(f"J{first}:J{last}", FormulaRule(formula=[f'LEFT(J{first},6)="Review"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("B2", FormulaRule(formula=['$B$2<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    for col, w in zip("KLM", [3, 46, 14]):
+        ws.column_dimensions[col].width = w
+    F, G, H, I, J = (f"{c}{first}:{c}{last}" for c in "FGHIJ")
+    _summary_block(ws, "L", "M", [
+        (5, "Shifts with hours worked", f"=COUNT({F})", "0"),
+        (6, "Total decimal hours", f"=SUM({G})", "0.00"),
+        (7, "Total pay", f"=SUM({H})", USD),
+        (8, "Rows to review", f'=COUNTIF({J},"Review*")', "0"),
+        (9, "Rows where plain end - start is negative", f'=COUNTIF({I},"<0")', "0"),
+        (10, "Check: every row is OK or Review, hours add up, nothing below row 64",
+         (f'=IF(AND(B2="OK",COUNT({F})=COUNTIF({J},"OK"),COUNT({F})+M8=SUMPRODUCT(--({J}<>"")),'
+          f'ABS(SUM({F})*24-SUM({G}))<=0.005*COUNT({F})+0.000001,COUNTA(A{last + 1}:E500)=0),"OK","CHECK")'), "General"),
+    ])
+    ws["L10"].alignment = Alignment(wrap_text=True, vertical="center")
+    ws.row_dimensions[10].height = 32
+    _ok_format(ws, "M10")
+    dv = DataValidation(type="decimal", operator="greaterThanOrEqual", formula1="0", allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add(f"E{first}:E{last}")
+    ws.print_area = "A1:M64"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Hours Worked Past Midnight With an Unpaid Break",
+        "",
+        "1. Shifts tab: type the hourly rate in B1 (yellow, $18.00). Type each shift's date, name, start, end and break in minutes in A5:E64 (yellow). The sample is 14 fictional shifts. A blank break counts as 0.",
+        "2. Plain end - start, I5: =D5-C5. When the end is after midnight the end time is a smaller fraction of a day than the start, so the result is negative. Whether a negative time shows as #### or as a minus sign depends on the app; in LibreOffice Calc it shows with a minus sign.",
+        "3. Hours worked, F5: =MOD(D5-C5,1)-E5/1440. MOD(x,1) keeps only the fraction of a day, so a negative difference wraps around to the right positive length: 6:00 PM to 2:00 AM gives 8:00. The break is in minutes, and a day has 1440 minutes, so E5/1440 turns it into a time to subtract. The sheet adds N() so a blank break is 0 and MAX(0,...) to remove a tiny negative float tail.",
+        "4. Decimal hours, G5: =ROUND(F5*24,2). Pay, H5: =ROUND(G5*$B$1,2).",
+        "5. Review, J5, says OK or why a row was left out: a start, end or break that is not a number; a start that equals the end (that could be 0 hours or 24 hours, so the sheet does not guess); a negative break; a break longer than the shift. Rows that are not OK get no hours or pay. Rows turn red.",
+        "6. An end exactly at midnight (12:00 AM) works: 8:00 PM to 12:00 AM is 4:00.",
+        "7. The sheet assumes no shift is 24 hours or longer and that each row is one shift.",
+        "8. M10 shows OK when every filled row is OK or Review, the decimal hours add up, the rate is valid and nothing is typed below row 64.",
+        "9. This is arithmetic on times. It says nothing about overtime rules, pay law or what must be paid.",
+        "",
+        "Names, shifts and pay are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Shifts"].page_setup.orientation = "landscape"
+    wb["Shifts"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-overnight-shift-hours.xlsx")
+
+
+def lapsed_customer_flag():
+    import random
+    from datetime import timedelta
+    wb = Workbook()
+    od = wb.active
+    od.title = "Orders"
+    _head_row(od, 1, ["Order date", "Customer", "Amount"], [13, 20, 12], height=24)
+    ofirst, olast = 2, 200
+    rng = random.Random(1030)
+    asof = date(2026, 10, 30)
+    custs = ["Alma Reyes", "Ben Tran", "Cora Lind", "Dev Kapoor", "Elena Marsh", "Felix Ode", "Grace Hale",
+             "Hugo Park", "Iris Wong", "Jonah Bell", "Kira Stone", "Leo Navarro", "Maya Cole", "Nate Dunn",
+             "Opal Frost"]
+    last_offsets = [3, 12, 20, 33, 47, 60, 75, 89, 90, 91, 92, 120, 200, 310, None]
+    orders = []
+    for c, off in zip(custs, last_offsets):
+        if off is not None:
+            orders.append((asof - timedelta(days=off), c, round(rng.uniform(14, 180), 2)))
+    while len(orders) < 40:
+        c, off = rng.choice([(c, o) for c, o in zip(custs, last_offsets) if o is not None])
+        d = asof - timedelta(days=off + rng.randint(15, 240))
+        orders.append((d, c, round(rng.uniform(14, 180), 2)))
+    orders.sort(key=lambda x: (x[0], x[1]))
+    for r in range(ofirst, olast + 1):
+        for col in "ABC":
+            od[f"{col}{r}"].fill = INPUT_FILL
+        od[f"A{r}"].number_format = US_DATE
+        od[f"C{r}"].number_format = USD
+    for i, o in enumerate(orders):
+        for col, v in zip("ABC", o):
+            od[f"{col}{ofirst + i}"] = v
+    od.freeze_panes = "A2"
+    od.print_area = "A1:C41"
+    OA, OB, OC = (f"Orders!${c}${ofirst}:${c}${olast}" for c in "ABC")
+
+    cu = wb.create_sheet("Customers")
+    cu["A1"] = "Fictional customers. As-of date and the days cutoff are on the Settings tab. Status uses: days since last order greater than the cutoff = Lapsed."
+    cu["A1"].font = Font(italic=True)
+    _head_row(cu, 4, ["Customer", "Last order", "Days since", "Status", "Lifetime spend"], [22, 13, 11, 12, 16], height=32)
+    cfirst, clast = 5, 54
+    for r in range(cfirst, clast + 1):
+        cu[f"A{r}"].fill = INPUT_FILL
+        cu[f"B{r}"] = (f'=IF(A{r}="","",IF(COUNTIFS({OB},A{r},{OA},">0")=0,"No orders",'
+                       f'_xlfn.MAXIFS({OA},{OB},A{r})))')
+        cu[f"C{r}"] = f'=IF(AND(ISNUMBER(B{r}),ISNUMBER(Settings!$B$1)),Settings!$B$1-B{r},"")'
+        cu[f"D{r}"] = (f'=IF(A{r}="","",IF(Settings!$B$3<>"OK","Check settings",IF(NOT(ISNUMBER(C{r})),"No orders",'
+                       f'IF(C{r}>Settings!$B$2,"Lapsed","Active"))))')
+        cu[f"E{r}"] = f'=IF(A{r}="","",SUMIF({OB},A{r},{OC}))'
+        cu[f"B{r}"].number_format = US_DATE
+        cu[f"C{r}"].number_format = "0"
+        cu[f"E{r}"].number_format = USD
+        for col in "BCDE":
+            cu[f"{col}{r}"].fill = FORMULA_FILL
+            cu[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, c in enumerate(custs):
+        cu[f"A{cfirst + i}"] = c
+    cu.freeze_panes = "A5"
+    cu.conditional_formatting.add(f"A{cfirst}:E{clast}", FormulaRule(formula=[f'$D{cfirst}="Lapsed"'], fill=ALERT_FILL))
+    cu.conditional_formatting.add(f"A{cfirst}:E{clast}", FormulaRule(formula=[f'$D{cfirst}="No orders"'], fill=PatternFill("solid", fgColor="D9D9D9")))
+    for col, w in zip("FGH", [3, 50, 16]):
+        cu.column_dimensions[col].width = w
+    CA, CD, CE = (f"{c}{cfirst}:{c}{clast}" for c in "ADE")
+    _summary_block(cu, "G", "H", [
+        (5, "Customers listed", f"=COUNTA({CA})", "0"),
+        (6, "Active", f'=COUNTIF({CD},"Active")', "0"),
+        (7, "Lapsed", f'=COUNTIF({CD},"Lapsed")', "0"),
+        (8, "No orders", f'=COUNTIF({CD},"No orders")', "0"),
+        (9, "Lifetime spend of the lapsed customers", f'=SUMIF({CD},"Lapsed",{CE})', USD),
+        (10, "Orders for a name not in the Customers list", f'=SUMPRODUCT(--({OB}<>""),--(COUNTIF({CA},{OB})=0))', "0"),
+        (11, "Orders dated after the as-of date", f'=COUNTIF({OA},">"&Settings!B1)', "0"),
+        (12, "Check: Active + Lapsed + No orders = customers, every order has a listed customer",
+         (f'=IF(AND(Settings!B3="OK",H6+H7+H8=H5,H10=0,'
+          f'SUMPRODUCT(({CA}<>"")*(COUNTIF({CA},{CA})>1))=0,COUNTA(A{clast + 1}:A500)=0),"OK","CHECK")'), "General"),
+    ])
+    cu["G12"].alignment = Alignment(wrap_text=True, vertical="center")
+    cu.row_dimensions[12].height = 32
+    _ok_format(cu, "H12")
+    cu.print_area = "A1:H54"
+
+    st = wb.create_sheet("Settings")
+    st["A1"], st["B1"] = "As-of date", date(2026, 10, 30)
+    st["A2"], st["B2"] = "Days without an order", 90
+    st["A3"] = "Settings check"
+    for r in (1, 2, 3):
+        st[f"A{r}"].font = Font(bold=True)
+    st["B1"].fill = st["B2"].fill = INPUT_FILL
+    st["B1"].number_format = US_DATE
+    st["B3"] = ('=IF(AND(ISNUMBER(B1),ISNUMBER(B2)),IF(AND(B2>=0,B2=INT(B2)),"OK",'
+                '"Days must be a whole number, 0 or more"),"Type a date and a number in the yellow cells")')
+    st["B3"].fill = FORMULA_FILL
+    st["A5"] = "The as-of date is typed on purpose, so the results do not change when the file is opened later."
+    st["A5"].font = Font(italic=True)
+    st.column_dimensions["A"].width = 26
+    st.column_dimensions["B"].width = 46
+    st.conditional_formatting.add("B3", FormulaRule(formula=['$B$3<>"OK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Flag Customers Who Have Not Ordered in 90 Days",
+        "",
+        "1. Settings tab: type the as-of date in B1 (yellow, 10/30/2026) and the number of days in B2 (yellow, 90). B3 shows OK when B1 is a date and B2 is a whole number, 0 or more.",
+        "2. Orders tab: one row per order in A2:C200 (yellow): date, customer, amount. The sample is 40 fictional orders. Customers tab: type the customer names in A5:A54 (yellow); the sample has 15 fictional names.",
+        "3. Last order, B5: =IF(COUNTIFS(Orders!$B$2:$B$200,A5,Orders!$A$2:$A$200,\">0\")=0,\"No orders\",MAXIFS(Orders!$A$2:$A$200,Orders!$B$2:$B$200,A5)). MAXIFS needs Excel 2019 or newer; the file stores it as _xlfn.MAXIFS. It is not tested in Excel here. The COUNTIFS part stops a customer with no dated orders from showing 0 (a date of 12/30/1899). An order whose date is typed as text is ignored.",
+        "4. Days since, C5: =IF(ISNUMBER(B5),Settings!$B$1-B5,\"\"). Status, D5: Lapsed when the days since are more than the cutoff, Active when they are not, No orders when there is no order. Exactly 90 days is still Active; 91 is Lapsed.",
+        "5. Lifetime spend, E5: =SUMIF(Orders!$B$2:$B$200,A5,Orders!$C$2:$C$200).",
+        "6. Summary, G5:H12: customers, Active, Lapsed, No orders, the lifetime spend of the lapsed customers, orders whose customer name is not in the list (a different spelling or a trailing space), and orders dated after the as-of date (those give a negative days since, which stays Active). H12 shows OK when the three statuses add up to the customers, every order name is in the list, no name is listed twice, the settings are valid and nothing is typed below row 54.",
+        "7. To make the answer change every day, type =TODAY() in Settings B1. The flags then move each day and a file you saved last month will show different statuses when you open it.",
+        "8. These are only labels from dates. They do not say whether or how to contact anyone.",
+        "",
+        "Customers, dates and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].page_setup.orientation = "portrait"
+    wb["Customers"].page_setup.orientation = "landscape"
+    wb["Customers"].print_title_rows = "4:4"
+    wb["Settings"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-lapsed-customer-flag.xlsx")
+
+
+def year_over_year_sales():
+    import calendar
+    import random
+    wb = Workbook()
+    od = wb.active
+    od.title = "Orders"
+    _head_row(od, 1, ["Order date", "Amount"], [13, 12], height=24)
+    rng = random.Random(2610)
+    orders = []
+    w25 = {1: 4, 2: 4, 3: 0, 4: 5, 5: 5, 6: 5, 7: 4, 8: 5, 9: 6, 10: 7, 11: 8, 12: 4}
+    w26 = {1: 7, 2: 6, 3: 6, 4: 7, 5: 8, 6: 7, 7: 7, 8: 8, 9: 7}
+    for y, w in ((2025, w25), (2026, w26)):
+        for m, n in w.items():
+            last_day = 29 if (y, m) == (2026, 9) else calendar.monthrange(y, m)[1]
+            days = [1, last_day] + [rng.randint(2, last_day - 1) for _ in range(max(0, n - 2))]
+            for dd in days[:n]:
+                orders.append([date(y, m, dd), round(rng.uniform(9, 96), 2)])
+    orders.sort(key=lambda x: x[0])
+    assert len(orders) == 120, len(orders)
+    # a refund (negative amount) on the last day of May 2026
+    for o in orders:
+        if o[0] == date(2026, 5, 31):
+            o[1] = -24.00
+    for r in range(2, 501):
+        od[f"A{r}"].fill = od[f"B{r}"].fill = INPUT_FILL
+        od[f"A{r}"].number_format = US_DATE
+        od[f"B{r}"].number_format = USD
+    for i, o in enumerate(orders):
+        od[f"A{2 + i}"], od[f"B{2 + i}"] = o
+    od.freeze_panes = "A2"
+    od.print_area = f"A1:B{1 + len(orders)}"
+
+    yy = wb.create_sheet("Year over year")
+    yy["A1"], yy["A2"] = "This year", "Last year"
+    yy["A1"].font = yy["A2"].font = Font(bold=True)
+    yy["B1"] = 2026
+    yy["B1"].fill = INPUT_FILL
+    yy["B1"].number_format = "0"
+    yy["C1"] = '=IF(ISNUMBER(B1),IF(AND(B1=INT(B1),B1>=1901,B1<=9998),"OK","Type a whole year, like 2026"),"Type a whole year, like 2026")'
+    yy["C1"].fill = FORMULA_FILL
+    yy["B2"] = '=IF(C1="OK",B1-1,"")'
+    yy["B2"].fill = FORMULA_FILL
+    yy["B2"].number_format = "0"
+    yy["D1"], yy["D2"] = "Latest order", "Check"
+    yy["D1"].font = yy["D2"].font = Font(bold=True)
+    yy["E1"] = '=IF(COUNT(Orders!$A:$A)=0,"",MAX(Orders!$A:$A))'
+    yy["E1"].number_format = US_DATE
+    yy["E1"].fill = FORMULA_FILL
+    yy["E1"].alignment = Alignment(horizontal="right")
+    _head_row(yy, 3, ["Month", "Month starts", "This year", "Last year", "Change ($)", "Change (%)"],
+              [14, 14, 14, 14, 14, 12], height=30)
+    for r in range(4, 16):
+        yy[f"B{r}"] = f'=IF($C$1<>"OK","",DATE($B$1,ROWS($A$4:A{r}),1))'
+        yy[f"A{r}"] = f'=IF(B{r}="","",TEXT(B{r},"mmmm"))'
+        yy[f"C{r}"] = (f'=IF(B{r}="","",IF(NOT(ISNUMBER($E$1)),"",IF(B{r}>$E$1,"",'
+                       f'SUMIFS(Orders!$B:$B,Orders!$A:$A,">="&B{r},Orders!$A:$A,"<"&EDATE(B{r},1)))))')
+        yy[f"D{r}"] = (f'=IF(B{r}="","",SUMIFS(Orders!$B:$B,Orders!$A:$A,">="&EDATE(B{r},-12),'
+                       f'Orders!$A:$A,"<"&EDATE(B{r},-11)))')
+        yy[f"E{r}"] = f'=IF(OR(C{r}="",D{r}=""),"",ROUND(C{r}-D{r},2))'
+        yy[f"F{r}"] = f'=IF(OR(C{r}="",D{r}=""),"",IF(D{r}=0,"n/a",C{r}/D{r}-1))'
+        yy[f"B{r}"].number_format = US_DATE
+        for col in "CDE":
+            yy[f"{col}{r}"].number_format = USD
+        yy[f"F{r}"].number_format = "0.0%"
+        for col in "ABCDEF":
+            yy[f"{col}{r}"].fill = FORMULA_FILL
+            yy[f"{col}{r}"].alignment = Alignment(horizontal="right" if col != "A" else "left")
+    yy["A16"] = "Total"
+    yy["C16"] = '=IF(OR($C$1<>"OK",COUNT(C4:C15)=0),"",SUM(C4:C15))'
+    yy["D16"] = '=IF($C$1<>"OK","",SUM(D4:D15))'
+    yy["E16"] = '=IF(OR(C16="",D16=""),"",ROUND(C16-D16,2))'
+    yy["F16"] = '=IF(OR(C16="",D16=""),"",IF(D16=0,"n/a",C16/D16-1))'
+    yy["A17"] = "Last year, same months only"
+    yy["D17"] = '=IF(C16="","",SUMPRODUCT(--ISNUMBER(C4:C15),D4:D15))'
+    yy["E17"] = '=IF(OR(C16="",D17=""),"",ROUND(C16-D17,2))'
+    yy["F17"] = '=IF(OR(C16="",D17=""),"",IF(D17=0,"n/a",C16/D17-1))'
+    for r in (16, 17):
+        yy[f"A{r}"].font = Font(bold=True)
+        for col in "CDEF":
+            yy[f"{col}{r}"].fill = FORMULA_FILL
+            yy[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        for col in "CDE":
+            yy[f"{col}{r}"].number_format = USD
+        yy[f"F{r}"].number_format = "0.0%"
+    yy["A19"], yy["A20"], yy["A21"], yy["A22"] = "Best month (biggest $ gain)", "Weakest month (biggest $ drop)", "Orders without a real date", "Orders in other years"
+    yy["C19"] = '=IF(COUNT(E4:E15)=0,"n/a",IF(MAX(E4:E15)<=0,"No month is up",INDEX(A4:A15,MATCH(MAX(E4:E15),E4:E15,0))))'
+    yy["C20"] = '=IF(COUNT(E4:E15)=0,"n/a",IF(MIN(E4:E15)>=0,"No month is down",INDEX(A4:A15,MATCH(MIN(E4:E15),E4:E15,0))))'
+    yy["C21"] = '=SUMPRODUCT(--(Orders!$B$2:$B$1000<>""),--NOT(ISNUMBER(Orders!$A$2:$A$1000)))'
+    yy["C22"] = ('=IF(C1<>"OK",0,COUNT(Orders!$A$2:$A$1000)-COUNTIFS(Orders!$A$2:$A$1000,">="&DATE(B1-1,1,1),'
+                 'Orders!$A$2:$A$1000,"<"&DATE(B1+1,1,1)))')
+    for r in (19, 20, 21, 22):
+        yy[f"A{r}"].font = Font(bold=True)
+        yy[f"C{r}"].fill = FORMULA_FILL
+        yy[f"C{r}"].alignment = Alignment(horizontal="right")
+    prev = 'SUMIFS(Orders!$B:$B,Orders!$A:$A,">="&DATE(B1-1,1,1),Orders!$A:$A,"<"&DATE(B1,1,1))'
+    cur = 'SUMIFS(Orders!$B:$B,Orders!$A:$A,">="&DATE(B1,1,1),Orders!$A:$A,"<"&DATE(B1+1,1,1))'
+    yy["E2"] = (f'=IF(C1<>"OK","CHECK",IF(C16="",IF(AND(C21=0,ABS(D16-{prev})<0.005,'
+                f'COUNTIFS(Orders!$A:$A,">="&DATE(B1,1,1),Orders!$A:$A,"<"&DATE(B1+1,1,1))=0),"OK","CHECK"),'
+                f'IF(AND(C21=0,ABS(C16-{cur})<0.005,ABS(D16-{prev})<0.005),"OK","CHECK")))')
+    yy["E2"].fill = FORMULA_FILL
+    yy["E2"].alignment = Alignment(horizontal="right")
+    yy["A24"] = "A blank this-year cell means the month starts after the latest order."
+    yy["A25"] = "Nothing is recorded yet. It is not a month of zero sales."
+    yy["A26"] = "The latest month shown may be partial. With no month shown, totals stay blank."
+    for r in (24, 25, 26):
+        yy[f"A{r}"].font = Font(italic=True)
+    yy.conditional_formatting.add("E2", FormulaRule(formula=['$E$2<>"OK"'], fill=ALERT_FILL))
+    yy.conditional_formatting.add("C1", FormulaRule(formula=['$C$1<>"OK"'], fill=ALERT_FILL))
+    yy.conditional_formatting.add("F4:F15", FormulaRule(formula=['ISNUMBER(F4)*(F4<0)'], fill=ALERT_FILL))
+    yy.conditional_formatting.add("F4:F15", FormulaRule(formula=['F4="n/a"'], fill=PatternFill("solid", fgColor="D9D9D9")))
+    dv = DataValidation(type="whole", operator="between", formula1="1901", formula2="9998", allow_blank=False)
+    yy.add_data_validation(dv)
+    dv.add("B1")
+    yy.column_dimensions["A"].width = 30
+    yy.print_area = "A1:F26"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Compare This Year's Sales to Last Year, Month by Month",
+        "",
+        "1. Orders tab: type the order date and amount in A2:B500 (yellow). The sample is 120 fictional orders from an online shop, from 01/01/2025 to 09/29/2026. A refund is a negative amount. The formulas read whole columns A and B, so orders added below are counted.",
+        "2. Year over year tab: type the year to look at in B1 (yellow, 2026). B2 is the year before. C1 shows OK when B1 is a whole year.",
+        "3. Month starts, B4: =DATE($B$1,ROWS($A$4:A4),1). ROWS counts 1, 2, 3 ... down the table, so each row is the next month.",
+        "4. This year, C4: =SUMIFS(Orders!$B:$B,Orders!$A:$A,\">=\"&B4,Orders!$A:$A,\"<\"&EDATE(B4,1)). It adds amounts dated on or after the first of the month and before the first of the next month, so the first and last day of the month are both included. A month that starts after the latest order date (E1) is left blank.",
+        "5. Last year, D4: the same SUMIFS with EDATE(B4,-12) and EDATE(B4,-11), the same month one year earlier. Change ($), E4: =ROUND(C4-D4,2). Change (%), F4: =IF(D4=0,\"n/a\",C4/D4-1), so a month with no sales last year shows n/a, not #DIV/0!.",
+        "6. Totals, row 16. Row 17 compares this year with last year over only the months shown in this year, which is the fair comparison when this year is not over.",
+        "7. Best month, C19: =INDEX(A4:A15,MATCH(MAX(E4:E15),E4:E15,0)), the month with the biggest dollar gain; the weakest month is the same with MIN. A tie gives the first month.",
+        "8. E2 shows OK when the year is valid, no order has a missing or text date, and both yearly totals equal a SUMIFS over the full calendar year. C22 counts orders from other years (not an error).",
+        "9. A percent change on a month with a small or negative base can look extreme. The sheet shows the numbers; it does not judge them.",
+        "",
+        "Orders and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].page_setup.orientation = "portrait"
+    wb["Year over year"].page_setup.orientation = "landscape"
+    wb["Year over year"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-year-over-year-sales.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -9665,4 +10257,9 @@ if __name__ == "__main__":
     giveaway_random_winners()
     average_ignore_zeros()
     customer_tiers()
+    billable_time_rounding()
+    all_orders_for_customer()
+    overnight_shift_hours()
+    lapsed_customer_flag()
+    year_over_year_sales()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

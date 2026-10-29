@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfFSOr7EbVH
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-fix-total-that-is-off-by-one.html
 title: How to Fix a Total That Is Off by One Cent in Excel and Google Sheets
 labels: excel-formulas, small-business, rounding
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model that uses Decimal with half-up rounding. Checked: the 8-line sample, all whole cents, half-cent prices with odd quantities, 20 lines of 1 x $0.125, a large quantity, negative quantities, a zero quantity, one line only, random 3 and 4 decimal prices, a blank row, and a price typed as text. Excel and Google Sheets were not used.

@@ -161,3 +161,10 @@
 - How to Pick Random Giveaway Winners From a List in Excel and Google Sheets - `pick-random-giveaway-winners-no-repeats-rand-rank-excel-google-sheets`
 - How to Average a Range and Ignore Zeros, Blanks and Text in Excel and Google Sheets - `average-ignore-zeros-blanks-text-averageif-excel-google-sheets`
 - How to Label Customers Bronze, Silver or Gold by Total Spend in Excel and Google Sheets - `label-customers-bronze-silver-gold-by-spend-ifs-excel-google-sheets`
+
+## Researcher 2026-10-30 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 수식은 아직 LibreOffice 에서 실행하지 않음 - 빌드 때 확인, 상세는 tasks/team-topics-2026-10-30.md)
+- How to Round Billable Time Up to the Nearest 15 Minutes in Excel and Google Sheets - `round-billable-time-up-to-15-minutes-roundup-excel-google-sheets`
+- How to List All Orders for One Customer From a Data List in Excel and Google Sheets - `list-all-orders-for-one-customer-countif-index-match-excel-google-sheets`
+- How to Calculate Hours Worked Past Midnight With an Unpaid Break in Excel and Google Sheets - `hours-worked-overnight-shift-unpaid-break-mod-excel-google-sheets`
+- How to Flag Customers Who Have Not Ordered in 90 Days in Excel and Google Sheets - `flag-customers-no-order-in-90-days-maxifs-excel-google-sheets`
+- How to Compare This Year's Sales to Last Year Month by Month in Excel and Google Sheets - `year-over-year-sales-by-month-sumifs-excel-google-sheets`

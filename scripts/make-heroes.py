@@ -486,7 +486,42 @@ def heroes_2026_10_29():
          render(short_sheet_copy(t + "tidy-tabs-customer-tiers.xlsx", "Customers", 29, "tiers"), "Customers", name="tiers"))
 
 
+def compact_copy(src, sheet, last_row, name, hide_rows=(), labels=None, clear=()):
+    """Short copy of a tab: rows below last_row and hide_rows hidden, long wrapped labels
+    replaced (labels={cell: text}) so no row grows tall, and note cells in clear emptied."""
+    wb = load_workbook(src)
+    ws = wb[sheet]
+    for r in list(hide_rows) + list(range(last_row + 1, ws.max_row + 1)):
+        ws.row_dimensions[r].hidden = True
+    for cell, text in (labels or {}).items():
+        ws[cell] = text
+        ws.row_dimensions[ws[cell].row].height = 15
+    for cell in clear:
+        ws[cell] = None
+    path = f"{rp.TMP}/{name}-compact.xlsx"
+    wb.save(path)
+    return path
+
+
+def heroes_2026_10_30():
+    t = "templates/"
+    d = "images/2026-10-30-team-0%d-%s/"
+    save(d % (1, "round-billable-time-up-to-15-minutes-roundup-excel-google-sheets") + "billable-time-rounding-template.png",
+         render(compact_copy(t + "tidy-tabs-billable-time-rounding.xlsx", "Time log", 19, "billable", hide_rows=[1, 2, 3], labels={"L11": "Check"}), "Time log", hide_cols="ACKLM", name="billable"))
+    save(d % (2, "list-all-orders-for-one-customer-countif-index-match-excel-google-sheets") + "all-orders-for-customer-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-all-orders-for-customer.xlsx", "Customer view", 16, "custview"), "Customer view", name="custview"))
+    save(d % (3, "hours-worked-overnight-shift-unpaid-break-mod-excel-google-sheets") + "overnight-shift-hours-template.png",
+         render(compact_copy(t + "tidy-tabs-overnight-shift-hours.xlsx", "Shifts", 18, "overnight", hide_rows=[3], labels={"L10": "Check"}, clear=["D1"]), "Shifts", hide_cols="GKLM", widths={"J": 40}, name="overnight"))
+    save(d % (4, "flag-customers-no-order-in-90-days-maxifs-excel-google-sheets") + "lapsed-customer-flag-template.png",
+         render(compact_copy(t + "tidy-tabs-lapsed-customer-flag.xlsx", "Customers", 19, "lapsed", hide_rows=[1, 2, 3], labels={"G12": "Check"}), "Customers", name="lapsed"))
+    save(d % (5, "year-over-year-sales-by-month-sumifs-excel-google-sheets") + "year-over-year-sales-template.png",
+         render(short_sheet_copy(t + "tidy-tabs-year-over-year-sales.xlsx", "Year over year", 22, "yoy"), "Year over year", name="yoy"))
+
+
 def main():
+    if "--only-2026-10-30" in sys.argv:
+        heroes_2026_10_30()
+        return
     if "--only-2026-10-29" in sys.argv:
         heroes_2026_10_29()
         return

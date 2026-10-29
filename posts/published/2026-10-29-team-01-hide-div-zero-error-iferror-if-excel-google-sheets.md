@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfE-bBpGjjm
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-fix-and-hide-div0-error-in-excel.html
 title: How to Fix and Hide the #DIV/0! Error in Excel and Google Sheets
 labels: excel-formulas, small-business, error-handling
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model (14 workbooks, 728 cell comparisons). Checked: all Visits zero, blank or text, 0 divided by 0, negative Visits, blank or text Orders, a typo in a formula, and Visits typed as the text "0". Excel and Google Sheets were not used.

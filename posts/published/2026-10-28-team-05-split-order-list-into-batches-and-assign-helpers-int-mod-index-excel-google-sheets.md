@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfDrObZicFi
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-split-list-into-batches-of-10.html
 title: How to Split a List Into Batches of 10 and Assign Helpers in Turn in Excel and Google Sheets
 labels: excel-formulas, small-business, lists
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and every cell in rows 5 to 204 was compared with Python divmod. Checked: 45 orders in batches of 10 with 3 helpers, batch 7 with 4 helpers, 0, 1, 9, 10, 11, 20, 100, 199 and 200 orders with batch sizes 1, 7 and 10 and 1 to 5 helpers, blank rows in the middle, mixed text and number order numbers, a bad batch size, a gap or duplicate in the helper list, and an order typed below the table. Excel and Google Sheets were not opened.

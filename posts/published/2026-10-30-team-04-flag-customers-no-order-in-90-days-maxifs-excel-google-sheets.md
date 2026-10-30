@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfIZVx3mTR3
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-flag-customers-who-have-not.html
 title: How to Flag Customers Who Have Not Ordered in 90 Days in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model of the last order date and day count, in 27 workbooks (1,932 cell comparisons, 0 mismatches after two fixes). Checked: an order exactly 90 days back, 91 days back, a moved as-of date, cutoffs from 0 to 1000, orders dated after the as-of date, a customer with no orders, capital letters, a trailing space, a duplicate name, an unlisted name, text dates and invalid settings. MAXIFS was checked as the _xlfn.MAXIFS form stored in the .xlsx file. TODAY() in the as-of cell was not run. Excel and Google Sheets were not used.

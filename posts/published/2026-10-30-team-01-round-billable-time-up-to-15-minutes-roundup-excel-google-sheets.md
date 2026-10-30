@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfHjNcsFWM2
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-round-billable-time-up-to.html
 title: How to Round Billable Time Up to the Nearest 15 Minutes in Excel and Google Sheets
 labels: excel-formulas, freelancers, time-tracking
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model (20 workbooks, 907 cell comparisons, 0 mismatches). Checked: blocks of 1, 6, 15, 30 and 60 minutes, 0 and 1 minute, exact multiples, seconds in the times, a start after the end, a missing start or end, text times, and invalid settings. Excel and Google Sheets were not used.

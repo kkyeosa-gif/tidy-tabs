@@ -10130,6 +10130,727 @@ def year_over_year_sales():
     wb.save(OUT / "tidy-tabs-year-over-year-sales.xlsx")
 
 
+def consignment_payouts():
+    from datetime import timedelta
+    wb = Workbook()
+    sh = wb.active
+    sh.title = "Shops"
+    sa = wb.create_sheet("Sales")
+    # Sales sheet
+    sa["A1"] = "Fictional sample sales. One row per sale: yellow cells are yours to type. Gray cells are formulas."
+    sa["A1"].font = Font(italic=True)
+    _head_row(sa, 4, ["Sale date", "Shop", "Item", "Price each", "Qty", "Gross", "Shop's cut", "Your share"],
+              [13, 24, 24, 12, 7, 12, 12, 12], height=24)
+    first, last = 5, 204
+    SF, SG, SH_ = (f"Sales!${c}${first}:${c}${last}" for c in "FGH")
+    SB, SE = f"Sales!$B${first}:$B${last}", f"Sales!$E${first}:$E${last}"
+    items = {
+        "Maple Street Gifts": [("Soy candle, large", 18.00), ("Greeting card 6-pack", 12.00), ("Ceramic mug", 22.00)],
+        "Harbor Art Co-op": [("Ceramic mug", 24.00), ("Watercolor print", 35.00), ("Soy candle, large", 20.00)],
+        "Cedar & Stone Boutique": [("Greeting card 6-pack", 12.50), ("Soy candle, small", 9.50), ("Ceramic mug", 23.00)],
+    }
+    shops = list(items)
+    plan = ([0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 2])
+    qtys = [2, 1, 3, 1, 2, 3, 4, 1, 1, 2, 1, 2, 1, 3, 1, 2, 2, 3, 1, 1, 2, 3, 1, 1, 2, 1, 2, 2, 3, 4]
+    start = date(2026, 9, 1)
+    rows = []
+    cnt = {s: 0 for s in shops}
+    for i, (s, q) in enumerate(zip(plan, qtys)):
+        shop = shops[s]
+        it, price = items[shop][cnt[shop] % 3]
+        cnt[shop] += 1
+        if shop == "Cedar & Stone Boutique" and i == 5:
+            it, price, q = "Greeting card 6-pack", 12.50, 3
+        rows.append((start + timedelta(days=int(i * 57 / 29)), shop, it, price, q))
+    rows[-1] = (date(2026, 10, 28),) + rows[-1][1:]
+    for r in range(first, last + 1):
+        for col in "ABCDE":
+            sa[f"{col}{r}"].fill = INPUT_FILL
+        sa[f"A{r}"].number_format = US_DATE
+        sa[f"D{r}"].number_format = USD
+        sa[f"E{r}"].number_format = "0"
+        sa[f"F{r}"] = (f'=IF(COUNTA(A{r}:E{r})=0,"",IF(AND(ISNUMBER(D{r}),ISNUMBER(E{r})),'
+                       f'ROUND(D{r}*E{r},2),"Check amounts"))')
+        sa[f"G{r}"] = (f'=IF(NOT(ISNUMBER(F{r})),"",IF(COUNTIFS(Shops!$A$5:$A$14,B{r},Shops!$B$5:$B$14,">=0",'
+                       f'Shops!$B$5:$B$14,"<=1")=0,"Check shop",'
+                       f'ROUND(F{r}*INDEX(Shops!$B$5:$B$14,MATCH(B{r},Shops!$A$5:$A$14,0)),2)))')
+        sa[f"H{r}"] = f'=IF(ISNUMBER(G{r}),ROUND(F{r}-G{r},2),"")'
+        for col in "FGH":
+            sa[f"{col}{r}"].fill = FORMULA_FILL
+            sa[f"{col}{r}"].number_format = USD
+            sa[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCDE", row):
+            sa[f"{col}{first + i}"] = v
+    sa.freeze_panes = "A5"
+    sa.conditional_formatting.add(f"A{first}:H{last}", FormulaRule(
+        formula=[f'OR($G{first}="Check shop",$F{first}="Check amounts")'], fill=ALERT_FILL))
+    sa.print_area = f"A1:H{first + 29}"
+
+    # Shops sheet
+    sh["A1"] = "Fictional shops and rates. Commission rate = the share of each sale the shop keeps. Paid so far = what the shop has already sent you."
+    sh["A1"].font = Font(italic=True)
+    _head_row(sh, 4, ["Shop name", "Commission rate (shop keeps)", "Paid to you so far", "Gross sales",
+                      "Shop's cut", "Your share", "Still owed to you", "Items sold", "Flag"],
+              [26, 16, 14, 13, 13, 13, 13, 9, 26], height=46)
+    sfirst, slast = 5, 14
+    for r in range(sfirst, slast + 1):
+        for col in "ABC":
+            sh[f"{col}{r}"].fill = INPUT_FILL
+        sh[f"B{r}"].number_format = "0%"
+        sh[f"C{r}"].number_format = USD
+        sh[f"D{r}"] = f'=IF(A{r}="","",SUMIFS({SF},{SB},A{r}))'
+        sh[f"E{r}"] = f'=IF(A{r}="","",SUMIFS({SG},{SB},A{r}))'
+        sh[f"F{r}"] = f'=IF(A{r}="","",SUMIFS({SH_},{SB},A{r}))'
+        sh[f"G{r}"] = f'=IF(A{r}="","",IF(AND(C{r}<>"",NOT(ISNUMBER(C{r}))),"Check paid",ROUND(F{r}-N(C{r}),2)))'
+        sh[f"H{r}"] = f'=IF(A{r}="","",SUMIFS({SE},{SB},A{r}))'
+        sh[f"I{r}"] = (f'=IF(A{r}="","",IF(NOT(AND(ISNUMBER(B{r}),B{r}>=0,B{r}<=1)),"Check rate",'
+                       f'IF(NOT(ISNUMBER(G{r})),"Check paid",IF(G{r}<0,"Check: paid more than owed",""))))')
+        for col in "DEFG":
+            sh[f"{col}{r}"].number_format = USD
+        sh[f"H{r}"].number_format = "0"
+        for col in "DEFGHI":
+            sh[f"{col}{r}"].fill = FORMULA_FILL
+            sh[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, rate, paid) in enumerate([("Maple Street Gifts", 0.30, 150.00), ("Harbor Art Co-op", 0.40, 0.00),
+                                         ("Cedar & Stone Boutique", 0.35, 85.00)]):
+        sh[f"A{sfirst + i}"], sh[f"B{sfirst + i}"], sh[f"C{sfirst + i}"] = n, rate, paid
+    sh["A15"] = "Total"
+    for col in "CDEFGH":
+        sh[f"{col}15"] = f"=SUM({col}{sfirst}:{col}{slast})"
+        sh[f"{col}15"].number_format = "0" if col == "H" else USD
+        sh[f"{col}15"].fill = FORMULA_FILL
+        sh[f"{col}15"].font = Font(bold=True)
+        sh[f"{col}15"].alignment = Alignment(horizontal="right")
+    sh["A15"].font = Font(bold=True)
+    sh.conditional_formatting.add(f"A{sfirst}:I{slast}", FormulaRule(formula=[f'LEFT($I{sfirst},5)="Check"'], fill=ALERT_FILL))
+    sh.column_dimensions["J"].width = 3
+    sh.column_dimensions["K"].width = 44
+    sh.column_dimensions["L"].width = 16
+    A = f"$A${sfirst}:$A${slast}"
+    _summary_block(sh, "K", "L", [
+        (5, "Shops listed", f"=COUNTA({A})", "0"),
+        (6, "Sale rows", f'=COUNTIF({SF},">0")+COUNTIF({SF},"<=0")', "0"),
+        (7, "Sales rows with an unlisted shop or bad rate", f'=COUNTIF({SG},"Check shop")', "0"),
+        (8, "Sales rows with a missing price or quantity", f'=COUNTIF({SF},"Check amounts")', "0"),
+        (9, "Shops paid more than they owe", f'=COUNTIF($I${sfirst}:$I${slast},"Check: paid*")', "0"),
+        (10, "Gross sales on the Sales tab", f"=SUM({SF})", USD),
+        (11, "Shop's cut on the Sales tab", f"=SUM({SG})", USD),
+        (12, "Your share on the Sales tab", f"=SUM({SH_})", USD),
+        (13, "Check: gross = cut + your share, every sale has a listed shop and amounts, no shop is listed twice",
+         (f'=IF(AND(ROUND(SUM({SF})-SUM({SG})-SUM({SH_}),2)=0,COUNTIF({SG},"Check shop")=0,'
+          f'COUNTIF({SF},"Check amounts")=0,'
+          f'SUMPRODUCT(({A}<>"")*(COUNTIF({A},{A})>1))=0,'
+          f'COUNTIF($I${sfirst}:$I${slast},"Check rate")+COUNTIF($I${sfirst}:$I${slast},"Check paid")=0,'
+          f'ROUND(SUM($F${sfirst}:$F${slast})-SUM({SH_}),2)=0,'
+          f'COUNTA(Sales!A{last + 1}:E500)=0),"OK","Check")'), "General"),
+    ])
+    sh["K13"].alignment = Alignment(wrap_text=True, vertical="center")
+    sh.row_dimensions[13].height = 46
+    _ok_format(sh, "L13")
+    sh.freeze_panes = "A5"
+    sh.print_area = "A1:L15"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Calculate Consignment Payouts for Each Shop",
+        "",
+        "1. Shops tab: list each shop once in A5:A14 (yellow), its commission rate in B (the share of each sale the shop keeps, formatted as a percent) and what it has already paid you in C. The sample has 3 fictional shops.",
+        "2. Sales tab: one row per sale in A5:E204 (yellow): date, shop, item, price each, quantity. The shop name must match the Shops list exactly (capital letters do not matter; a trailing space does). The sample has 30 fictional sales.",
+        "3. Gross, F5: =IF(COUNTA(A5:E5)=0,\"\",IF(AND(ISNUMBER(D5),ISNUMBER(E5)),ROUND(D5*E5,2),\"Check amounts\")).",
+        "4. Shop's cut, G5: the sale times the shop's rate, rounded to cents on each sale: =ROUND(F5*INDEX(Shops!$B$5:$B$14,MATCH(B5,Shops!$A$5:$A$14,0)),2). A shop that is not in the list, or has no rate between 0% and 100%, shows Check shop.",
+        "5. Your share, H5: =ROUND(F5-G5,2). Because the cut is rounded on each sale, the cut plus your share equals the gross to the cent.",
+        "6. Shops tab totals: D5 =SUMIFS(Sales!$F$5:$F$204,Sales!$B$5:$B$204,A5), E5 and F5 the same on columns G and H of Sales, H5 the quantity. Still owed to you, G5: =ROUND(F5-N(C5),2). A negative number means the shop has paid you more than your share; the Flag column says so.",
+        "7. L13 shows OK when gross = cut + your share, every sale has a listed shop and amounts, no shop is listed twice, rates and paid amounts are numbers, and nothing is typed below row 204 on the Sales tab. A shop paid more than it owes does not change L13; it is counted in L9.",
+        "8. This is arithmetic on the numbers you type. It does not say what your agreement with a shop requires, who owns unsold stock, or whether a shop collected sales tax.",
+        "",
+        "Shops, items, dates and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Shops"].page_setup.orientation = "landscape"
+    wb["Shops"].print_title_rows = "4:4"
+    wb["Sales"].page_setup.orientation = "portrait"
+    wb["Sales"].print_title_rows = "4:4"
+    wb["How to use"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-consignment-payouts.xlsx")
+
+
+def custom_order_deposits():
+    from datetime import date
+    wb = Workbook()
+    od = wb.active
+    od.title = "Orders"
+    od["A1"] = "Fictional custom orders. Payments are on the Payments tab; the as-of date is on the Settings tab. Yellow cells are inputs, gray cells are formulas."
+    od["A1"].font = Font(italic=True)
+    _head_row(od, 4, ["Order #", "Customer", "Item", "Order total", "Due date", "Paid so far", "Balance due", "Status", "Deposit percent"],
+              [11, 18, 26, 13, 12, 13, 13, 17, 12], height=32)
+    first, last = 5, 64
+    pfirst, plast = 5, 104
+    PA, PC = (f"Payments!${c}${pfirst}:${c}${plast}" for c in "AC")
+    orders = [
+        ("CO-1001", "Hana Ortiz", "Wedding sign, cedar", 480.00, date(2026, 11, 20)),
+        ("CO-1002", "Marcus Bell", "Cake topper set", 85.00, date(2026, 10, 24)),
+        ("CO-1003", "Priya Nair", "Embroidered tote x 12", 200.00, date(2026, 10, 29)),
+        ("CO-1004", "Lena Fischer", "Custom pet portrait", 120.00, date(2026, 11, 8)),
+        ("CO-1005", "Tom Reyes", "Monogram blanket", 95.00, date(2026, 10, 31)),
+        ("CO-1006", "Dana Kim", "Engraved cutting board", 75.00, date(2026, 10, 20)),
+        ("CO-1007", "Chloe Burns", "Birthday banner set", 45.00, date(2026, 10, 28)),
+        ("CO-1008", "Omar Haddad", "Ceramic mug set x 6", 180.00, date(2026, 11, 12)),
+        ("CO-1009", "Ruth Gold", "Table runner, linen", 130.00, date(2026, 11, 3)),
+        ("CO-1010", "Jenna Wu", "Crochet baby blanket", 160.00, date(2026, 12, 1)),
+        ("CO-1011", "Sam Alvarez", "Hand-lettered menu board", 220.00, date(2026, 10, 15)),
+        ("CO-1012", "Nia Brooks", "Leather key fobs x 10", 90.00, date(2026, 11, 5)),
+    ]
+    for r in range(first, last + 1):
+        for col in "ABCDE":
+            od[f"{col}{r}"].fill = INPUT_FILL
+        od[f"D{r}"].number_format = USD
+        od[f"E{r}"].number_format = US_DATE
+        od[f"F{r}"] = f'=IF(A{r}="","",SUMIF({PA},A{r},{PC}))'
+        od[f"G{r}"] = f'=IF(A{r}="","",IF(ISNUMBER(D{r}),ROUND(D{r}-F{r},2),""))'
+        late = f'AND(ISNUMBER(E{r}),E{r}<Settings!$B$1)'
+        od[f"H{r}"] = (f'=IF(A{r}="","",IF(Settings!$B$2<>"OK","Check settings",IF(NOT(ISNUMBER(D{r})),"Check total",'
+                       f'IF(G{r}<0,"Overpaid",IF(G{r}=0,"Paid in full",IF(F{r}=0,IF({late},"Past due","Awaiting deposit"),'
+                       f'IF({late},"Past due","Deposit received")))))))')
+        od[f"I{r}"] = f'=IF(A{r}="","",IF(ISNUMBER(D{r}),IF(D{r}=0,"",ROUND(F{r}/D{r},4)),""))'
+        od[f"F{r}"].number_format = USD
+        od[f"G{r}"].number_format = USD
+        od[f"I{r}"].number_format = "0%"
+        for col in "FGHI":
+            od[f"{col}{r}"].fill = FORMULA_FILL
+            od[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, o in enumerate(orders):
+        for col, v in zip("ABCDE", o):
+            od[f"{col}{first + i}"] = v
+    od.freeze_panes = "A5"
+    rng = f"A{first}:I{last}"
+    od.conditional_formatting.add(rng, FormulaRule(formula=[f'$H{first}="Past due"'], fill=ALERT_FILL))
+    od.conditional_formatting.add(rng, FormulaRule(formula=[f'$H{first}="Paid in full"'], fill=DONE_FILL))
+    od.conditional_formatting.add(rng, FormulaRule(formula=[f'$H{first}="Overpaid"'], fill=PatternFill("solid", fgColor="D9D9D9")))
+    od.column_dimensions["J"].width = 3
+    od.column_dimensions["K"].width = 42
+    od.column_dimensions["L"].width = 14
+    H = f"H{first}:H{last}"
+    od["K1"] = "Summary"
+    od["K1"].font = Font(bold=True)
+    _summary_block(od, "K", "L", [
+        (2, "Orders listed", f"=COUNTA(A{first}:A{last})", "0"),
+        (3, "Total ordered", f"=SUM(D{first}:D{last})", USD),
+        (4, "Total received", f"=SUM(F{first}:F{last})", USD),
+        (5, "Total balance due (overpaid orders count as negative)", f"=ROUND(SUM(G{first}:G{last}),2)", USD),
+        (6, "Past due orders", f'=COUNTIF({H},"Past due")', "0"),
+        (7, "Past due balance", f'=SUMIF({H},"Past due",G{first}:G{last})', USD),
+        (8, "Payments with no matching order or a text amount", f'=COUNTIF(Payments!$E${pfirst}:$E${plast},"No order")+COUNTIF(Payments!$E${pfirst}:$E${plast},"Check amount")', "0"),
+        (9, "Orders whose order # is listed twice", f'=SUMPRODUCT((A{first}:A{last}<>"")*(COUNTIF(A{first}:A{last},A{first}:A{last})>1))', "0"),
+        (10, "Orders with a missing or text total", f'=COUNTIF({H},"Check total")', "0"),
+        (11, "Check: ordered - received = balance due, every payment has an order",
+         '=IF(AND(Settings!B2="OK",ROUND(L3-L4-L5,2)=0,L8=0,L9=0,L10=0),"OK","CHECK")', "General"),
+    ])
+    od["K11"].alignment = Alignment(wrap_text=True, vertical="center")
+    od["K5"].alignment = Alignment(wrap_text=True, vertical="center")
+    od.row_dimensions[11].height = 32
+    od.row_dimensions[5].height = 32
+    _ok_format(od, "L11")
+    od.print_area = f"A1:L{last}"
+
+    pa = wb.create_sheet("Payments")
+    pa["A1"] = "One row per payment. Type the order number exactly as it is on the Orders tab. Amount must be a number."
+    pa["A1"].font = Font(italic=True)
+    _head_row(pa, 4, ["Order #", "Date", "Amount", "Method", "Check"], [12, 13, 13, 12, 16], height=24)
+    pay = [
+        ("CO-1002", date(2026, 9, 14), 25.00, "Cash"), ("CO-1011", date(2026, 9, 20), 60.00, "Venmo"),
+        ("CO-1001", date(2026, 9, 22), 80.00, "Card"), ("CO-1007", date(2026, 9, 25), 20.00, "Cash"),
+        ("CO-1003", date(2026, 10, 5), 60.00, "Venmo"), ("CO-1008", date(2026, 10, 6), 50.00, "Card"),
+        ("CO-1009", date(2026, 10, 7), 65.00, "Check"), ("CO-1012", date(2026, 10, 9), 15.00, "Venmo"),
+        ("CO-1010", date(2026, 10, 10), 20.00, "Card"), ("CO-1002", date(2026, 10, 12), 15.00, "Cash"),
+        ("CO-1001", date(2026, 10, 14), 70.00, "Check"), ("CO-1008", date(2026, 10, 15), 50.00, "Card"),
+        ("CO-1011", date(2026, 10, 17), 40.00, "Venmo"), ("CO-1007", date(2026, 10, 20), 25.00, "Cash"),
+        ("CO-1012", date(2026, 10, 22), 15.00, "Venmo"), ("CO-1001", date(2026, 10, 24), 100.00, "Card"),
+        ("CO-1003", date(2026, 10, 27), 140.00, "Check"), ("CO-1009", date(2026, 10, 28), 70.00, "Cash"),
+        ("CO-1008", date(2026, 10, 29), 30.00, "Venmo"), ("CO-1010", date(2026, 10, 30), 20.00, "Card"),
+    ]
+    for r in range(pfirst, plast + 1):
+        for col in "ABCD":
+            pa[f"{col}{r}"].fill = INPUT_FILL
+        pa[f"B{r}"].number_format = US_DATE
+        pa[f"C{r}"].number_format = USD
+        pa[f"E{r}"] = (f'=IF(AND(A{r}="",C{r}=""),"",IF(A{r}="","No order",IF(COUNTIF(Orders!$A${first}:$A${last},A{r})=0,"No order",'
+                       f'IF(ISNUMBER(C{r}),"","Check amount"))))')
+        pa[f"E{r}"].fill = FORMULA_FILL
+    for i, p in enumerate(pay):
+        for col, v in zip("ABCD", p):
+            pa[f"{col}{pfirst + i}"] = v
+    pa.freeze_panes = "A5"
+    pa.conditional_formatting.add(f"A{pfirst}:E{plast}", FormulaRule(formula=[f'$E{pfirst}<>""'], fill=ALERT_FILL))
+    pa.print_area = f"A1:E{plast}"
+
+    st = wb.create_sheet("Settings")
+    st["A1"], st["B1"] = "As-of date", date(2026, 10, 31)
+    st["A2"] = "Settings check"
+    st["A1"].font = st["A2"].font = Font(bold=True)
+    st["B1"].fill = INPUT_FILL
+    st["B1"].number_format = US_DATE
+    st["B2"] = '=IF(ISNUMBER(B1),"OK","Type a real date in the yellow cell")'
+    st["B2"].fill = FORMULA_FILL
+    st["A4"] = "The as-of date is typed on purpose, so the Past due labels do not change when the file is opened later."
+    st["A4"].font = Font(italic=True)
+    st.column_dimensions["A"].width = 18
+    st.column_dimensions["B"].width = 40
+    st.conditional_formatting.add("B2", FormulaRule(formula=['$B$2<>"OK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Track Deposits and Balance Due on Custom Orders",
+        "",
+        "1. Settings tab: type the as-of date in B1 (yellow, 10/31/2026). B2 shows OK when B1 is a real date.",
+        "2. Orders tab: one row per order in A5:E64 (yellow): order number, customer, item, order total, due date. The sample has 12 fictional orders.",
+        "3. Payments tab: one row per payment in A5:D104 (yellow): order number, date, amount, method. The sample has 20 fictional payments. Column E says No order when the order number is not on the Orders tab, or Check amount when the amount is text.",
+        "4. Paid so far, Orders F5: =IF(A5=\"\",\"\",SUMIF(Payments!$A$5:$A$104,A5,Payments!$C$5:$C$104)). SUMIF ignores capital letters but not extra spaces, and it skips amounts stored as text.",
+        "5. Balance due, G5: =ROUND(D5-F5,2). Negative means the customer paid more than the order total.",
+        "6. Status, H5: Overpaid, Paid in full, Past due (balance above $0.00 and the due date is before the as-of date), Deposit received or Awaiting deposit. A due date equal to the as-of date is not Past due.",
+        "7. Deposit percent, I5: =ROUND(F5/D5,4) shown as a percent.",
+        "8. Summary, K2:L11. L11 is the CHECK: it shows OK when ordered minus received equals the balance due, every payment has an order and a numeric amount, no order number is listed twice and the settings are valid.",
+        "9. To make Past due move each day, type =TODAY() in Settings B1. The statuses then change when you open the file later.",
+        "10. This sheet only does arithmetic. It does not say whether a deposit is refundable or what a contract requires.",
+        "",
+        "Customers, orders and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].page_setup.orientation = "landscape"
+    wb["Orders"].print_title_rows = "4:4"
+    wb["Payments"].page_setup.orientation = "portrait"
+    wb["Payments"].print_title_rows = "4:4"
+    wb["Settings"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-custom-order-deposits.xlsx")
+
+
+
+def lookup_to_the_left():
+    wb = Workbook()
+    pr = wb.active
+    pr.title = "Products"
+    pr["A1"] = "Fictional shop catalog. The SKU is in column B, to the RIGHT of the product name in column A. Yellow cells are yours to replace."
+    pr["A1"].font = Font(italic=True)
+    _head_row(pr, 4, ["Product name", "SKU", "Price", "Stock"], [34, 12, 11, 9], height=24)
+    pfirst, plast = 5, 44
+    prods = [
+        ("Lavender candle, 8 oz", "CND-001", 18.00, 24),
+        ("Cedar candle, 8 oz", "CND-002", 18.00, 17),
+        ("Vanilla bean candle, 4 oz", "CND-003", 12.50, 31),
+        ("Citrus grove candle, 8 oz", "CND-004", 18.00, 9),
+        ("Pine forest candle, 12 oz", "CND-005", 24.00, 12),
+        ("Beeswax taper pair", "CND-006", 14.00, 20),
+        ("Oatmeal goat milk soap", "SOP-010", 8.00, 48),
+        ("Charcoal soap bar", "SOP-011", 8.50, 36),
+        ("Rose clay soap", "SOP-012", 9.00, 22),
+        ("Honey almond soap", "SOP-013", 8.00, 40),
+        ("Lemon poppy seed soap", "SOP-014", 8.50, 15),
+        ("Peppermint shaving soap", "SOP-015", 10.00, 8),
+        ("Sandalwood reed diffuser", "SND-010", 26.00, 11),
+        ("Lavender reed diffuser", "SND-011", 26.00, 14),
+        ("Eucalyptus reed diffuser", "SND-012", 26.00, 6),
+        ("Diffuser refill oil, 4 oz", "SND-020", 15.00, 33),
+        ("Wooden wick trimmer", "ACC-001", 9.50, 19),
+        ("Brass candle snuffer", "ACC-002", 16.00, 7),
+        ("Soap dish, ceramic", "ACC-003", 12.00, 25),
+        ("Linen gift bag", "ACC-004", 4.00, 60),
+        ("Gift set: soap and candle", "SET-001", 28.00, 13),
+        ("Gift set: three soaps", "SET-002", 22.00, 10),
+        ("Travel tin candle, 2 oz", "TRV-001", 7.50, 44),
+        ("Travel soap, 1 oz", "TRV-002", 3.50, 52),
+        ("Sample card, assorted scents", "TRV-003", 5.00, 70),
+    ]
+    for r in range(pfirst, plast + 1):
+        for col in "ABCD":
+            pr[f"{col}{r}"].fill = INPUT_FILL
+        pr[f"C{r}"].number_format = USD
+        pr[f"D{r}"].number_format = "0"
+    for i, row in enumerate(prods):
+        for col, v in zip("ABCD", row):
+            pr[f"{col}{pfirst + i}"] = v
+    pr.freeze_panes = "A5"
+    pr.print_area = f"A1:D{pfirst + len(prods) + 4}"
+    PA, PB, PC, PD = (f"Products!${c}${pfirst}:${c}${plast}" for c in "ABCD")
+
+    lk = wb.create_sheet("Lookup")
+    lk["A1"] = "Type or paste a SKU in column A. Column B finds the product NAME, which sits to the left of the SKU, with INDEX and MATCH. Column E shows why VLOOKUP cannot do it."
+    lk["A1"].font = Font(italic=True)
+    lk["A2"] = "Fictional lookups: two SKUs are not in the catalog, one has a trailing space, one is typed in lower case, and one row is blank."
+    lk["A2"].font = Font(italic=True)
+    _head_row(lk, 4, ["SKU to look up", "Product name (INDEX/MATCH, left of SKU)", "Price (INDEX/MATCH)", "Stock (INDEX/MATCH)",
+                      "VLOOKUP to the left (searches column A)", "VLOOKUP to the right (price, works)", "Row found in list"],
+              [16, 34, 12, 11, 22, 20, 12], height=62)
+    lfirst, llast = 5, 64
+    keys = ["CND-001", "SOP-014", "CND-004 ", "snd-010", None, "ZZZ-999", "TRV-003", "ACC-002", "SET-001",
+            "CND-777", "SOP-010", "SND-020", "ACC-004", "TRV-001", "SND-012", "CND-006"]
+    for r in range(lfirst, llast + 1):
+        lk[f"A{r}"].fill = INPUT_FILL
+        lk[f"A{r}"].number_format = "@"
+        key = f"TRIM(A{r})"
+        lk[f"B{r}"] = f'=IF(A{r}="","",IFERROR(INDEX({PA},MATCH({key},{PB},0)),"Not found"))'
+        lk[f"C{r}"] = f'=IF(A{r}="","",IFERROR(INDEX({PC},MATCH({key},{PB},0)),"Not found"))'
+        lk[f"D{r}"] = f'=IF(A{r}="","",IFERROR(INDEX({PD},MATCH({key},{PB},0)),"Not found"))'
+        lk[f"E{r}"] = f'=IF(A{r}="","",IFERROR(VLOOKUP(A{r},Products!$A${pfirst}:$D${plast},1,FALSE),"Not found"))'
+        lk[f"F{r}"] = f'=IF(A{r}="","",IFERROR(VLOOKUP({key},Products!$B${pfirst}:$D${plast},2,FALSE),"Not found"))'
+        lk[f"G{r}"] = f'=IF(A{r}="","",IFERROR(MATCH({key},{PB},0),"Not found"))'
+        lk[f"C{r}"].number_format = USD
+        lk[f"F{r}"].number_format = USD
+        for col in "BCDEFG":
+            lk[f"{col}{r}"].fill = FORMULA_FILL
+            lk[f"{col}{r}"].alignment = Alignment(horizontal="left" if col == "B" else "right")
+    for i, k in enumerate(keys):
+        if k is not None:
+            lk[f"A{lfirst + i}"] = k
+    lk.freeze_panes = "A5"
+    lk.conditional_formatting.add(f"A{lfirst}:G{llast}", FormulaRule(formula=[f'AND($A{lfirst}<>"",$B{lfirst}="Not found")'], fill=ALERT_FILL))
+    for col, w in zip("HIJ", [3, 44, 14]):
+        lk.column_dimensions[col].width = w
+    LA, LB, LG = (f"{c}{lfirst}:{c}{llast}" for c in "ABG")
+    _summary_block(lk, "I", "J", [
+        (5, "Lookups entered", f"=COUNTA({LA})", "0"),
+        (6, "Found", f'=SUMPRODUCT(({LA}<>"")*({LB}<>"Not found"))', "0"),
+        (7, "Not found", f'=SUMPRODUCT(({LA}<>"")*({LB}="Not found"))', "0"),
+        (8, "SKUs listed in Products", f"=COUNTA({PB})", "0"),
+        (9, "Duplicate SKUs in Products (first match wins)",
+         f'=SUMPRODUCT(({PB}<>"")*(COUNTIF({PB},{PB})>1))', "0"),
+        (10, "Check: found + not found = entered, row numbers agree, no duplicate SKUs, nothing below the tables",
+         (f'=IF(AND(J6+J7=J5,COUNT({LG})=J6,J9=0,COUNTA(A{llast + 1}:A500)=0,'
+          f'COUNTA(Products!B{plast + 1}:B500)=0),"OK","CHECK")'), "General"),
+    ])
+    lk["I9"].alignment = lk["I10"].alignment = Alignment(wrap_text=True, vertical="center")
+    lk.row_dimensions[9].height = 32
+    lk.row_dimensions[10].height = 46
+    _ok_format(lk, "J10")
+    lk.print_area = f"A1:J{llast}"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Look Up a Value to the Left of the Key Column",
+        "",
+        "1. Products tab: one row per product in A5:D44 (yellow). The SKU is in column B, so the product name is to its left. The sample is 25 fictional products.",
+        "2. Lookup tab: type or paste SKUs in A5:A64 (yellow). The sample has 15 fictional lookups and one blank row.",
+        "3. Product name, B5: =IF(A5=\"\",\"\",IFERROR(INDEX(Products!$A$5:$A$44,MATCH(TRIM(A5),Products!$B$5:$B$44,0)),\"Not found\")). MATCH finds the row number of the SKU in column B; INDEX returns the cell in that row from column A. The 0 means exact match.",
+        "4. TRIM removes a trailing or leading space that came along with a pasted SKU. MATCH with 0 ignores capital letters in LibreOffice Calc (snd-010 finds SND-010). Not checked in Excel or Google Sheets.",
+        "5. Price and Stock, C5 and D5, use the same form on column C and column D.",
+        "6. Column E tries =VLOOKUP(A5,Products!$A$5:$D$44,1,FALSE). VLOOKUP searches the FIRST column of its range, here the names in column A, so a SKU is never found. Column F shows the form that does work, searching the range that starts at the SKU: =VLOOKUP(TRIM(A5),Products!$B$5:$D$44,2,FALSE).",
+        "7. Column G shows the row number MATCH returns, counting from the first product row.",
+        "8. If a SKU is listed twice in Products, MATCH returns the first one only. Summary J9 counts the rows involved and J10 shows CHECK.",
+        "9. A SKU stored as a number in Products does not match the same digits in the lookup, because TRIM returns text. Keep SKUs as text in both places.",
+        "10. J10 shows OK when found + not found = entered, the row numbers agree, no SKU is listed twice, and nothing is typed below row 64 on Lookup or row 44 on Products.",
+        "",
+        "Products, SKUs and prices are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Products"].page_setup.orientation = "portrait"
+    wb["Lookup"].page_setup.orientation = "landscape"
+    wb["Lookup"].print_title_rows = "4:4"
+    wb["Products"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-lookup-to-the-left.xlsx")
+
+
+def days_of_stock_left():
+    import random
+    from datetime import timedelta
+    wb = Workbook()
+    pr = wb.active
+    pr.title = "Products"
+    asof = date(2026, 10, 31)
+    rng = random.Random(1031)
+    # sku, product, on hand, units sold in the 30 day window, number of sales rows
+    prods = [
+        ("TEE-S", "Logo tee, small", 16, 24, 4), ("TEE-M", "Logo tee, medium", 30, 36, 5),
+        ("TEE-L", "Logo tee, large", 0, 12, 3), ("MUG-01", "Enamel mug", 24, 45, 5),
+        ("STK-10", "Sticker pack", 240, 90, 8), ("TOT-02", "Canvas tote bag", 9, 18, 4),
+        ("CAP-01", "Embroidered cap", 60, 9, 3), ("PIN-05", "Enamel pin", 42, 60, 6),
+        ("PRT-810", "Art print, 8 x 10 in", 21, 15, 3), ("NTB-01", "Pocket notebook", 21, 21, 4),
+        ("CND-08", "Soy candle, 8 oz", 12, 0, 0), ("GFT-SET", "Gift set box", 3, 6, 3),
+    ]
+    sales = []
+    for sku, _, _, tot, n in prods:
+        if n == 0:
+            continue
+        cuts = sorted(rng.sample(range(1, tot), n - 1))
+        parts = [b - a for a, b in zip([0] + cuts, cuts + [tot])]
+        for q in parts:
+            sales.append([asof - timedelta(days=rng.randint(1, 29)), sku, q])
+    sales[0][0] = asof - timedelta(days=29)      # 10/02, first day inside the window
+    sales[1][0] = asof - timedelta(days=1)       # 10/30
+    old = [(31, "CND-08", 2), (35, "CND-08", 1), (41, "CND-08", 3), (30, "TEE-M", 5), (31, "STK-10", 8),
+           (32, "PIN-05", 4), (35, "MUG-01", 3), (36, "TOT-02", 2), (38, "TEE-S", 2), (40, "NTB-01", 3),
+           (33, "GFT-SET", 1), (34, "CAP-01", 2)]
+    for off, sku, q in old:
+        sales.append([asof - timedelta(days=off), sku, q])
+    sales.sort(key=lambda x: (x[0], x[1]))
+
+    sl = wb.create_sheet("Sales")
+    sl["A1"] = "Fictional sales log. One row per sale: date, SKU, units. Keep SKUs spelled as in Products. The look-back window is set on the Settings tab."
+    sl["A1"].font = Font(italic=True)
+    _head_row(sl, 4, ["Date", "SKU", "Qty sold"], [13, 14, 10], height=24)
+    sfirst, slast = 5, 204
+    for r in range(sfirst, slast + 1):
+        for col in "ABC":
+            sl[f"{col}{r}"].fill = INPUT_FILL
+        sl[f"A{r}"].number_format = US_DATE
+    for i, row in enumerate(sales):
+        for col, v in zip("ABC", row):
+            sl[f"{col}{sfirst + i}"] = v
+    sl.freeze_panes = "A5"
+    sl.print_area = "A1:C64"
+    SA, SB, SC = (f"Sales!${c}${sfirst}:${c}${slast}" for c in "ABC")
+    WIN = f'{SA},">"&Settings!$B$1-Settings!$B$2,{SA},"<="&Settings!$B$1'
+
+    pr["A1"] = "Fictional shop. As-of date, look-back days and the warning level are on the Settings tab. Days left is rounded down."
+    pr["A1"].font = Font(italic=True)
+    _head_row(pr, 4, ["SKU", "Product", "On hand", "Sold in window", "Average per day", "Days left", "Runs out about", "Status"],
+              [11, 24, 10, 11, 11, 15, 14, 16], height=32)
+    pfirst, plast = 5, 44
+    for r in range(pfirst, plast + 1):
+        for col in "ABC":
+            pr[f"{col}{r}"].fill = INPUT_FILL
+        pr[f"D{r}"] = (f'=IF(A{r}="","",IF(Settings!$B$4<>"OK","",SUMIFS({SC},{SB},A{r},{WIN})))')
+        pr[f"E{r}"] = f'=IF(A{r}="","",IF(ISNUMBER(D{r}),ROUND(D{r}/Settings!$B$2,2),""))'
+        pr[f"F{r}"] = (f'=IF(A{r}="","",IF(OR(NOT(ISNUMBER(C{r})),C{r}<0),"Check on hand",'
+                       f'IF(NOT(ISNUMBER(E{r})),"",IF(E{r}=0,"No recent sales",INT(C{r}/E{r})))))')
+        pr[f"G{r}"] = f'=IF(ISNUMBER(F{r}),Settings!$B$1+F{r},"")'
+        pr[f"H{r}"] = (f'=IF(A{r}="","",IF(Settings!$B$4<>"OK","Check settings",IF(F{r}="Check on hand","Check on hand",'
+                       f'IF(C{r}=0,"Out of stock",IF(F{r}="No recent sales","No recent sales",'
+                       f'IF(F{r}<Settings!$B$3,"Order soon","OK"))))))')
+        pr[f"D{r}"].number_format = "0"
+        pr[f"E{r}"].number_format = "0.00"
+        pr[f"F{r}"].number_format = "0"
+        pr[f"G{r}"].number_format = US_DATE
+        for col in "DEFGH":
+            pr[f"{col}{r}"].fill = FORMULA_FILL
+            pr[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (sku, name, oh, _, _) in enumerate(prods):
+        pr[f"A{pfirst + i}"], pr[f"B{pfirst + i}"], pr[f"C{pfirst + i}"] = sku, name, oh
+    pr.freeze_panes = "A5"
+    pr.conditional_formatting.add(f"A{pfirst}:H{plast}", FormulaRule(formula=[f'$H{pfirst}="Order soon"'], fill=ALERT_FILL))
+    pr.conditional_formatting.add(f"A{pfirst}:H{plast}", FormulaRule(formula=[f'OR($H{pfirst}="Out of stock",$H{pfirst}="No recent sales")'], fill=PatternFill("solid", fgColor="D9D9D9")))
+    pr.conditional_formatting.add(f"A{pfirst}:H{plast}", FormulaRule(formula=[f'OR($H{pfirst}="Check on hand",$H{pfirst}="Check settings")'], fill=ALERT_FILL))
+    for col, w in zip("IJK", [3, 52, 16]):
+        pr.column_dimensions[col].width = w
+    PF, PD = f"F{pfirst}:F{plast}", f"D{pfirst}:D{plast}"
+    PH = f"H{pfirst}:H{plast}"
+    _summary_block(pr, "J", "K", [
+        (5, "Products counted", f"=COUNTA(A{pfirst}:A{plast})", "0"),
+        (6, "Order soon", f'=COUNTIF({PH},"Order soon")', "0"),
+        (7, "Out of stock", f'=COUNTIF({PH},"Out of stock")', "0"),
+        (8, "No recent sales", f'=COUNTIF({PH},"No recent sales")', "0"),
+        (9, "Fewest days left", f'=IF(COUNT({PF})=0,"n/a",MIN({PF}))', "0"),
+        (10, "Product with the fewest days left", f'=IF(COUNT({PF})=0,"n/a",INDEX(B{pfirst}:B{plast},MATCH(MIN({PF}),{PF},0)))', "General"),
+        (11, "Units sold in the window, all of the Sales tab", f'=IF(Settings!$B$4<>"OK","",SUMIFS({SC},{WIN}))', "0"),
+        (12, "Units in the window for a SKU not in Products", f'=IF(K11="","",ROUND(K11-SUM({PD}),2))', "0"),
+        (13, "Sales rows to fix (bad date, qty or blank SKU)",
+         (f'=SUMPRODUCT((({SA}<>"")+({SB}<>"")+({SC}<>"")>0)*(1-ISNUMBER({SA})*ISNUMBER({SC})*({SB}<>"")))'), "0"),
+        (14, "SKUs listed twice in Products", f'=SUMPRODUCT((A{pfirst}:A{plast}<>"")*(COUNTIF(A{pfirst}:A{plast},A{pfirst}:A{plast})>1))', "0"),
+        (15, "Check: window units match the products, no bad sales rows, no repeated SKU",
+         (f'=IF(Settings!$B$4<>"OK","CHECK",IF(AND(K12=0,K13=0,K14=0,COUNTA(A{plast + 1}:A500)=0,'
+          f'COUNTA(Sales!A{slast + 1}:C500)=0),"OK","CHECK"))'), "General"),
+    ])
+    pr["J15"].alignment = Alignment(wrap_text=True, vertical="center")
+    pr.row_dimensions[15].height = 32
+    _ok_format(pr, "K15")
+    pr.print_area = "A1:K44"
+
+    st = wb.create_sheet("Settings")
+    st["A1"], st["B1"] = "As-of date", asof
+    st["A2"], st["B2"] = "Days of sales to look back", 30
+    st["A3"], st["B3"] = "Warn when days left is below", 21
+    st["A4"] = "Settings check"
+    for r in (1, 2, 3, 4):
+        st[f"A{r}"].font = Font(bold=True)
+    st["B1"].fill = st["B2"].fill = st["B3"].fill = INPUT_FILL
+    st["B1"].number_format = US_DATE
+    st["B4"] = ('=IF(AND(ISNUMBER(B1),ISNUMBER(B2),ISNUMBER(B3)),IF(AND(B2>=1,B2<=90,B2=INT(B2),B3>=0),"OK",'
+                '"Look-back: whole number 1 to 90. Warning: 0 or more"),"Type a date and two numbers in the yellow cells")')
+    st["B4"].fill = FORMULA_FILL
+    st["A6"] = "The as-of date is typed on purpose, so the results do not change when the file is opened later."
+    st["A6"].font = Font(italic=True)
+    st["A7"] = "The window counts sales after (as-of date minus look-back days) up to and including the as-of date."
+    st["A7"].font = Font(italic=True)
+    st.column_dimensions["A"].width = 32
+    st.column_dimensions["B"].width = 46
+    st.conditional_formatting.add("B4", FormulaRule(formula=['$B$4<>"OK"'], fill=ALERT_FILL))
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Days of Stock Left From Recent Sales",
+        "",
+        "1. Settings tab: type the as-of date in B1 (yellow, 10/31/2026), the days of sales to look back in B2 (30, whole number 1 to 90) and the warning level in B3 (21). B4 shows OK when all three are valid.",
+        "2. Sales tab: one row per sale in A5:C204 (yellow): date, SKU, quantity. The sample is 60 fictional rows from 09/20/2026 to 10/30/2026; only the ones in the window count.",
+        "3. Products tab: SKU, product and on hand in A5:C44 (yellow). The sample has 12 fictional products.",
+        "4. Sold in window, D5: =SUMIFS(Sales!$C$5:$C$204,Sales!$B$5:$B$204,A5,Sales!$A$5:$A$204,\">\"&Settings!$B$1-Settings!$B$2,Sales!$A$5:$A$204,\"<=\"&Settings!$B$1). With 30 days and an as-of date of 10/31/2026 the window is 10/02/2026 to 10/31/2026; a sale on 10/01/2026 is left out.",
+        "5. Average per day, E5: =ROUND(D5/Settings!$B$2,2). Days left, F5: =INT(C5/E5), rounded down, using the rounded average in E. No sales in the window shows No recent sales. Runs out about, G5: as-of date plus days left.",
+        "6. Status, H5: Out of stock when on hand is 0, Order soon when days left is below the warning level (exactly 21 stays OK), No recent sales, otherwise OK.",
+        "7. Summary, J5:K15: counts, the product with the fewest days left, sales rows to fix, and a CHECK in K15. CHECK shows when the units in the window do not match the Products tab (a SKU missing from Products, a typo or a trailing space), a sales row has a text date or quantity, a SKU is listed twice, or data sits below the table.",
+        "8. This is a simple average of the last few weeks. It ignores seasons, sales that come in bursts and how long a restock takes. It is arithmetic on your own numbers, not a forecast.",
+        "",
+        "SKUs, products and quantities are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Products"].page_setup.orientation = "landscape"
+    wb["Products"].print_title_rows = "4:4"
+    wb["Sales"].print_title_rows = "4:4"
+    wb["Settings"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-days-of-stock-left.xlsx")
+
+
+def weekly_cash_flow_forecast():
+    wb = Workbook()
+    it = wb.active
+    it.title = "Items"
+    it["A1"] = "Expected money in and out. Type the date, a description, In or Out, and the amount as a positive number."
+    it["A1"].font = Font(italic=True)
+    it["A2"] = "Fictional freelancer and shop. Amounts are guesses, not a promise."
+    it["A2"].font = Font(italic=True)
+    _head_row(it, 4, ["Date", "Description", "Type", "Amount", "Row check"], [13, 30, 9, 13, 16], height=24)
+    ifirst, ilast = 5, 104
+    items = [
+        (date(2026, 11, 2), "Studio rent", "Out", 650.00),
+        (date(2026, 11, 4), "Supplies order", "Out", 320.00),
+        (date(2026, 11, 6), "Client invoice 2040", "In", 600.00),
+        (date(2026, 11, 9), "Etsy payout", "In", 340.00),
+        (date(2026, 11, 9), "Software subscription", "Out", 45.00),
+        (date(2026, 11, 16), "Insurance payment", "Out", 210.00),
+        (date(2026, 11, 19), "Craft fair booth fee", "Out", 180.00),
+        (date(2026, 11, 20), "Client invoice 2041", "In", 1800.00),
+        (date(2026, 11, 23), "Etsy payout", "In", 410.00),
+        (date(2026, 11, 25), "Packaging and labels", "Out", 260.00),
+        (date(2026, 11, 30), "Kiln repair", "Out", 1275.00),
+        (date(2026, 12, 2), "Studio rent", "Out", 650.00),
+        (date(2026, 12, 3), "Supplies order", "Out", 1650.00),
+        (date(2026, 12, 7), "Etsy payout", "In", 190.00),
+        (date(2026, 12, 9), "Software subscription", "Out", 45.00),
+        (date(2026, 12, 14), "Etsy payout", "In", 690.00),
+        (date(2026, 12, 16), "Insurance payment", "Out", 210.00),
+        (date(2026, 12, 18), "Client invoice 2042", "In", 1250.00),
+        (date(2026, 12, 21), "Etsy payout", "In", 560.00),
+        (date(2026, 12, 22), "Shipping supplies", "Out", 240.00),
+        (date(2026, 12, 28), "Holiday market booth fee", "Out", 150.00),
+        (date(2027, 1, 4), "Studio rent", "Out", 650.00),
+        (date(2027, 1, 8), "Supplies order", "Out", 300.00),
+        (date(2027, 1, 11), "Software subscription", "Out", 45.00),
+        (date(2027, 1, 15), "Insurance payment", "Out", 210.00),
+        (date(2027, 1, 18), "Etsy payout", "In", 380.00),
+        (date(2027, 1, 21), "Craft fair booth fee", "Out", 220.00),
+        (date(2027, 1, 22), "Client invoice 2043", "In", 1400.00),
+        (date(2027, 1, 29), "Client invoice 2044", "In", 1100.00),
+        (date(2027, 1, 29), "Etsy payout", "In", 300.00),
+    ]
+    assert len(items) == 30
+    for r in range(ifirst, ilast + 1):
+        for col in "ABCD":
+            it[f"{col}{r}"].fill = INPUT_FILL
+        it[f"A{r}"].number_format = US_DATE
+        it[f"D{r}"].number_format = USD
+        it[f"E{r}"] = (f'=IF(AND(A{r}="",B{r}="",C{r}="",D{r}=""),"",IF(NOT(ISNUMBER(A{r})),"Check date",'
+                       f'IF(AND(C{r}<>"In",C{r}<>"Out"),"Check type",IF(NOT(ISNUMBER(D{r})),"Check amount",'
+                       f'IF(D{r}<0,"Check amount",IF(ISNUMBER(Forecast!$B$2),IF(OR(A{r}<Forecast!$B$2,A{r}>=Forecast!$B$2+91),'
+                       f'"Outside weeks",""),""))))))')
+        it[f"E{r}"].fill = FORMULA_FILL
+    for i, row in enumerate(items):
+        for col, v in zip("ABCD", row):
+            it[f"{col}{ifirst + i}"] = v
+    dvt = DataValidation(type="list", formula1='"In,Out"', allow_blank=True)
+    it.add_data_validation(dvt)
+    dvt.add(f"C{ifirst}:C{ilast}")
+    it.conditional_formatting.add(f"A{ifirst}:E{ilast}", FormulaRule(formula=[f'LEFT($E{ifirst},5)="Check"'], fill=ALERT_FILL))
+    it.conditional_formatting.add(f"A{ifirst}:E{ilast}", FormulaRule(formula=[f'$E{ifirst}="Outside weeks"'], fill=PatternFill("solid", fgColor="D9D9D9")))
+    it.freeze_panes = "A5"
+    it.print_area = f"A1:E{ilast}"
+    IA, IC, ID, IE = (f"Items!${c}${ifirst}:${c}${ilast}" for c in "ACDE")
+
+    fc = wb.create_sheet("Forecast")
+    fc["A1"], fc["A2"], fc["A3"] = "Opening balance", "First Monday", "Low-balance line"
+    for a in ("A1", "A2", "A3"):
+        fc[a].font = Font(bold=True)
+    fc["B1"], fc["B2"], fc["B3"] = 2400, date(2026, 11, 2), 500
+    for a in ("B1", "B2", "B3"):
+        fc[a].fill = INPUT_FILL
+    fc["B1"].number_format = fc["B3"].number_format = USD
+    fc["B2"].number_format = US_DATE
+    fc["C2"] = '=IF(ISNUMBER(B2),TEXT(B2,"dddd"),"Type a date")'
+    fc["C2"].fill = FORMULA_FILL
+    fc["A4"] = "The low-balance line is a number you pick. It is not advice."
+    fc["A4"].font = Font(italic=True)
+    _head_row(fc, 5, ["Week starts", "Week ends", "Money in", "Money out", "Net", "Ending balance", "Flag"],
+              [18, 13, 13, 13, 13, 16, 13], height=32)
+    wfirst, wlast = 6, 18
+    for r in range(wfirst, wlast + 1):
+        fc[f"A{r}"] = f'=IF(ISNUMBER($B$2),$B$2+7*(ROWS($A$6:A{r})-1),"")'
+        fc[f"B{r}"] = f'=IF(A{r}="","",A{r}+6)'
+        for col, typ in (("C", "In"), ("D", "Out")):
+            fc[f"{col}{r}"] = (f'=IF(A{r}="","",SUMIFS({ID},{IC},"{typ}",{IA},">="&A{r},{IA},"<"&A{r}+7))')
+        fc[f"E{r}"] = f'=IF(A{r}="","",ROUND(C{r}-D{r},2))'
+        fc[f"F{r}"] = f'=IF(OR(A{r}="",NOT(ISNUMBER($B$1))),"",ROUND(IF(ROWS($A$6:A{r})=1,$B$1,F{r - 1})+E{r},2))'
+        fc[f"G{r}"] = f'=IF(OR(F{r}="",NOT(ISNUMBER($B$3))),"",IF(F{r}<$B$3,"Below line",""))'
+        fc[f"A{r}"].number_format = fc[f"B{r}"].number_format = US_DATE
+        for col in "CDEF":
+            fc[f"{col}{r}"].number_format = USD
+        for col in "ABCDEFG":
+            fc[f"{col}{r}"].fill = FORMULA_FILL
+            fc[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    fc["A19"] = "Total"
+    fc["A19"].font = Font(bold=True)
+    for col in "CDE":
+        fc[f"{col}19"] = f'=IF(COUNT({col}6:{col}18)=0,"",ROUND(SUM({col}6:{col}18),2))'
+        fc[f"{col}19"].number_format = USD
+    for col in "ABCDEFG":
+        fc[f"{col}19"].fill = FORMULA_FILL
+        fc[f"{col}19"].alignment = Alignment(horizontal="right" if col != "A" else "left")
+    fc.conditional_formatting.add("A6:G18", FormulaRule(formula=['$G6="Below line"'], fill=ALERT_FILL))
+    fc.column_dimensions["H"].width = 3
+    fc.column_dimensions["I"].width = 44
+    fc.column_dimensions["J"].width = 16
+    _summary_block(fc, "I", "J", [
+        (1, "Lowest ending balance", '=IF(COUNT(F6:F18)=0,"n/a",MIN(F6:F18))', USD),
+        (2, "Week that lowest balance begins", '=IF(COUNT(F6:F18)=0,"n/a",INDEX(A6:A18,MATCH(MIN(F6:F18),F6:F18,0)))', US_DATE),
+        (3, "Weeks below the line", '=COUNTIF(G6:G18,"Below line")', "0"),
+        (4, "Ending balance after week 13", '=IF(ISNUMBER(F18),F18,"n/a")', USD),
+        (5, "Items dated outside the 13 weeks",
+         f'=IF(ISNUMBER(B2),COUNTIFS({IA},"<"&B2)+COUNTIFS({IA},">="&B2+91),0)', "0"),
+        (6, "Item rows to fix (date, type or amount)", f'=SUMPRODUCT(--(LEFT({IE},5)="Check"))', "0"),
+        (7, "Check: ending balance matches opening + in - out, nothing to fix",
+         ('=IF(NOT(AND(ISNUMBER(B1),ISNUMBER(B2),ISNUMBER(B3))),"Check",'
+          'IF(AND(ROUND(B1+SUM(C6:C18)-SUM(D6:D18)-F18,2)=0,J5=0,J6=0,'
+          f'COUNTA(Items!A{ilast + 1}:D500)=0),"OK","Check"))'), "General"),
+    ])
+    fc["I2"].alignment = Alignment(wrap_text=True, vertical="center")
+    fc["I7"].alignment = Alignment(wrap_text=True, vertical="center")
+    fc.row_dimensions[7].height = 32
+    fc.row_dimensions[2].height = 30
+    fc.conditional_formatting.add("J7", FormulaRule(formula=['AND($J$7<>"OK",$J$7<>"")'], fill=ALERT_FILL))
+    dvd = DataValidation(type="date", operator="greaterThan", formula1="36526", allow_blank=False)
+    fc.add_data_validation(dvd)
+    dvd.add("B2")
+    fc.freeze_panes = "A6"
+    fc.print_area = "A1:J19"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Weekly Cash Flow Forecast with the Lowest Balance",
+        "",
+        "1. Items tab: one row per expected payment in A5:D104 (yellow): date, description, Type (In or Out) and Amount. Type the amount as a positive number; the Type column says which way the money goes. The sample is 30 fictional items.",
+        "2. Forecast tab: type the opening balance in B1, the first Monday in B2 and a low-balance line in B3 (all yellow). The line is a number you choose, not advice. The sample uses $2,400.00, 11/02/2026 and $500.00. If B2 is not a Monday, the weeks still run 7 days from that date.",
+        "3. Week starts, A6: =IF(ISNUMBER($B$2),$B$2+7*(ROWS($A$6:A6)-1),\"\"). ROWS counts 1, 2, 3 ... down the table, so each row starts 7 days after the one above. Week ends, B6: =A6+6.",
+        "4. Money in, C6: =SUMIFS(Items!$D$5:$D$104,Items!$C$5:$C$104,\"In\",Items!$A$5:$A$104,\">=\"&A6,Items!$A$5:$A$104,\"<\"&A6+7). It adds amounts typed In whose date is on or after the week start and before the next week start, so every day belongs to exactly one week. Money out, D6, is the same with \"Out\".",
+        "5. Net, E6: =ROUND(C6-D6,2). Ending balance, F6: the opening balance (first row) or the row above, plus the week's net. The first row reads B1 directly, so the header text is never used. Flag, G6: Below line when the ending balance is under B3.",
+        "6. Summary, I1:J7: the lowest ending balance =MIN(F6:F18), the week it begins =INDEX(A6:A18,MATCH(MIN(F6:F18),F6:F18,0)) (the first week if two weeks tie), weeks below the line, the balance after week 13, items outside the 13 weeks, and item rows to fix.",
+        "7. Items column E (Row check) shows Check date, Check type, Check amount or Outside weeks. Check type means the Type cell is not exactly In or Out (capital letters do not matter, a trailing space does). A negative amount, a text amount and a text date show Check. An item outside the 13 weeks is not in any week.",
+        "8. J7 shows OK when the ending balance equals the opening balance plus total in minus total out, no item is outside the 13 weeks, no item row needs fixing and nothing is typed below row 104.",
+        "9. The forecast is only as good as the dates and amounts you type. It gives no financial, tax or lending advice.",
+        "",
+        "Dates, items and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Items"].page_setup.orientation = "portrait"
+    wb["Forecast"].page_setup.orientation = "landscape"
+    wb["Forecast"].print_title_rows = "5:5"
+    wb["Items"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-weekly-cash-flow.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -10262,4 +10983,9 @@ if __name__ == "__main__":
     overnight_shift_hours()
     lapsed_customer_flag()
     year_over_year_sales()
+    custom_order_deposits()
+    consignment_payouts()
+    lookup_to_the_left()
+    days_of_stock_left()
+    weekly_cash_flow_forecast()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

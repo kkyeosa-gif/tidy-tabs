@@ -519,6 +519,11 @@ def heroes_2026_10_30():
 
 
 def main():
+    if "--only-2026-10-31" in sys.argv:
+        for fn in (heroes_2026_10_31_01, heroes_2026_10_31_02, heroes_2026_10_31_03,
+                   heroes_2026_10_31_04, heroes_2026_10_31_05):
+            fn()
+        return
     if "--only-2026-10-30" in sys.argv:
         heroes_2026_10_30()
         return
@@ -612,6 +617,52 @@ def main():
     save(d + "print-excel-one-page-before-after.png",
          Image.open(d + "before-six-pages-libreoffice.png").convert("RGB"),
          Image.open(d + "after-one-page-libreoffice.png").convert("RGB"))
+
+
+def heroes_2026_10_31_02():
+    t = "templates/"
+    d = "images/2026-10-31-team-02-consignment-payout-by-shop-sumifs-excel-google-sheets/"
+    save(d + "consignment-payouts-by-shop-template.png",
+         render(compact_copy(t + "tidy-tabs-consignment-payouts.xlsx", "Shops", 15, "consignpay",
+                             hide_rows=[1, 2, 3, 12, 13, 14], clear=["A1"]),
+                "Shops", hide_cols="IJKL", name="consignpay"))
+
+
+def heroes_2026_10_31_01():
+    t = "templates/"
+    d = "images/2026-10-31-team-0%d-%s/"
+    save(d % (1, "track-custom-order-deposits-balance-due-sumif-excel-google-sheets") + "custom-order-deposits-balance-due-template.png",
+         render(compact_copy(t + "tidy-tabs-custom-order-deposits.xlsx", "Orders", 16, "orderdeposits", hide_rows=[1], clear=["A1"],
+                             labels={"K5": "Total balance due", "K2": "Orders listed", "K8": "Payments to fix", "K9": "Order # listed twice",
+                                     "K10": "Orders with a bad total", "K11": "Check"}),
+                "Orders", hide_cols="CIJ", name="orderdeposits"))
+
+
+def heroes_2026_10_31_03():
+    t = "templates/"
+    d = "images/2026-10-31-team-03-look-up-value-to-the-left-index-match-excel-google-sheets/"
+    save(d + "lookup-to-the-left-index-match-template.png",
+         render(compact_copy(t + "tidy-tabs-lookup-to-the-left.xlsx", "Lookup", 20, "lookupleft",
+                             hide_rows=[1, 2, 3], labels={"I9": "Duplicate SKUs in Products", "I10": "Check"}),
+                "Lookup", hide_cols="DGH", widths={"C": 18}, name="lookupleft"))
+
+
+def heroes_2026_10_31_05():
+    t = "templates/"
+    d = "images/2026-10-31-team-05-weekly-cash-flow-forecast-lowest-balance-sumifs-excel-google-sheets/"
+    save(d + "weekly-cash-flow-forecast-lowest-balance-template.png",
+         render(compact_copy(t + "tidy-tabs-weekly-cash-flow.xlsx", "Forecast", 19, "cashflow", clear=["A4"],
+                             labels={"I2": "Week the lowest balance begins", "I7": "Check"}),
+                "Forecast", name="cashflow"))
+
+
+def heroes_2026_10_31_04():
+    t = "templates/"
+    d = "images/2026-10-31-team-04-days-of-stock-left-from-recent-sales-sumifs-excel-google-sheets/"
+    save(d + "days-of-stock-left-template.png",
+         render(compact_copy(t + "tidy-tabs-days-of-stock-left.xlsx", "Products", 16, "stockleft",
+                             hide_rows=[1, 2, 3], clear=["A1"], labels={"J15": "Check"}),
+                "Products", hide_cols="IJK", name="stockleft"))
 
 
 if __name__ == "__main__":

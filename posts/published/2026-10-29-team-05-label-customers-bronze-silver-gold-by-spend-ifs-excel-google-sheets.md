@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfGQA8Jo88B
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-label-customers-bronze-silver-or.html
 title: How to Label Customers Bronze, Silver or Gold by Total Spend in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python threshold function. Checked: spend exactly on a cutoff, one cent under a cutoff, zero, a blank, a negative, text typed as spend, cutoffs in the wrong order, equal, zero or text, different cutoffs, 100 customers in two random sets, and a test formula without the TRUE catch-all. The IFS formula was checked only as the _xlfn.IFS form written into the .xlsx file; IFS typed directly in the app was not run. The nested IF version matched IFS in every case. Excel and Google Sheets were not used.

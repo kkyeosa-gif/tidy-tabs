@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfH3AbXFCX9
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-list-all-orders-for-one-customer.html
 title: How to List All Orders for One Customer From a Data List in Excel and Google Sheets
 labels: excel-formulas, small-business, lookup
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python filter (27 workbooks, 1,326 cell comparisons). Checked: customers with 0, 1, 11, 12, 13, 14 and 60 orders, a blank pick, a name not in the data, capital letters, a trailing space, wildcard text, a blank amount and a blank row. Excel and Google Sheets were not used, and FILTER was not tested.

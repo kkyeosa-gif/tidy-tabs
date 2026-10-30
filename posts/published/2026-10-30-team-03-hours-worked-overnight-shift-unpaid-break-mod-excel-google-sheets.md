@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfIEvNylLNg
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-hours-worked-past.html
 title: How to Calculate Hours Worked Past Midnight With an Unpaid Break in Excel and Google Sheets
 labels: excel-formulas, time-tracking, small-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model (14 workbooks, 869 cell comparisons). Checked: end exactly at midnight, break equal to or one minute over the shift, start equal to end, times with seconds, a date part on the times, text and blank cells, and an invalid rate. Excel and Google Sheets were not used.

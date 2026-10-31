@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfKbzNpEY1a
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-consignment-payouts.html
 title: How to Calculate Consignment Payouts for Each Shop in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model (cent rounding with Decimal) in 26 workbooks (17,524 cell comparisons, 0 mismatches). Checked: rates of 0% and 100%, a half-cent sale, capital letters and a trailing space in a shop name, a shop with no sales, a shop paid more than it owes, a blank quantity, a price typed as text, an unlisted shop, bad rates, a duplicate shop, 200 filled rows and a row past the table. The PDF export pages are US Letter. Excel and Google Sheets were not used.

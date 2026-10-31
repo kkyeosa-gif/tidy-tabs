@@ -168,3 +168,10 @@
 - How to Calculate Hours Worked Past Midnight With an Unpaid Break in Excel and Google Sheets - `hours-worked-overnight-shift-unpaid-break-mod-excel-google-sheets`
 - How to Flag Customers Who Have Not Ordered in 90 Days in Excel and Google Sheets - `flag-customers-no-order-in-90-days-maxifs-excel-google-sheets`
 - How to Compare This Year's Sales to Last Year Month by Month in Excel and Google Sheets - `year-over-year-sales-by-month-sumifs-excel-google-sheets`
+
+## 2026-10-31 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 수식은 아직 LibreOffice 에서 실행하지 않음 - 빌드 때 확인)
+- How to Make a Price Quote With a Valid-Until Date in Excel and Google Sheets - `quote-template-valid-until-date-excel-google-sheets`
+- How to Raise Prices by a Percent and See the New Margin in Excel and Google Sheets - `price-increase-planner-new-price-margin-excel-google-sheets`
+- How to See Which Promo Codes Made Money in Excel and Google Sheets - `promo-code-results-sumifs-excel-google-sheets`
+- How to Track Sales Leads and Your Win Rate in Excel and Google Sheets - `sales-lead-pipeline-conversion-rate-excel-google-sheets`
+- How to Work Out the Cost and Margin of a Gift Set in Excel and Google Sheets - `gift-set-bundle-cost-margin-excel-google-sheets`

@@ -518,7 +518,34 @@ def heroes_2026_10_30():
          render(short_sheet_copy(t + "tidy-tabs-year-over-year-sales.xlsx", "Year over year", 22, "yoy"), "Year over year", name="yoy"))
 
 
+def heroes_2026_11_01():
+    t = "templates/"
+    d = "images/2026-11-01-team-0%d-%s/"
+    save(d % (1, "quote-template-valid-until-date-excel-google-sheets") + "price-quote-valid-until-template.png",
+         render(compact_copy(t + "tidy-tabs-price-quote.xlsx", "Quote", 23, "pricequote",
+                             hide_rows=[1, 14, 15, 16, 17], clear=["A1"], labels={"A6": "As-of date"}),
+                "Quote", name="pricequote"))
+    save(d % (2, "price-increase-planner-new-price-margin-excel-google-sheets") + "price-increase-new-margin-template.png",
+         render(compact_copy(t + "tidy-tabs-price-increase.xlsx", "Prices", 16, "priceincrease"),
+                "Prices", hide_cols="GHIJK", name="priceincrease"))
+    save(d % (3, "promo-code-results-sumifs-excel-google-sheets") + "promo-code-results-template.png",
+         render(compact_copy(t + "tidy-tabs-promo-code-results.xlsx", "Summary", 14, "promocodes",
+                             hide_rows=[1, 2, 3], clear=["A1"], labels={"A13": "Orders with an unlisted code"}),
+                "Summary", hide_cols="FH", name="promocodes"))
+    save(d % (4, "sales-lead-pipeline-conversion-rate-excel-google-sheets") + "sales-lead-tracker-win-rate-template.png",
+         render(compact_copy(t + "tidy-tabs-lead-tracker.xlsx", "Summary", 26, "leadtracker",
+                             hide_rows=[1, 2, 3, 19, 20], clear=["A1"]),
+                "Summary", widths={"B": 18}, name="leadtracker"))
+    save(d % (5, "gift-set-bundle-cost-margin-excel-google-sheets") + "gift-set-cost-margin-template.png",
+         render(compact_copy(t + "tidy-tabs-gift-set-cost.xlsx", "Sets", 20, "giftset",
+                             hide_rows=[1, 2, 3], clear=["A1"]),
+                "Sets", hide_cols="JK", name="giftset"))
+
+
 def main():
+    if "--only-2026-11-01" in sys.argv:
+        heroes_2026_11_01()
+        return
     if "--only-2026-10-31" in sys.argv:
         for fn in (heroes_2026_10_31_01, heroes_2026_10_31_02, heroes_2026_10_31_03,
                    heroes_2026_10_31_04, heroes_2026_10_31_05):

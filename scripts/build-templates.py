@@ -10851,6 +10851,473 @@ def weekly_cash_flow_forecast():
     wb.save(OUT / "tidy-tabs-weekly-cash-flow.xlsx")
 
 
+def price_quote():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Quote"
+    ws["A1"] = "Fictional quote. Yellow cells are inputs. The status compares the as-of date (B6) to the valid-until date."
+    ws["A1"].font = Font(italic=True)
+    labels = [(2, "Quote date", date(2026, 10, 31), US_DATE), (3, "Days valid", 30, "0"),
+              (4, "Discount %", 0.10, "0.00%"), (5, "Tax rate %", 0.0625, "0.00%"),
+              (6, "As-of date (type today's date)", date(2026, 11, 15), US_DATE)]
+    for r, t, v, fmt in labels:
+        ws[f"A{r}"] = t
+        ws[f"A{r}"].font = Font(bold=True)
+        ws[f"B{r}"] = v
+        ws[f"B{r}"].number_format = fmt
+        ws[f"B{r}"].fill = INPUT_FILL
+    ws["D2"], ws["D3"] = "Valid until", "Status"
+    ws["E2"] = '=IF(AND(ISNUMBER(B2),ISNUMBER(B3)),B2+B3,"")'
+    ws["E3"] = '=IF(ISNUMBER(E2),IF(AND(ISNUMBER(B6),B6>E2),"Expired","Open"),"")'
+    ws["E2"].number_format = US_DATE
+    for c in ("D2", "D3"):
+        ws[c].font = Font(bold=True)
+    for c in ("E2", "E3"):
+        ws[c].fill = FORMULA_FILL
+        ws[c].alignment = Alignment(horizontal="right")
+    _head_row(ws, 7, ["Item", "Unit", "Qty", "Unit price", "Amount"], [34, 12, 9, 13, 14], height=22)
+    lines = [("Headshot session, 1 hour", "session", 1, 150.00), ("Edited digital photos", "photo", 12, 18.00),
+             ("Prints, 8 x 10 in", "print", 6, 12.50), ("Canvas wrap, 16 x 20 in", "each", 1, 89.00),
+             ("Travel to Boston, MA 02108", "trip", 1, 35.00), ("Rush delivery, 48 hours", "flat", 1, 25.00)]
+    for r in range(8, 18):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"D{r}"].number_format = USD
+        ws[f"E{r}"] = f'=IF(AND(ISNUMBER(C{r}),ISNUMBER(D{r})),ROUND(C{r}*D{r},2),"")'
+        ws[f"E{r}"].number_format = USD
+        ws[f"E{r}"].fill = FORMULA_FILL
+    for i, (a, b, c, d) in enumerate(lines):
+        r = 8 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"] = a, b, c, d
+    tot = [(19, "Subtotal", "=SUM(E8:E17)"), (20, "Discount", "=ROUND(E19*B4,2)"),
+           (21, "Tax", "=ROUND((E19-E20)*B5,2)"), (22, "Total", "=E19-E20+E21")]
+    for r, t, f in tot:
+        ws[f"D{r}"] = t
+        ws[f"D{r}"].font = Font(bold=True)
+        ws[f"E{r}"] = f
+        ws[f"E{r}"].number_format = USD
+        ws[f"E{r}"].fill = FORMULA_FILL
+    ws["E22"].font = Font(bold=True)
+    ws["D23"] = "CHECK"
+    ws["D23"].font = Font(bold=True)
+    ws["E23"] = ('=IF(AND(ISNUMBER(B2),ISNUMBER(B3),B3>=0,ISNUMBER(B4),B4>=0,B4<=1,ISNUMBER(B5),B5>=0,'
+                 'SUMPRODUCT((A8:A17<>"")*(1-ISNUMBER(E8:E17)))=0,COUNTIF(C8:C17,"<0")=0,'
+                 'ROUND(E22-(SUM(E8:E17)-E20+E21),2)=0,E22>=0),"OK","CHECK")')
+    ws["E23"].fill = FORMULA_FILL
+    ws["E23"].alignment = Alignment(horizontal="right")
+    _ok_format(ws, "E23")
+    ws.conditional_formatting.add("E3", FormulaRule(formula=['$E$3="Expired"'], fill=ALERT_FILL))
+    ws.print_area = "A1:E23"
+    notes_sheet(wb, [
+        "Tidy Tabs: Price Quote With a Valid-Until Date",
+        "",
+        "1. Quote tab, yellow cells: quote date B2, days valid B3, discount % B4, tax rate % B5, and an as-of date B6. All sample numbers and the 6 lines are fictional.",
+        "2. Type the as-of date on purpose, or type =TODAY() in B6 to make the status live.",
+        "3. Valid until, E2: =B2+B3. Status, E3: =IF(B6>E2,\"Expired\",\"Open\"), so the quote is still Open on the valid-until date itself.",
+        "4. Line amount, E8: =ROUND(C8*D8,2). A row with no qty or price stays blank. Lines go in rows 8 to 17.",
+        "5. Subtotal E19: =SUM(E8:E17). Discount E20: =ROUND(E19*B4,2). Tax E21: =ROUND((E19-E20)*B5,2). Total E22: =E19-E20+E21.",
+        "6. CHECK, E23, shows CHECK when a described line has no qty or price, a qty is negative, the discount is outside 0% to 100%, or a setting is not a number.",
+        "7. Tax rate is whatever you type. This sheet does only arithmetic; check your own tax and pricing rules separately.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb.save(OUT / "tidy-tabs-price-quote.xlsx")
+
+
+def price_increase():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Prices"
+    ws["A1"], ws["B1"] = "Price increase %", 0.08
+    ws["A2"], ws["B2"] = "Rounding", "End in .99"
+    ws["A3"] = "Settings check"
+    for r in (1, 2, 3):
+        ws[f"A{r}"].font = Font(bold=True)
+    ws["B1"].number_format = "0.0%"
+    ws["B1"].fill = ws["B2"].fill = INPUT_FILL
+    ws["B3"] = ('=IF(AND(ISNUMBER(B1),OR(B2="Nearest cent",B2="End in .99")),IF(AND(B1>=-0.5,B1<=1),"OK",'
+                '"Percent: between -50% and 100%"),"Type a percent and pick a rounding")')
+    ws["B3"].fill = FORMULA_FILL
+    ws["B3"].alignment = Alignment(horizontal="right")
+    dv = DataValidation(type="list", formula1='"Nearest cent,End in .99"', allow_blank=False)
+    ws.add_data_validation(dv)
+    dv.add("B2")
+    _head_row(ws, 4, ["Item", "Cost", "Old price", "New price", "Old margin", "New margin", "Price change", "Status"],
+              [30, 11, 11, 11, 11, 11, 12, 13], height=24)
+    items = [("Lavender soy candle, 8 oz", 4.10, 18.00), ("Cedar soy candle, 8 oz", 4.25, 18.00),
+             ("Oatmeal soap bar", 1.85, 8.00), ("Charcoal soap bar", 2.05, 8.50),
+             ("Brass hoop earrings", 3.40, 24.00), ("Letterpress birthday card", 0.95, 6.00),
+             ("Enamel mug", 5.20, 16.00), ("Canvas tote bag", 4.80, 22.00),
+             ("Art print, 8 x 10 in", 1.60, 15.00), ("Pocket notebook", 1.90, 9.00),
+             ("Sticker pack", 0.70, 4.50), ("Gift set box", 6.75, 6.50)]
+    first, last = 5, 44
+    for r in range(first, last + 1):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"D{r}"] = (f'=IF(OR(A{r}="",NOT(ISNUMBER(C{r})),$B$3<>"OK"),"",IF(C{r}<=0,C{r},IF($B$2="End in .99",'
+                       f'ROUND(CEILING(ROUND(C{r}*(1+$B$1),2),1)-0.01,2),ROUND(C{r}*(1+$B$1),2))))')
+        ws[f"E{r}"] = f'=IF(AND(ISNUMBER(C{r}),ISNUMBER(B{r})),IF(C{r}>0,(C{r}-B{r})/C{r},""),"")'
+        ws[f"F{r}"] = f'=IF(AND(ISNUMBER(D{r}),ISNUMBER(B{r})),IF(D{r}>0,(D{r}-B{r})/D{r},""),"")'
+        ws[f"G{r}"] = f'=IF(ISNUMBER(D{r}),D{r}-C{r},"")'
+        ws[f"H{r}"] = (f'=IF(A{r}="","",IF($B$3<>"OK","Check settings",IF(NOT(AND(ISNUMBER(B{r}),ISNUMBER(C{r}))),"Check row",'
+                       f'IF(C{r}<=0,"No price",IF(D{r}<B{r},"Below cost","OK")))))')
+        for col in "BCDG":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "EF":
+            ws[f"{col}{r}"].number_format = "0.0%"
+        for col in "DEFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (a, b, c) in enumerate(items):
+        ws[f"A{first + i}"], ws[f"B{first + i}"], ws[f"C{first + i}"] = a, b, c
+    ws.freeze_panes = "A5"
+    ws.conditional_formatting.add(f"A{first}:H{last}", FormulaRule(formula=[f'$H{first}="Below cost"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("B3", FormulaRule(formula=['$B$3<>"OK"'], fill=ALERT_FILL))
+    for col, w in zip("IJK", [3, 34, 14]):
+        ws.column_dimensions[col].width = w
+    E, F, H = f"E{first}:E{last}", f"F{first}:F{last}", f"H{first}:H{last}"
+    _summary_block(ws, "J", "K", [
+        (5, "Items counted", f"=COUNTA(A{first}:A{last})", "0"),
+        (6, "Below cost after the change", f'=COUNTIF({H},"Below cost")', "0"),
+        (7, "Rows to fix", f'=COUNTIF({H},"Check row")+COUNTIF({H},"No price")', "0"),
+        (8, "Average old margin", f'=IF(COUNT({E})=0,"n/a",AVERAGE({E}))', "0.0%"),
+        (9, "Average new margin", f'=IF(COUNT({F})=0,"n/a",AVERAGE({F}))', "0.0%"),
+    ])
+    ws.print_area = f"A1:K{last}"
+    notes_sheet(wb, [
+        "Tidy Tabs: Raise Prices by a Percent and See the New Margin",
+        "",
+        "1. Prices tab: type the increase in B1 (yellow, 8%) and pick the rounding in B2 (Nearest cent or End in .99). B3 shows OK when both are valid; a negative percent is a price cut.",
+        "2. Items in A5:C44 (yellow): item, cost, old price. The 12 products and all numbers are fictional.",
+        "3. New price, D5, Nearest cent: =ROUND(C5*(1+$B$1),2). End in .99: =ROUND(CEILING(ROUND(C5*(1+$B$1),2),1)-0.01,2), which rounds up to the next whole dollar and takes a cent off. A result that is already a whole dollar goes one dollar lower in .99 form, e.g. $19.00 becomes $18.99.",
+        "4. Old margin, E5: =(C5-B5)/C5. New margin, F5: =(D5-B5)/D5. Margin is profit as a share of the price, not a markup on cost. Blank when the price is 0.",
+        "5. Price change, G5: =D5-C5. Status, H5: Below cost when the new price is under the cost, No price when the old price is 0, Check row when cost or price is not a number.",
+        "6. Summary, J5:K9: counts and the simple average of the margins (each item counts equally, not weighted by sales).",
+        "7. Cost here is only what you type: add shipping, fees and labor yourself if they belong. This is arithmetic, not pricing advice.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Prices"].page_setup.orientation = "landscape"
+    wb["Prices"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-price-increase.xlsx")
+
+
+def promo_code_results():
+    import random
+    from datetime import timedelta
+    wb = Workbook()
+    su = wb.active
+    su.title = "Summary"
+    od = wb.create_sheet("Orders")
+    rng = random.Random(1031)
+    codes = ["WELCOME15", "SPRING10", "VIP20", "SAVE5", "FREESHIP", ""]
+    od["H1"] = "Fictional orders. One row per order; type the code exactly as customers enter it. Leave Code blank for no code."
+    od["H1"].font = Font(italic=True)
+    header(od, ["Order #", "Order date", "Code", "Subtotal", "Discount", "Shipping"], [10, 12, 14, 12, 11, 10])
+    first, last = 2, 301
+    for r in range(first, last + 1):
+        for col in "ABCDEF":
+            od[f"{col}{r}"].fill = INPUT_FILL
+        od[f"B{r}"].number_format = US_DATE
+        for col in "DEF":
+            od[f"{col}{r}"].number_format = USD
+    for i in range(60):
+        r = first + i
+        code = codes[rng.choice([0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 4, 5, 5, 5, 5, 5])]
+        sub = round(rng.uniform(14, 110), 2)
+        disc = {"WELCOME15": round(sub * 0.15, 2), "SPRING10": round(sub * 0.10, 2), "VIP20": round(sub * 0.20, 2),
+                "SAVE5": 5.00, "FREESHIP": 0.00, "": 0.00}[code]
+        ship = 0.00 if code == "FREESHIP" or sub >= 75 else 6.50
+        od[f"A{r}"], od[f"B{r}"] = 1001 + i, date(2026, 9, 1) + timedelta(days=i)
+        od[f"C{r}"] = code or None
+        od[f"D{r}"], od[f"E{r}"], od[f"F{r}"] = sub, disc, ship
+    rg = lambda c: f"Orders!${c}${first}:${c}${last}"
+    OA, OC, OD, OE = rg("A"), rg("C"), rg("D"), rg("E")
+
+    su["A1"] = "Fictional shop. Type your promo codes in A5:A9 (yellow); each must match the code spelling on the Orders tab (capitals do not matter, extra spaces do)."
+    su["A1"].font = Font(italic=True)
+    _head_row(su, 4, ["Code", "Orders", "Subtotal", "Discount given", "Net after discount", "Avg subtotal", "Discount %", "Net per order"],
+              [34, 9, 13, 14, 15, 13, 11, 13], height=32)
+    for i, c in enumerate(["WELCOME15", "SPRING10", "VIP20", "SAVE5", "FREESHIP"]):
+        su[f"A{5 + i}"] = c
+        su[f"A{5 + i}"].fill = INPUT_FILL
+    for r in range(5, 10):
+        su[f"B{r}"] = f'=IF(A{r}="","",COUNTIF({OC},A{r}))'
+        su[f"C{r}"] = f'=IF(A{r}="","",SUMIF({OC},A{r},{OD}))'
+        su[f"D{r}"] = f'=IF(A{r}="","",SUMIF({OC},A{r},{OE}))'
+    su["A10"] = "(no code)"
+    su["B10"] = f'=SUMPRODUCT(({OA}<>"")*({OC}=""))'
+    su["C10"] = f'=SUMPRODUCT(({OA}<>"")*({OC}=""),{OD})'
+    su["D10"] = f'=SUMPRODUCT(({OA}<>"")*({OC}=""),{OE})'
+    su["A11"] = "All orders (Orders tab)"
+    su["B11"] = f"=COUNTA({OA})"
+    su["C11"] = f"=SUM({OD})"
+    su["D11"] = f"=SUM({OE})"
+    for r in range(5, 12):
+        su[f"E{r}"] = f'=IF(A{r}="","",C{r}-D{r})'
+        su[f"F{r}"] = f'=IF(A{r}="","",IF(B{r}=0,0,ROUND(C{r}/B{r},2)))'
+        su[f"G{r}"] = f'=IF(A{r}="","",IF(C{r}=0,0,D{r}/C{r}))'
+        su[f"H{r}"] = f'=IF(A{r}="","",IF(B{r}=0,0,ROUND(E{r}/B{r},2)))'
+        su[f"A{r}"].font = Font(bold=r >= 10)
+        for col in "BCDEFGH":
+            su[f"{col}{r}"].fill = FORMULA_FILL
+            su[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        su[f"B{r}"].number_format = "0"
+        for col in "CDEFH":
+            su[f"{col}{r}"].number_format = USD
+        su[f"G{r}"].number_format = "0.0%"
+    su["A13"] = "Orders with a code not in the list"
+    su["B13"] = "=B11-SUM(B5:B9)-B10"
+    su["A14"] = "CHECK"
+    su["B14"] = ('=IF(AND(B13=0,ROUND(C11-SUM(C5:C10),2)=0,ROUND(D11-SUM(D5:D10),2)=0,'
+                 'SUMPRODUCT((A5:A9<>"")*(COUNTIF(A5:A9,A5:A9)>1))=0,'
+                 f'SUMPRODUCT(({OA}<>"")*(1-ISNUMBER({OD})))=0),"OK","CHECK")')
+    for c in ("A13", "A14"):
+        su[c].font = Font(bold=True)
+    for c in ("B13", "B14"):
+        su[c].fill = FORMULA_FILL
+        su[c].alignment = Alignment(horizontal="right")
+    _ok_format(su, "B14")
+    su.print_area = "A1:H14"
+    notes_sheet(wb, [
+        "Tidy Tabs: Which Promo Codes Made Money",
+        "",
+        "1. Orders tab: one row per order in A2:F301 (yellow): order #, date, code, subtotal, discount, shipping. The 60 orders and every number are fictional.",
+        "2. Summary tab: promo codes in A5:A9 (yellow). Orders, B5: =COUNTIF(Orders!$C$2:$C$301,A5). Subtotal, C5: =SUMIF(Orders!$C$2:$C$301,A5,Orders!$D$2:$D$301). Discount given, D5: same with column E.",
+        "3. Net after discount, E5: =C5-D5. Avg subtotal, F5: =IF(B5=0,0,ROUND(C5/B5,2)). Discount %, G5: =IF(C5=0,0,D5/C5). Net per order, H5: =IF(B5=0,0,ROUND(E5/B5,2)).",
+        "4. (no code) row 10 counts orders with a blank Code: =SUMPRODUCT((Orders!$A$2:$A$301<>\"\")*(Orders!$C$2:$C$301=\"\")). Row 11 totals the Orders tab directly.",
+        "5. CHECK, B14: shows CHECK when some orders have a code that is not in the list (a typo or a trailing space), when the rows above do not add to the Orders totals, when a code is listed twice, or when a subtotal is text.",
+        "6. COUNTIF and SUMIF ignore capitals, so spring10 counts as SPRING10. A trailing space (SPRING10 ) does not match and shows in B13.",
+        "7. Shipping is listed on the Orders tab but not used in the summary. Net per order is revenue after discount; it does not subtract your costs, so it does not show profit.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Summary"].page_setup.orientation = "landscape"
+    wb["Summary"].print_title_rows = None
+    od.print_area = "A1:F61"
+    wb.save(OUT / "tidy-tabs-promo-code-results.xlsx")
+
+
+def lead_tracker():
+    import random
+    from datetime import timedelta
+    wb = Workbook()
+    su = wb.active
+    su.title = "Summary"
+    ld = wb.create_sheet("Leads")
+    li = wb.create_sheet("Lists")
+    stages = [("New", 0.10), ("Contacted", 0.25), ("Quoted", 0.50), ("Won", 1.0), ("Lost", 0.0)]
+    sources = ["Referral", "Instagram", "Website form", "Craft fair", "Google search"]
+    _head_row(li, 1, ["Stage", "Chance to win", "", "Source"], [14, 14, 3, 18], height=22)
+    li["C1"].fill = PatternFill(fill_type=None)
+    for i, (s, p) in enumerate(stages):
+        li[f"A{2 + i}"], li[f"B{2 + i}"] = s, p
+        li[f"B{2 + i}"].number_format = "0%"
+        li[f"A{2 + i}"].fill = li[f"B{2 + i}"].fill = INPUT_FILL
+    for i, s in enumerate(sources):
+        li[f"D{2 + i}"] = s
+        li[f"D{2 + i}"].fill = INPUT_FILL
+    li["F1"] = "Keep Won and Lost as the last two stages: the win rate reads them from Lists A5 and A6. Open stages come first."
+    li["F1"].font = Font(italic=True)
+
+    header(ld, ["Lead", "Source", "Stage", "Quote", "Date"], [26, 16, 13, 12, 12])
+    first, last = 2, 201
+    for r in range(first, last + 1):
+        for col in "ABCDE":
+            ld[f"{col}{r}"].fill = INPUT_FILL
+        ld[f"D{r}"].number_format = USD
+        ld[f"E{r}"].number_format = US_DATE
+    names = ["Harbor Bakery", "Maple Street Yoga", "Dr. Ortiz Dental", "Lena's Flowers", "Brightside Realty",
+             "Northfield Brewing", "Pine Ridge Cabins", "Kim Family Law", "Coastal Candle Co.", "Bluebird Cafe",
+             "Summit Bike Shop", "Elm Park Daycare", "Nguyen Tax Prep", "Rosewood Salon", "Quarry Hill Farm",
+             "Daisy Pet Grooming", "Metro Print Works", "Oakline Plumbing", "Sweet Tooth Truck", "Greenleaf Tutors",
+             "Alder Insurance", "Fisher Auto Repair", "Willow Yarn Shop", "Copper Kettle Tea", "Birch Barbershop"]
+    st_seq = ["Won", "Lost", "Quoted", "Won", "New", "Contacted", "Quoted", "Lost", "Won", "Quoted", "Contacted", "Won",
+              "Lost", "New", "Quoted", "Won", "Lost", "Contacted", "Quoted", "New", "Won", "Lost", "Quoted", "Contacted", "Won"]
+    rng = random.Random(1031)
+    for i, n in enumerate(names):
+        r = first + i
+        ld[f"A{r}"], ld[f"B{r}"], ld[f"C{r}"] = n, sources[rng.randrange(5)], st_seq[i]
+        ld[f"D{r}"] = float(rng.choice(range(250, 3200, 50)))
+        ld[f"E{r}"] = date(2026, 8, 3) + timedelta(days=i * 3 + rng.randint(0, 2))
+    dv = DataValidation(type="list", formula1="=Lists!$A$2:$A$6", allow_blank=True)
+    dv2 = DataValidation(type="list", formula1="=Lists!$D$2:$D$6", allow_blank=True)
+    ld.add_data_validation(dv)
+    ld.add_data_validation(dv2)
+    dv.add(f"C{first}:C{last}")
+    dv2.add(f"B{first}:B{last}")
+    LA, LB, LC, LD = (f"Leads!${c}${first}:${c}${last}" for c in "ABCD")
+
+    su["A1"] = "Fictional leads. Edit stages and chances on the Lists tab, then fill the Leads tab; this page updates itself."
+    su["A1"].font = Font(italic=True)
+    _head_row(su, 4, ["Stage", "Leads", "Quote value", "Chance", "Weighted value"], [34, 11, 14, 11, 15], height=24)
+    for i in range(5):
+        r = 5 + i
+        su[f"A{r}"] = f"=Lists!A{2 + i}"
+        su[f"B{r}"] = f"=COUNTIF({LC},A{r})"
+        su[f"C{r}"] = f"=SUMIF({LC},A{r},{LD})"
+        su[f"D{r}"] = f"=Lists!B{2 + i}"
+        su[f"E{r}"] = f"=C{r}*D{r}"
+    su["A10"] = "Blank or not in the stage list"
+    su["B10"] = f"=COUNTA({LA})-SUM(B5:B9)"
+    su["C10"] = f"=SUM({LD})-SUM(C5:C9)"
+    su["A11"] = "All leads"
+    su["B11"] = f"=COUNTA({LA})"
+    su["C11"] = f"=SUM({LD})"
+    for r in range(5, 12):
+        su[f"A{r}"].font = Font(bold=r >= 10)
+        for col in "BCDE":
+            su[f"{col}{r}"].fill = FORMULA_FILL
+            su[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        su[f"B{r}"].number_format = "0"
+        su[f"C{r}"].number_format = USD
+        su[f"D{r}"].number_format = "0%"
+        su[f"E{r}"].number_format = USD
+    su["A13"], su["B13"] = "Win rate (Won / (Won + Lost))", '=IF(B8+B9=0,"",B8/(B8+B9))'
+    su["A14"], su["B14"] = "Open leads (all stages before Won)", "=SUM(B5:B7)"
+    su["A15"], su["B15"] = "Open quote value", "=SUM(C5:C7)"
+    su["A16"], su["B16"] = "Weighted pipeline (open stages)", "=SUMPRODUCT(C5:C7,D5:D7)"
+    su["A17"], su["B17"] = "Best source (most wins)", '=IF(MAX(C22:C26)=0,"n/a",INDEX(A22:A26,MATCH(MAX(C22:C26),C22:C26,0)))'
+    su["A18"] = "CHECK"
+    su["B18"] = ('=IF(AND(B10=0,SUM(B22:B26)=B11,COUNT(D5:D9)=5,COUNT(Lists!B2:B6)=5,'
+                 f'SUMPRODUCT(({LA}<>"")*(1-ISNUMBER({LD})))=0),"OK","CHECK")')
+    fm = {13: "0.0%", 14: "0", 15: USD, 16: USD, 17: "General", 18: "General"}
+    for r in range(13, 19):
+        su[f"A{r}"].font = Font(bold=True)
+        su[f"B{r}"].fill = FORMULA_FILL
+        su[f"B{r}"].alignment = Alignment(horizontal="right")
+        su[f"B{r}"].number_format = fm[r]
+    _ok_format(su, "B18")
+    _head_row(su, 21, ["Source", "Leads", "Wins", "Losses", "Win rate"], [34, 11, 14, 11, 15], height=22)
+    LBs = f"Leads!$B${first}:$B${last}"
+    for i in range(5):
+        r = 22 + i
+        su[f"A{r}"] = f'=IF(Lists!D{2 + i}="","",Lists!D{2 + i})'
+        su[f"B{r}"] = f'=IF(A{r}="","",COUNTIF({LBs},A{r}))'
+        su[f"C{r}"] = f'=IF(A{r}="","",COUNTIFS({LBs},A{r},{LC},$A$8))'
+        su[f"D{r}"] = f'=IF(A{r}="","",COUNTIFS({LBs},A{r},{LC},$A$9))'
+        su[f"E{r}"] = f'=IF(A{r}="","",IF(C{r}+D{r}=0,"",C{r}/(C{r}+D{r})))'
+        su[f"E{r}"].number_format = "0%"
+        for col in "BCDE":
+            su[f"{col}{r}"].fill = FORMULA_FILL
+            su[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    su.print_area = "A1:E26"
+    notes_sheet(wb, [
+        "Tidy Tabs: Sales Lead Tracker With Win Rate",
+        "",
+        "1. Lists tab (yellow): stages in A2:A6 with a chance to win in B2:B6, and sources in D2:D6. Keep Won and Lost as the last two stages.",
+        "2. Leads tab: one row per lead in A2:E201 (yellow): lead, source, stage (dropdown), quote amount, date. The 25 leads and every number are fictional.",
+        "3. Summary, B5: =COUNTIF(Leads!$C$2:$C$201,A5). C5: =SUMIF(Leads!$C$2:$C$201,A5,Leads!$D$2:$D$201). E5: =C5*D5.",
+        "4. Win rate, B13: =IF(B8+B9=0,\"\",B8/(B8+B9)). It uses closed leads only, and is blank until one lead is Won or Lost.",
+        "5. Weighted pipeline, B16: =SUMPRODUCT(C5:C7,D5:D7), the open stages only. The chances are your own guesses, not data.",
+        "6. Best source, B17: =IF(MAX(C22:C26)=0,\"n/a\",INDEX(A22:A26,MATCH(MAX(C22:C26),C22:C26,0))). A tie shows the first source in the list. With few leads, treat it as a hint.",
+        "7. CHECK, B18, shows CHECK when a lead has a blank stage, a stage not on the Lists tab (a typo, a trailing space), a source not on the list, or a quote that is text.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Summary"].print_title_rows = None
+    ld.print_area = "A1:E40"
+    wb.save(OUT / "tidy-tabs-lead-tracker.xlsx")
+
+
+def gift_set_cost():
+    wb = Workbook()
+    pa = wb.active
+    pa.title = "Parts"
+    se = wb.create_sheet("Sets")
+    pa["A1"] = "Fictional parts. Type each part once with its unit cost (A5:B30, yellow)."
+    pa["A1"].font = Font(italic=True)
+    _head_row(pa, 4, ["Part", "Unit cost"], [30, 12], height=22)
+    parts = [("Soap bar, oatmeal", 1.85), ("Soy candle, 8 oz", 4.10), ("Enamel mug", 3.60), ("Tea sample tin", 1.40),
+             ("Gift box", 0.95), ("Tissue paper sheet", 0.18), ("Ribbon, 1 yd", 0.12)]
+    for r in range(5, 31):
+        pa[f"A{r}"].fill = pa[f"B{r}"].fill = INPUT_FILL
+        pa[f"B{r}"].number_format = USD
+    for i, (a, b) in enumerate(parts):
+        pa[f"A{5 + i}"], pa[f"B{5 + i}"] = a, b
+    pa.freeze_panes = "A5"
+    se["A1"] = "Fictional gift sets. Lines on the left (A5:C54, yellow): set name, part, quantity. Sets on the right (F5:F10, H5:H10, yellow): name and selling price."
+    se["A1"].font = Font(italic=True)
+    _head_row(se, 4, ["Set", "Part", "Qty", "Line cost", "", "Set", "Cost", "Price", "Margin", "Profit", "Status"],
+              [18, 24, 7, 12, 3, 18, 11, 11, 10, 11, 12], height=24)
+    se["E4"].fill = PatternFill(fill_type=None)
+    lines = [("Spa Set", "Soap bar, oatmeal", 2), ("Spa Set", "Soy candle, 8 oz", 1), ("Spa Set", "Gift box", 1),
+             ("Spa Set", "Tissue paper sheet", 2), ("Spa Set", "Ribbon, 1 yd", 1),
+             ("Cozy Mug Set", "Enamel mug", 1), ("Cozy Mug Set", "Tea sample tin", 2), ("Cozy Mug Set", "Gift box", 1),
+             ("Cozy Mug Set", "Tissue paper sheet", 2), ("Cozy Mug Set", "Ribbon, 1 yd", 1),
+             ("Candle Duo", "Soy candle, 8 oz", 2), ("Candle Duo", "Gift box", 1), ("Candle Duo", "Tissue paper sheet", 3),
+             ("Starter Trio", "Soap bar, oatmeal", 1), ("Starter Trio", "Soy candle, 8 oz", 1), ("Starter Trio", "Enamel mug", 1),
+             ("Starter Trio", "Gift box", 1), ("Starter Trio", "Tissue paper sheet", 3), ("Starter Trio", "Ribbon, 1 yd", 2)]
+    first, last = 5, 54
+    for r in range(first, last + 1):
+        for col in "ABC":
+            se[f"{col}{r}"].fill = INPUT_FILL
+        se[f"D{r}"] = (f'=IF(B{r}="","",IF(NOT(ISNUMBER(C{r})),"Check qty",IFERROR(ROUND(C{r}*INDEX(Parts!$B$5:$B$30,'
+                       f'MATCH(B{r},Parts!$A$5:$A$30,0)),2),"Missing part")))')
+        se[f"D{r}"].number_format = USD
+        se[f"D{r}"].fill = FORMULA_FILL
+        se[f"D{r}"].alignment = Alignment(horizontal="right")
+    for i, (a, b, c) in enumerate(lines):
+        r = first + i
+        se[f"A{r}"], se[f"B{r}"], se[f"C{r}"] = a, b, c
+    sets = [("Spa Set", 24.00), ("Cozy Mug Set", 22.00), ("Candle Duo", 20.00), ("Starter Trio", 32.00)]
+    for r in range(5, 11):
+        se[f"F{r}"].fill = se[f"H{r}"].fill = INPUT_FILL
+        se[f"G{r}"] = f'=IF(F{r}="","",SUMIF($A$5:$A$54,F{r},$D$5:$D$54))'
+        se[f"I{r}"] = f'=IF(F{r}="","",IF(AND(ISNUMBER(H{r}),H{r}>0),(H{r}-G{r})/H{r},""))'
+        se[f"J{r}"] = f'=IF(F{r}="","",IF(ISNUMBER(H{r}),H{r}-G{r},""))'
+        se[f"K{r}"] = (f'=IF(F{r}="","",IF(COUNTIF($A$5:$A$54,F{r})=0,"No lines",IF(COUNTIFS($A$5:$A$54,F{r},$D$5:$D$54,"Missing part")'
+                       f'+COUNTIFS($A$5:$A$54,F{r},$D$5:$D$54,"Check qty")>0,"Fix lines","OK")))')
+        for col in "GHJ":
+            se[f"{col}{r}"].number_format = USD
+        se[f"I{r}"].number_format = "0.0%"
+        for col in "GIJK":
+            se[f"{col}{r}"].fill = FORMULA_FILL
+            se[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (a, b) in enumerate(sets):
+        se[f"F{5 + i}"], se[f"H{5 + i}"] = a, b
+    se["F12"] = "CHECK"
+    se["F12"].font = Font(bold=True)
+    se["G12"] = ('=IF(AND(COUNTIF($D$5:$D$54,"Missing part")=0,COUNTIF($D$5:$D$54,"Check qty")=0,'
+                 'SUMPRODUCT((Parts!$A$5:$A$30<>"")*(COUNTIF(Parts!$A$5:$A$30,Parts!$A$5:$A$30)>1))=0,'
+                 'SUMPRODUCT(($B$5:$B$54<>"")*($A$5:$A$54=""))=0,'
+                 'ROUND(SUM($D$5:$D$54)-SUM($G$5:$G$10),2)=0,'
+                 'SUMPRODUCT(($F$5:$F$10<>"")*(1-ISNUMBER($H$5:$H$10)))=0),"OK","CHECK")')
+    se["G12"].fill = FORMULA_FILL
+    se["G12"].alignment = Alignment(horizontal="right")
+    _ok_format(se, "G12")
+    se.conditional_formatting.add("K5:K10", FormulaRule(formula=['OR($K5="Fix lines",$K5="No lines")'], fill=ALERT_FILL))
+    se.freeze_panes = "A5"
+    se.print_area = "A1:K54"
+    notes_sheet(wb, [
+        "Tidy Tabs: Cost and Margin of a Gift Set",
+        "",
+        "1. Parts tab: each part once, with its unit cost, in A5:B30 (yellow). The parts and costs are fictional.",
+        "2. Sets tab, left side: one line per part in a set, A5:C54 (yellow): set name, part (spelled as on the Parts tab), quantity. The sample has 4 fictional sets.",
+        "3. Line cost, D5: =IF(B5=\"\",\"\",IF(NOT(ISNUMBER(C5)),\"Check qty\",IFERROR(ROUND(C5*INDEX(Parts!$B$5:$B$30,MATCH(B5,Parts!$A$5:$A$30,0)),2),\"Missing part\"))).",
+        "4. Sets tab, right side: set names in F5:F10 and selling prices in H5:H10 (yellow). Cost, G5: =SUMIF($A$5:$A$54,F5,$D$5:$D$54). Margin, I5: =(H5-G5)/H5. Profit, J5: =H5-G5.",
+        "5. Margin is profit as a share of the price. A quantity of 0 costs $0.00. A part spelled differently from the Parts tab shows Missing part and is left out of the set cost, so the cost looks too low until you fix it.",
+        "6. CHECK, G12, shows CHECK when any line says Missing part or Check qty, a part is listed twice on the Parts tab (the first one is used), a line has a part but no set name, a line's set is not in F5:F10, or a price is missing.",
+        "7. Costs here are only the parts you list: add labor, packaging and fees as parts if they belong. This is arithmetic, not pricing advice.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Sets"].page_setup.orientation = "landscape"
+    wb["Sets"].print_title_rows = "4:4"
+    wb["Parts"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-gift-set-cost.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -10988,4 +11455,9 @@ if __name__ == "__main__":
     lookup_to_the_left()
     days_of_stock_left()
     weekly_cash_flow_forecast()
+    price_quote()
+    price_increase()
+    promo_code_results()
+    lead_tracker()
+    gift_set_cost()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

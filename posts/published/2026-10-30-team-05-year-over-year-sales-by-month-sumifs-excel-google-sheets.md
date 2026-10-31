@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfI0zaVDj2J
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-compare-this-years-sales-to-last.html
 title: How to Compare This Year's Sales to Last Year Month by Month in Excel and Google Sheets
 labels: excel-formulas, small-business, sales-reports
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model (23 workbooks, 1,776 cell comparisons). Checked: years 2024, 2025 and 2027, month boundaries with times, leap day 02/29/2024, a refund as a negative amount, a month with no sales last year, a text date and an invalid year. Excel and Google Sheets were not used.

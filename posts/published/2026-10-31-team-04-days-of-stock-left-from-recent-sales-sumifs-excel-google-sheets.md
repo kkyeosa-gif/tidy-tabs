@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfK-Ii6CWxT
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-calculate-days-of-stock-left.html
 title: How to Calculate Days of Stock Left From Recent Sales in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model in 39 workbooks (8,268 cell comparisons, 0 mismatches). Checked: a sale exactly 30 days before the as-of date (left out) and 29 days before (counted), a sale on the as-of date and one after it, windows of 1, 7, 60 and 90 days, invalid settings, a product with zero stock and one with no sales, a SKU missing from Products, capital letters and a trailing space in a SKU, a text date and a text quantity in Sales, blank, text and negative on-hand cells, a repeated SKU, a full 40 products and 200 sales rows, and random data. TODAY() in the as-of cell was not run. Excel and Google Sheets were not used.

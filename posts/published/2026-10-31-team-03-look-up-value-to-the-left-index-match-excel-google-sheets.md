@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfKpiMklLRL
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-look-up-value-to-left-in-excel.html
 title: How to Look Up a Value to the Left in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model of the lookups, in 20 workbooks (7,320 cell comparisons, 0 mismatches). Checked: the first and last product, a SKU not in the list, capital letters, leading, trailing and double spaces, a SKU stored as a number or as text, a duplicate SKU, blank keys, a blank row in the list, names with commas and quotes, wildcard characters and a non-breaking space. The VLOOKUP-to-the-left demo was confirmed to return Not found for every SKU. XLOOKUP was not tried. Excel and Google Sheets were not used.

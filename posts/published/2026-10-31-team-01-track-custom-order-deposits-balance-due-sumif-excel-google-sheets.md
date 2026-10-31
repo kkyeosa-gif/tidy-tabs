@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfKIAveFFn7
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-track-deposits-and-balance-due.html
 title: How to Track Deposits and Balance Due on Custom Orders in Excel and Google Sheets
 labels: excel-formulas, small-business, orders
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model of paid, balance, status and the summary, in 27 workbooks (6,981 cell comparisons, 0 mismatches). Checked: three part payments, no payments, a payment equal to the total, a payment $0.01 over, a due date equal to the as-of date and one day earlier, a moved as-of date, capital letters, a trailing space, a typo order number, a text amount, blank rows, a $0.00 total, a text total, a duplicate order number and 60 full rows. TODAY() in the as-of cell was not run. Excel and Google Sheets were not used.

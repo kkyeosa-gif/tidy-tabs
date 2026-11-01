@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfMzq1ake-r
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-make-price-quote-with-valid.html
 title: How to Make a Price Quote With a Valid-Until Date in Excel and Google Sheets
 labels: excel-formulas, small-business, quotes
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model (Decimal, round half up) for the line amounts, subtotal, discount, tax, total, valid-until date, status and check cell. Edge cases run on modified copies: quantity 0, a cleared line, a 100% discount, an as-of date on the valid-until day and one day later, cent rounding, a described line with no quantity, a negative quantity and a 150% discount. TODAY() in the as-of cell was not run. Excel and Google Sheets were not used.

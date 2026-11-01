@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfNpzA6lLJ1
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-track-sales-leads-and-your-win.html
 title: How to Track Sales Leads and Your Win Rate in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model of stage counts, quote values, win rate, weighted pipeline and best source. Edge cases run: no Won or Lost leads, a stage not on the list, a blank stage, a trailing space in "Won ", a renamed stage, a source not on the list, and no Lost leads. The Stage and Source dropdowns are data validation lists; their menus were not opened, only the formulas were checked. Excel and Google Sheets were not used.

@@ -175,3 +175,10 @@
 - How to See Which Promo Codes Made Money in Excel and Google Sheets - `promo-code-results-sumifs-excel-google-sheets`
 - How to Track Sales Leads and Your Win Rate in Excel and Google Sheets - `sales-lead-pipeline-conversion-rate-excel-google-sheets`
 - How to Work Out the Cost and Margin of a Gift Set in Excel and Google Sheets - `gift-set-bundle-cost-margin-excel-google-sheets`
+
+## 2026-11-02 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 수식은 아직 LibreOffice 에서 실행하지 않음 - 빌드 때 확인, 상세는 tasks/team-topics-2026-11-02.md)
+- How to Track Workshop Registrations and Seats Left in Excel and Google Sheets - `workshop-registrations-seats-left-waitlist-countifs-excel-google-sheets`
+- How to Set a Price That Still Nets the Amount You Want After a Card Fee in Excel and Google Sheets - `price-to-net-target-after-card-fee-excel-google-sheets`
+- How to Show Your 3 Biggest Unpaid Invoices in Excel and Google Sheets - `three-biggest-unpaid-invoices-large-match-excel-google-sheets`
+- How to Pull the Number Out of Text Like 12 oz or 3 lb in Excel and Google Sheets - `pull-number-out-of-text-12-oz-value-left-find-excel-google-sheets`
+- How to Write a Friendly Payment Reminder From Your Invoice List in Excel and Google Sheets - `payment-reminder-message-from-invoice-data-text-excel-google-sheets`

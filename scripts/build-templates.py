@@ -11318,6 +11318,443 @@ def gift_set_cost():
     wb.save(OUT / "tidy-tabs-gift-set-cost.xlsx")
 
 
+def workshop_registrations():
+    import random
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Workshops"
+    ws["A1"] = "Workshops: paid sign-ups, seats left and waitlist"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type the workshops in the yellow cells A5:C14. Sign-ups go on the Signups tab; the gray columns count them."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Workshop", "Date", "Seats", "Paid", "All sign-ups", "Seats left", "Waitlist", "Status"],
+              [26, 12, 8, 8, 12, 11, 10, 13])
+    shops = [("Candle Pouring 101", date(2026, 11, 14), 8), ("Intro to Block Printing", date(2026, 11, 21), 10),
+             ("Embroidery Basics", date(2026, 12, 5), 6), ("Wreath Making", date(2026, 12, 12), 12)]
+    for r in range(5, 15):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"D{r}"] = f'=IF(A{r}="","",COUNTIFS(Signups!$B$5:$B$204,A{r},Signups!$D$5:$D$204,"Paid"))'
+        ws[f"E{r}"] = f'=IF(A{r}="","",COUNTIF(Signups!$B$5:$B$204,A{r}))'
+        ws[f"F{r}"] = f'=IF(A{r}="","",IF(ISNUMBER(C{r}),MAX(0,C{r}-D{r}),"Check seats"))'
+        ws[f"G{r}"] = f'=IF(A{r}="","",IF(ISNUMBER(C{r}),MAX(0,E{r}-C{r}),"Check seats"))'
+        ws[f"H{r}"] = f'=IF(A{r}="","",IF(NOT(ISNUMBER(F{r})),"Check seats",IF(F{r}=0,"Full",IF(F{r}<=2,"Almost full","Open"))))'
+        for col in "DEFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, d, s) in enumerate(shops):
+        ws[f"A{5 + i}"], ws[f"B{5 + i}"], ws[f"C{5 + i}"] = n, d, s
+    ws.column_dimensions["I"].width = 3
+    ws.column_dimensions["J"].width = 40
+    ws.column_dimensions["K"].width = 12
+    _summary_block(ws, "J", "K", [
+        (1, "Workshops listed", "=COUNTA(A5:A14)", "0"),
+        (2, "Total seats", "=SUM(C5:C14)", "0"),
+        (3, "Total paid", "=SUM(D5:D14)", "0"),
+        (4, "Total seats left", "=SUM(F5:F14)", "0"),
+        (5, "Total on waitlist", "=SUM(G5:G14)", "0"),
+        (6, "Sign-ups with a workshop not on the list",
+         '=SUMPRODUCT((Signups!B5:B204<>"")*(COUNTIF(A5:A14,Signups!B5:B204)=0))', "0"),
+        (7, "CHECK", '=IF(AND(K6=0,COUNT(C5:C14)=K1,SUMPRODUCT((A5:A14<>"")*(D5:D14>C5:C14))=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("H5:H14", FormulaRule(formula=['$H5="Full"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("H5:H14", FormulaRule(formula=['$H5="Almost full"'], fill=PatternFill("solid", fgColor="FCE4D6")))
+    ws.conditional_formatting.add("K7", FormulaRule(formula=['$K$7<>"OK"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("K6", FormulaRule(formula=['$K$6>0'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+
+    su = wb.create_sheet("Signups")
+    su["A1"] = "Signups: one row per person"
+    su["A1"].font = Font(bold=True, size=13)
+    su["A2"] = "Type the workshop name exactly as it is on the Workshops tab (pick it from the dropdown). Payment is Paid or Unpaid."
+    su["A2"].font = Font(italic=True)
+    _head_row(su, 4, ["Name", "Workshop", "Email", "Payment"], [24, 26, 32, 12])
+    for r in range(5, 205):
+        for col in "ABCD":
+            su[f"{col}{r}"].fill = INPUT_FILL
+    plan = [("Candle Pouring 101", 7, 1), ("Intro to Block Printing", 5, 1),
+            ("Embroidery Basics", 6, 1), ("Wreath Making", 6, 1)]
+    names = ["Alma Reyes", "Ben Okafor", "Carla Nguyen", "Dev Patel", "Elena Rossi", "Frank Miller", "Grace Lin",
+             "Hector Diaz", "Iris Walker", "Jamal Brooks", "Kara Stone", "Leo Fischer", "Mina Park", "Noah Bell",
+             "Olive Grant", "Pablo Cruz", "Quinn Ellis", "Rita Shah", "Sam Torres", "Tina Moore", "Uma Das",
+             "Victor Hale", "Wendy Cho", "Xavier Ross", "Yara Haddad", "Zoe Fisher", "Amir Khan", "Beth Novak"]
+    rows = []
+    k = 0
+    for shop, paid, unpaid in plan:
+        for status in ["Paid"] * paid + ["Unpaid"] * unpaid:
+            nm = names[k]
+            k += 1
+            rows.append([nm, shop, nm.lower().replace(" ", ".") + "@example.com", status])
+    assert len(rows) == 28
+    random.Random(1102).shuffle(rows)
+    for i, row in enumerate(rows):
+        for j, v in enumerate(row):
+            su.cell(row=5 + i, column=1 + j, value=v)
+    dv1 = DataValidation(type="list", formula1="=Workshops!$A$5:$A$14", allow_blank=True, errorStyle="warning")
+    dv2 = DataValidation(type="list", formula1='"Paid,Unpaid"', allow_blank=True, errorStyle="warning")
+    su.add_data_validation(dv1)
+    su.add_data_validation(dv2)
+    dv1.add("B5:B204")
+    dv2.add("D5:D204")
+    su.freeze_panes = "A5"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Workshop Registrations, Seats Left and Waitlist",
+        "",
+        "1. Workshops tab: type each workshop's name, date and number of seats in A5:C14 (yellow). The sample has 4 fictional workshops.",
+        "2. Signups tab: one row per person in A5:D204 (yellow): name, workshop, email, payment (Paid or Unpaid). The sample has 28 fictional people with example.com emails.",
+        "3. Paid, D5: =COUNTIFS(Signups!$B$5:$B$204,A5,Signups!$D$5:$D$204,\"Paid\"). All sign-ups, E5: =COUNTIF(Signups!$B$5:$B$204,A5).",
+        "4. Seats left, F5: =MAX(0,C5-D5). Only paid people use a seat. MAX(0,...) keeps the number from going below zero.",
+        "5. Waitlist, G5: =MAX(0,E5-C5). It counts every sign-up beyond the seat count, paid or unpaid.",
+        "6. Status, H5: Full when no seats are left, Almost full for 1 or 2 seats left, otherwise Open.",
+        "7. K6 counts sign-ups whose workshop name is not on the Workshops tab (a typo or an extra space). Those people are not counted anywhere else, so K7 shows Check until you fix the name.",
+        "8. Capitalization does not matter (COUNTIFS ignores case), but a trailing space or a misspelling does. A payment typed Paid with a trailing space is not counted as paid.",
+        "9. K7 also shows Check when a workshop has more paid people than seats or a Seats cell is not a number.",
+        "",
+        "People, workshops and emails are fictional. This is a counting sheet only; it says nothing about refunds, cancellations or waivers.",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Workshops"].page_setup.orientation = "landscape"
+    wb["Workshops"].print_title_rows = "4:4"
+    wb["Signups"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-workshop-registrations.xlsx")
+
+
+def price_after_card_fee():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Calculator"
+    ws.column_dimensions["A"].width = 34
+    for col in "BCDE":
+        ws.column_dimensions[col].width = 16
+    labels = {2: "Amount you want to keep", 3: "Percent fee", 4: "Flat fee"}
+    for r, t in labels.items():
+        ws[f"A{r}"] = t
+        ws[f"A{r}"].font = Font(bold=True)
+    ws["A1"] = "Price that nets the amount you want after a card fee"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["B2"], ws["B3"], ws["B4"] = 100.00, 0.029, 0.30
+    ws["B2"].number_format = USD
+    ws["B3"].number_format = "0.0%"
+    ws["B4"].number_format = USD
+    for c in ("B2", "B3", "B4"):
+        ws[c].fill = INPUT_FILL
+    ws["C3"] = "Type your own rate, like 2.9%"
+    ws["C3"].font = Font(italic=True)
+    ws["A5"] = "Inputs OK?"
+    ws["B5"] = ('=IF(AND(ISNUMBER(B2),ISNUMBER(B3),ISNUMBER(B4)),IF(AND(B2>=0,B3>=0,B3<1,B4>=0),"OK",'
+                '"Percent: 0% up to under 100%. Amounts: 0 or more"),"Type a number in each yellow cell")')
+    rows = [
+        (6, "Price to charge", '=IF($B$5<>"OK","",ROUND((B2+B4)/(1-B3),2))', USD),
+        (7, "Fee taken", '=IF(B6="","",ROUND(B6*B3+B4,2))', USD),
+        (8, "You keep", '=IF(B6="","",ROUND(B6-B7,2))', USD),
+        (9, "Difference from target", '=IF(B6="","",ROUND(B8-B2,2))', USD),
+        (10, "Wrong shortcut price (target x (1 + percent) + flat fee)", '=IF($B$5<>"OK","",ROUND(B2*(1+B3)+B4,2))', USD),
+        (11, "What you keep with the shortcut", '=IF(B10="","",ROUND(B10-(B10*B3+B4),2))', USD),
+        (12, "Shortcut shortfall", '=IF(B10="","",ROUND(B11-B2,2))', USD),
+        (13, "Status", '=IF(B5<>"OK","Check inputs",IF(B9>=0,"OK",IF(B9>=-0.01,"1 cent short from rounding","Check")))', "General"),
+        (14, "CHECK", '=IF(AND(B5="OK",ISNUMBER(B6),COUNTIF(E17:E21,"<-0.01")=0,COUNT(E17:E21)=COUNT(A17:A21)),"OK","Check")', "General"),
+    ]
+    _summary_block(ws, "A", "B", rows)
+    for r in range(5, 15):
+        ws[f"B{r}"].fill = FORMULA_FILL
+        ws[f"B{r}"].alignment = Alignment(horizontal="right", wrap_text=(r == 5))
+    ws.row_dimensions[10].height = 30
+    ws["A10"].alignment = Alignment(wrap_text=True)
+    ws["B5"].number_format = "General"
+    _head_row(ws, 16, ["Amount you want to keep", "Price to charge", "Fee taken", "You keep", "Difference"],
+              [34, 16, 16, 16, 16], height=30)
+    for i, t in enumerate([25.00, 48.00, 100.00, 250.00, 1250.00]):
+        r = 17 + i
+        ws[f"A{r}"] = t
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"B{r}"] = f'=IF(OR($B$5<>"OK",NOT(ISNUMBER(A{r}))),"",ROUND((A{r}+$B$4)/(1-$B$3),2))'
+        ws[f"C{r}"] = f'=IF(B{r}="","",ROUND(B{r}*$B$3+$B$4,2))'
+        ws[f"D{r}"] = f'=IF(B{r}="","",ROUND(B{r}-C{r},2))'
+        ws[f"E{r}"] = f'=IF(B{r}="","",ROUND(D{r}-A{r},2))'
+        for col in "ABCDE":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "BCDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("B14", FormulaRule(formula=['$B$14<>"OK"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("B5", FormulaRule(formula=['$B$5<>"OK"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("E17:E21", FormulaRule(formula=['AND(ISNUMBER(E17),E17<0)'], fill=ALERT_FILL))
+    notes_sheet(wb, [
+        "Tidy Tabs: Price That Nets the Amount You Want After a Card Fee",
+        "",
+        "1. Calculator tab: type the amount you want to keep in B2, the percent fee in B3 and the flat fee in B4 (yellow). The numbers are fictional examples. Type the rates your own processor charges; this file does not know any provider's rates.",
+        "2. Price to charge, B6: =ROUND((B2+B4)/(1-B3),2). Divide by 1 minus the percent, because the percent fee is charged on the whole price, including the part that pays the fee.",
+        "3. Fee taken, B7: =ROUND(B6*B3+B4,2). You keep, B8: =ROUND(B6-B7,2). Difference from target, B9: =ROUND(B8-B2,2).",
+        "4. Wrong shortcut, B10: =ROUND(B2*(1+B3)+B4,2). Multiplying by 1.029 adds 2.9% of the target, but the fee is 2.9% of the larger price. B11 and B12 show what that leaves you short.",
+        "5. B5 checks the yellow cells: the percent must be 0% up to under 100% and the amounts 0 or more. Typing 2.9 where the cell is formatted as a percent gives 290%, so B5 shows a message and the prices stay blank.",
+        "6. The table in A17:E21 repeats the formulas for five other amounts (A17:A21 are yellow). CHECK, B14, shows OK when no table row is more than one cent short.",
+        "7. This is arithmetic only. Whether you may pass a fee on to customers depends on your processor's terms and your state's rules; check those yourself.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Calculator"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-price-after-card-fee.xlsx")
+
+
+def top_unpaid_invoices():
+    wb = Workbook()
+    iv = wb.active
+    iv.title = "Invoices"
+    iv["A1"] = "Invoices: type or paste one row per invoice"
+    iv["A1"].font = Font(bold=True, size=13)
+    iv["A2"] = "Status is Paid, Sent or Overdue. Gray columns F and G are formulas; G is a helper that breaks ties."
+    iv["A2"].font = Font(italic=True)
+    _head_row(iv, 4, ["Invoice #", "Client", "Amount", "Due date", "Status", "Open amount", "Tie-safe key (helper)"],
+              [12, 24, 12, 12, 11, 13, 20])
+    data = [
+        ("INV-2041", "Harbor Dental", 480.00, date(2026, 8, 15), "Paid"),
+        ("INV-2042", "Pine & Co. Realty", 1250.00, date(2026, 9, 5), "Overdue"),
+        ("INV-2043", "Lakeside Yoga", 640.00, date(2026, 9, 12), "Overdue"),
+        ("INV-2044", "Main St. Gift Shop", 85.00, date(2026, 9, 20), "Paid"),
+        ("INV-2045", "Bluebird Bakery", 2400.00, date(2026, 10, 1), "Overdue"),
+        ("INV-2046", "Harbor Dental", 320.00, date(2026, 10, 5), "Paid"),
+        ("INV-2047", "Oakline Studio", 1250.00, date(2026, 10, 10), "Sent"),
+        ("INV-2048", "Lakeside Yoga", 175.00, date(2026, 10, 14), "Paid"),
+        ("INV-2049", "Maple Street Pottery", 640.00, date(2026, 10, 18), "Sent"),
+        ("INV-2050", "Pine & Co. Realty", 960.00, date(2026, 10, 22), "Sent"),
+        ("INV-2051", "Northside Cycles", 1800.00, date(2026, 10, 25), "Paid"),
+        ("INV-2052", "Bluebird Bakery", 215.50, date(2026, 10, 28), "Sent"),
+        ("INV-2053", "Main St. Gift Shop", 410.00, date(2026, 11, 1), "Sent"),
+        ("INV-2054", "Harbor Dental", 1100.00, date(2026, 11, 3), "Sent"),
+        ("INV-2055", "Oakline Studio", 95.00, date(2026, 11, 8), "Sent"),
+        ("INV-2056", "Maple Street Pottery", 735.25, date(2026, 11, 12), "Sent"),
+        ("INV-2057", "Northside Cycles", 2100.00, date(2026, 9, 30), "Paid"),
+        ("INV-2058", "Lakeside Yoga", 150.00, date(2026, 11, 15), "Sent"),
+    ]
+    for r in range(5, 105):
+        for col in "ABCDE":
+            iv[f"{col}{r}"].fill = INPUT_FILL
+        iv[f"C{r}"].number_format = USD
+        iv[f"D{r}"].number_format = US_DATE
+        iv[f"F{r}"] = f'=IF(OR(A{r}="",E{r}="Paid",NOT(ISNUMBER(C{r}))),"",C{r})'
+        iv[f"G{r}"] = f'=IF(F{r}="","",F{r}-ROW()/1000000)'
+        iv[f"F{r}"].number_format = USD
+        iv[f"G{r}"].number_format = "0.000000"
+        for col in "FG":
+            iv[f"{col}{r}"].fill = FORMULA_FILL
+            iv[f"{col}{r}"].font = Font(color="808080") if col == "G" else Font()
+    for i, row in enumerate(data):
+        for j, v in enumerate(row):
+            iv.cell(row=5 + i, column=1 + j, value=v)
+    iv.freeze_panes = "A5"
+
+    tp = wb.create_sheet("Top 3")
+    tp["A1"] = "Your 3 biggest unpaid invoices"
+    tp["A1"].font = Font(bold=True, size=13)
+    _head_row(tp, 4, ["Rank", "Key (helper)", "Invoice #", "Client", "Amount"], [8, 16, 14, 26, 14], height=30)
+    for i in range(3):
+        r = 5 + i
+        tp[f"A{r}"] = i + 1
+        tp[f"A{r}"].fill = INPUT_FILL
+        tp[f"B{r}"] = f'=IFERROR(LARGE(Invoices!$G$5:$G$104,A{r}),"")'
+        tp[f"C{r}"] = f'=IF(B{r}="","",INDEX(Invoices!$A$5:$A$104,MATCH(B{r},Invoices!$G$5:$G$104,0)))'
+        tp[f"D{r}"] = f'=IF(B{r}="","",INDEX(Invoices!$B$5:$B$104,MATCH(B{r},Invoices!$G$5:$G$104,0)))'
+        tp[f"E{r}"] = f'=IF(B{r}="","",INDEX(Invoices!$F$5:$F$104,MATCH(B{r},Invoices!$G$5:$G$104,0)))'
+        tp[f"B{r}"].number_format = "0.000000"
+        tp[f"E{r}"].number_format = USD
+        for col in "BCDE":
+            tp[f"{col}{r}"].fill = FORMULA_FILL
+        tp[f"B{r}"].font = Font(color="808080")
+    tp.column_dimensions["F"].width = 3
+    tp.column_dimensions["G"].width = 30
+    tp.column_dimensions["H"].width = 14
+    _summary_block(tp, "G", "H", [
+        (4, "Open invoices", "=COUNT(Invoices!F5:F104)", "0"),
+        (5, "Total open", "=SUM(Invoices!F5:F104)", USD),
+        (6, "Top 3 total", "=SUM(E5:E7)", USD),
+        (7, "Top 3 share of open", '=IF(H5<=0,"",ROUND(H6/H5,4))', "0.0%"),
+        (8, "CHECK", '=IF(AND(ROUND(SUM(Invoices!F5:F104)-SUMIF(Invoices!E5:E104,"<>Paid",Invoices!C5:C104),2)=0,'
+                     'OR(E6="",E5>=E6),OR(E7="",E6>=E7)),"OK","Check")', "General"),
+    ])
+    tp.conditional_formatting.add("H8", FormulaRule(formula=['$H$8<>"OK"'], fill=ALERT_FILL))
+    notes_sheet(wb, [
+        "Tidy Tabs: Your 3 Biggest Unpaid Invoices",
+        "",
+        "1. Invoices tab: one row per invoice in A5:E104 (yellow): invoice number, client, amount, due date, status. The sample has 18 fictional invoices. Any status except Paid counts as open.",
+        "2. Open amount, F5: =IF(OR(A5=\"\",E5=\"Paid\",NOT(ISNUMBER(C5))),\"\",C5). Paid invoices, blank rows and amounts typed as text stay blank, so they never appear in the top 3.",
+        "3. Tie-safe key, G5: =IF(F5=\"\",\"\",F5-ROW()/1000000). It subtracts a tiny amount based on the row number, so two invoices of the same amount get different keys. The invoice higher in the list ranks first. The key is a helper; the Top 3 tab shows the real amount from column F.",
+        "4. Top 3 tab: B5: =IFERROR(LARGE(Invoices!$G$5:$G$104,A5),\"\") finds the largest key; change the rank in A5 (1, 2, 3). C5: =INDEX(Invoices!$A$5:$A$104,MATCH(B5,Invoices!$G$5:$G$104,0)) returns the invoice number, D5 the client, E5 the amount.",
+        "5. Without the key, LARGE returns the same amount for two equal invoices and MATCH finds the first one both times. The sample has two open $1,250.00 invoices (INV-2042 and INV-2047) to show this.",
+        "6. If fewer than 3 invoices are open, the empty rows stay blank. H4:H7 show the count of open invoices, their total, the top 3 total and its share. H8 shows OK when the open amounts match a SUMIF over every non-Paid row and the three amounts are in order.",
+        "7. A credit (negative amount) counts as open. Status is compared without regard to capitalization, so paid and Paid are the same, but Paid with a trailing space is not.",
+        "",
+        "Clients and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Invoices"].print_title_rows = "4:4"
+    wb["Top 3"].print_title_rows = None
+    wb["Top 3"].page_setup.orientation = "landscape"
+    wb.save(OUT / "tidy-tabs-top-unpaid-invoices.xlsx")
+
+
+def number_from_text_units():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Weights"
+    ws["A1"] = "Turn weights typed as text into numbers"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type each weight with its unit (oz or lb) in column B. Gray columns C:E are formulas."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Item", "Typed weight", "Number", "Unit", "Ounces"], [28, 16, 10, 8, 10])
+    data = [
+        ("Soy wax", "10 lb"), ("Fragrance oil", "12 oz"), ("Cotton wicks", "3oz"), ("Tins, 8 oz", "16 OZ"),
+        ("Shipping box", " 3 lb "), ("Dye chips", "1.5 lb"), ("Mica powder", ".5 lb"), ("Lip balm tubes", "12 oz."),
+        ("Jar lids", "4  oz"), ("Gift tags", "2lb"), ("Ribbon", "6 oz"), ("Packing paper", "1 lb"),
+    ]
+    for r in range(5, 25):
+        for col in "AB":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = "@"
+        ws[f"C{r}"] = (f'=IF(A{r}="","",IF(AND(ISNUMBER(SEARCH("oz",B{r}))<>ISNUMBER(SEARCH("lb",B{r})),'
+                       f'ISERROR(SEARCH("fl",B{r})),ISERROR(SEARCH("/",B{r})),ISERROR(SEARCH("-",B{r})),ISERROR(SEARCH(":",B{r}))),IFERROR(VALUE(LEFT(TRIM(B{r}),FIND(" ",TRIM(B{r})&" ")-1)),'
+                       f'IFERROR(VALUE(SUBSTITUTE(SUBSTITUTE(LOWER(TRIM(B{r})),"oz",""),"lb","")),"Check")),"Check"))')
+        ws[f"D{r}"] = f'=IF(OR(A{r}="",NOT(ISNUMBER(C{r}))),"",IF(ISNUMBER(SEARCH("lb",B{r})),"lb","oz"))'
+        ws[f"E{r}"] = f'=IF(ISNUMBER(C{r}),IF(D{r}="lb",ROUND(C{r}*16,2),C{r}),"")'
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (a, b) in enumerate(data):
+        ws[f"A{5 + i}"], ws[f"B{5 + i}"] = a, b
+    ws.column_dimensions["F"].width = 3
+    ws.column_dimensions["G"].width = 28
+    ws.column_dimensions["H"].width = 16
+    _summary_block(ws, "G", "H", [
+        (4, "Total ounces", "=SUM(E5:E24)", "0.00"),
+        (5, "Pounds and ounces", '=INT(ROUND(H4,2)/16)&" lb "&ROUND(MOD(ROUND(H4,2),16),2)&" oz"', "General"),
+        (6, "Rows showing Check", '=COUNTIF(C5:C24,"Check")', "0"),
+        (7, "CHECK", '=IF(AND(COUNTIF(C5:C24,"Check")=0,COUNT(E5:E24)=COUNTA(A5:A24),COUNTA(B5:B24)=COUNTA(A5:A24)),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("C5:C24", FormulaRule(formula=['$C5="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("H7", FormulaRule(formula=['$H$7<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Pull the Number Out of Text Like 12 oz or 3 lb",
+        "",
+        "1. Weights tab: type the item in A5:A24 and its weight as text in B5:B24 (yellow). The items are fictional.",
+        "2. Number, C5, for text with a space such as 12 oz: VALUE(LEFT(TRIM(B5),FIND(\" \",TRIM(B5)&\" \")-1)). TRIM removes extra spaces, FIND locates the first space (the added space stops an error when there is none), LEFT keeps what comes before it, VALUE turns it into a number.",
+        "3. For text with no space such as 12oz, C5 falls back to VALUE(SUBSTITUTE(SUBSTITUTE(LOWER(TRIM(B5)),\"oz\",\"\"),\"lb\",\"\")), which deletes the units and converts what is left.",
+        "4. The full C5 formula first requires exactly one of oz or lb in the text, and none of fl, a slash, a hyphen or a colon (VALUE would turn 1/2 into a date and 12- into -12). Anything else, such as 12 fl oz, 1 lb 4 oz, 12 ounces, 5 kg, 1/2 lb or a plain 12, shows Check instead of a guess.",
+        "5. Unit, D5: lb if the text contains lb, otherwise oz. Ounces, E5: =IF(ISNUMBER(C5),IF(D5=\"lb\",ROUND(C5*16,2),C5),\"\").",
+        "6. H4 is the total ounces, H5 shows it as pounds and ounces, H6 counts Check rows, H7 shows OK when no row says Check and every item has a weight.",
+        "7. Type decimals with a point (1.5 lb). In LibreOffice with US settings, 1,5 lb showed Check, 1,200 oz was read as 1200 and 1e3 oz as 1000; a number typed with a non-breaking space between the number and unit was read normally. What Excel and Google Sheets do with these was not tested.",
+        "",
+        "Items are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Weights"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-number-from-text-units.xlsx")
+
+
+def payment_reminders():
+    wb = Workbook()
+    iv = wb.active
+    iv.title = "Invoices"
+    iv["A1"] = "Invoices: one row per invoice"
+    iv["A1"].font = Font(bold=True, size=13)
+    iv["A2"] = "Type Yes in Paid when an invoice is paid. The as-of date and your name are on the Settings tab."
+    iv["A2"].font = Font(italic=True)
+    _head_row(iv, 4, ["Invoice #", "Client first name", "Amount", "Due date", "Paid", "Days past due", "Tone", "Message"],
+              [12, 16, 12, 12, 8, 11, 11, 95])
+    data = [
+        ("INV-2051", "Maya", 1250.50, date(2026, 10, 5), "Yes"),
+        ("INV-2052", "Devon", 85.00, date(2026, 9, 18), None),
+        ("INV-2053", "Priya", 640.00, date(2026, 10, 30), None),
+        ("INV-2054", "Sam", 320.00, date(2026, 10, 19), None),
+        ("INV-2055", "Alicia", 1200.00, date(2026, 11, 2), None),
+        ("INV-2056", "Tom", 475.25, date(2026, 11, 10), None),
+        ("INV-2057", "Grace", 90.00, date(2026, 11, 20), None),
+        ("INV-2058", "Luis", 2400.00, date(2026, 9, 30), "Yes"),
+        ("INV-2059", "Nora", 150.00, date(2026, 10, 17), None),
+        ("INV-2060", "Ben", 960.00, date(2026, 10, 28), None),
+        ("INV-2061", "Ivy", 215.50, date(2026, 8, 31), "Yes"),
+        ("INV-2062", "Omar", 410.00, date(2026, 11, 5), None),
+    ]
+    who = 'IF(TRIM(B{r})="","there",TRIM(B{r}))'
+    for r in range(5, 65):
+        for col in "ABCDE":
+            iv[f"{col}{r}"].fill = INPUT_FILL
+        iv[f"C{r}"].number_format = USD
+        iv[f"D{r}"].number_format = US_DATE
+        iv[f"F{r}"] = (f'=IF(OR(A{r}="",TRIM(E{r})="Yes"),"",IF(AND(ISNUMBER(D{r}),ISNUMBER(Settings!$B$1)),'
+                       f'INT(Settings!$B$1)-INT(D{r}),"Check date"))')
+        iv[f"G{r}"] = (f'=IF(F{r}="","",IF(OR(NOT(ISNUMBER(F{r})),NOT(ISNUMBER(C{r}))),"Check",'
+                       f'IF(F{r}<=0,"Upcoming",IF(F{r}<=14,"Gentle","Follow-up"))))')
+        name = who.format(r=r)
+        head = f'"Hi "&{name}&", "'
+        iv[f"H{r}"] = (f'=IF(G{r}="","",IF(G{r}="Check","Check the amount and due date in this row",'
+                       f'TRIM(IF(F{r}<=0,{head}&"just a heads-up that invoice "&A{r}&" for "&TEXT(C{r},"$#,##0.00")&" is due on "&TEXT(D{r},"mm/dd/yyyy")&". ",'
+                       f'{head}&"a quick reminder that invoice "&A{r}&" for "&TEXT(C{r},"$#,##0.00")&" was due on "&TEXT(D{r},"mm/dd/yyyy")&" ("&IF(F{r}=1,"1 day",F{r}&" days")&" ago). Let me know if you need another copy. ")'
+                       f'&Settings!$B$3)))')
+        for col in "FGH":
+            iv[f"{col}{r}"].fill = FORMULA_FILL
+        iv[f"F{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(data):
+        for j, v in enumerate(row):
+            if v is not None:
+                iv.cell(row=5 + i, column=1 + j, value=v)
+    iv.column_dimensions["I"].width = 3
+    iv.column_dimensions["J"].width = 26
+    iv.column_dimensions["K"].width = 14
+    _summary_block(iv, "J", "K", [
+        (4, "Messages to send", '=COUNT(F5:F64)-COUNTIF(F5:F64,"<=0")', "0"),
+        (5, "Total past due", '=SUMIF(F5:F64,">0",C5:C64)', USD),
+        (6, "CHECK", '=IF(AND(ISNUMBER(Settings!B1),COUNTIF(G5:G64,"Check")=0,SUMPRODUCT(--ISNUMBER(F5:F64),--(H5:H64=""))=0,'
+                     'SUMPRODUCT(--ISERROR(H5:H64))=0),"OK","Check")', "General"),
+    ])
+    iv.conditional_formatting.add("K6", FormulaRule(formula=['$K$6<>"OK"'], fill=ALERT_FILL))
+    iv.conditional_formatting.add("G5:G64", FormulaRule(formula=['$G5="Follow-up"'], fill=ALERT_FILL))
+    iv.freeze_panes = "A5"
+
+    st = wb.create_sheet("Settings")
+    st.column_dimensions["A"].width = 18
+    st.column_dimensions["B"].width = 36
+    st.column_dimensions["C"].width = 40
+    st["A1"], st["A2"], st["A3"] = "As-of date", "Your name", "Sign-off"
+    for c in ("A1", "A2", "A3"):
+        st[c].font = Font(bold=True)
+    st["B1"], st["B2"] = date(2026, 11, 2), "Jordan"
+    st["B1"].number_format = US_DATE
+    for c in ("B1", "B2"):
+        st[c].fill = INPUT_FILL
+    st["B3"] = '=IF(TRIM(B2)="","","Thanks, "&TRIM(B2))'
+    st["B3"].fill = FORMULA_FILL
+    st["C1"] = '=IF(ISNUMBER(B1),"OK","Type a date like 11/02/2026")'
+    st["C1"].fill = FORMULA_FILL
+    notes_sheet(wb, [
+        "Tidy Tabs: Friendly Payment Reminder Messages From Your Invoice List",
+        "",
+        "1. Settings tab: type the as-of date in B1 (yellow, 11/02/2026) and your first name in B2. The date is typed, not TODAY(), so the messages do not change when you open the file later.",
+        "2. Invoices tab: one row per invoice in A5:E64 (yellow): invoice number, client first name, amount, due date, Paid (Yes or blank). The sample has 12 fictional invoices.",
+        "3. Days past due, F5: =IF(OR(A5=\"\",TRIM(E5)=\"Yes\"),\"\",INT(Settings!$B$1)-INT(D5)) with a Check date message when the date is not a real date. Paid rows stay blank.",
+        "4. Tone, G5: Upcoming for 0 days or fewer, Gentle for 1 to 14 days, Follow-up for 15 or more.",
+        "5. Message, H5: joins text and cells with &. TEXT(C5,\"$#,##0.00\") shows the amount as $1,250.50 and TEXT(D5,\"mm/dd/yyyy\") shows the date as 11/05/2026. Without TEXT, a date joins as a serial number such as 46327.",
+        "6. TEXT format codes follow the app's language setting. If your dates look wrong, format the cell with Format > Number instead and join the cell by reference.",
+        "7. A blank client name becomes \"there\". A row with a text amount or a text date shows Check and no message.",
+        "8. K4 counts the messages to send (past due rows), K5 totals the past due amounts, K6 shows OK when no row needs checking.",
+        "9. The messages are plain and polite. They add no fee, no deadline and no legal wording, and this sheet is not collections advice.",
+        "",
+        "Clients and amounts are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Invoices"].page_setup.orientation = "landscape"
+    wb["Invoices"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-payment-reminders.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -11460,4 +11897,9 @@ if __name__ == "__main__":
     promo_code_results()
     lead_tracker()
     gift_set_cost()
+    workshop_registrations()
+    price_after_card_fee()
+    top_unpaid_invoices()
+    number_from_text_units()
+    payment_reminders()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

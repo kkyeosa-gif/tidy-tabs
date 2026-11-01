@@ -542,7 +542,35 @@ def heroes_2026_11_01():
                 "Sets", hide_cols="JK", name="giftset"))
 
 
+def heroes_2026_11_02():
+    t = "templates/"
+    d = "images/2026-11-02-team-0%d-%s/"
+    save(d % (1, "workshop-registrations-seats-left-waitlist-countifs-excel-google-sheets") + "workshop-seats-left-waitlist-template.png",
+         render(compact_copy(t + "tidy-tabs-workshop-registrations.xlsx", "Workshops", 8, "workshops",
+                             hide_rows=[1, 2, 3], clear=["A1", "A2"]),
+                "Workshops", name="workshops"))
+    save(d % (2, "price-to-net-target-after-card-fee-excel-google-sheets") + "price-to-net-target-card-fee-calculator.png",
+         render(compact_copy(t + "tidy-tabs-price-after-card-fee.xlsx", "Calculator", 21, "cardfee",
+                             hide_rows=[1], clear=["A1"]),
+                "Calculator", name="cardfee"))
+    save(d % (3, "three-biggest-unpaid-invoices-large-match-excel-google-sheets") + "top-3-unpaid-invoices-template.png",
+         render(compact_copy(t + "tidy-tabs-top-unpaid-invoices.xlsx", "Invoices", 22, "unpaidinv",
+                             hide_rows=[1, 2, 3], clear=["A1"]),
+                "Invoices", hide_cols="G", name="unpaidinv"),
+         render(compact_copy(t + "tidy-tabs-top-unpaid-invoices.xlsx", "Top 3", 8, "unpaidtop3", hide_rows=[1, 2, 3], clear=["A1"]),
+                "Top 3", hide_cols="B", name="unpaidtop3"))
+    save(d % (4, "pull-number-out-of-text-12-oz-value-left-find-excel-google-sheets") + "weights-text-to-number-template.png",
+         render(compact_copy(t + "tidy-tabs-number-from-text-units.xlsx", "Weights", 16, "weights", hide_rows=[1, 2, 3], clear=["A1", "A2"]),
+                "Weights", name="weights"))
+    save(d % (5, "payment-reminder-message-from-invoice-data-text-excel-google-sheets") + "payment-reminder-message-list.png",
+         render(compact_copy(t + "tidy-tabs-payment-reminders.xlsx", "Invoices", 16, "reminders", hide_rows=[1, 2, 3], clear=["A1", "A2"]),
+                "Invoices", hide_cols="IJK", widths={"H": 125}, name="reminders"))
+
+
 def main():
+    if "--only-2026-11-02" in sys.argv:
+        heroes_2026_11_02()
+        return
     if "--only-2026-11-01" in sys.argv:
         heroes_2026_11_01()
         return

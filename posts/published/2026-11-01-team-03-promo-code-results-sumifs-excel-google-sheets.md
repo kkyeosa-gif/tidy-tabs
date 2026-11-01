@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfNVM4kFHaC
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-see-which-promo-codes-made-money.html
 title: How to See Which Promo Codes Made Money in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model that uses Decimal. Checked: a code typed in lowercase, a trailing space in a code, an unknown code, a code listed twice, a subtotal typed as text, no blank codes, and a listed code with no orders. Excel and Google Sheets were not used.

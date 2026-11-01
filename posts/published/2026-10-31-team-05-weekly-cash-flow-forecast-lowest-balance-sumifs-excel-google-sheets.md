@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfLZmtaAAv-
+blogger_url: https://tidytabs.blogspot.com/2026/10/how-to-build-weekly-cash-flow-forecast.html
 title: How to Build a Weekly Cash Flow Forecast in Excel and Google Sheets
 labels: excel-formulas, small-business, cash-flow
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python model of the weekly totals, ending balances, lowest balance and check cell, in 28 workbooks (5,628 cell comparisons, 0 mismatches, no error values). Checked: items on the first and last day of the 13 weeks and one day after, an item before the first Monday, a start date that is not a Monday, In and Out typed in capitals, Income as a Type, a negative amount, text dates and amounts, a trailing space, no items, a negative opening balance, a tie for the lowest balance, times on dates and 100 items. The PDF export pages are US Letter. Excel and Google Sheets were not used.

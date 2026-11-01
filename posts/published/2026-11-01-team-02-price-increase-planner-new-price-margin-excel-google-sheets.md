@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfNHeCJFdxr
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-raise-prices-by-percent-and-see.html
 title: How to Raise Prices by a Percent and See the New Margin in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and its new prices, margins, price changes, statuses and summary were compared with a Python model. Checked: the Nearest cent and End in .99 rounding choices, a 0% increase, a 10% price cut, a cost above the price, an old price of $0.00, text in a cost cell and a 170% increase. The rounding dropdown menu was not clicked, only its values were set. Excel and Google Sheets were not used.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfOFRBJjYzt
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-work-out-cost-and-margin-of-gift.html
 title: How to Work Out the Cost and Margin of a Gift Set in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model (Decimal, round half up) of every line cost, set cost, profit, margin and the check cell. Checked: a misspelled part name, a quantity of 0, a quantity typed as text, a part listed twice on the Parts tab, a typo in a set name and a blank price. The PDF export pages are US Letter. Excel and Google Sheets were not used.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfQOnynoGn7
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-pull-number-out-of-text-like-12.html
 title: How to Pull the Number Out of Text Like 12 oz or 3 lb in Excel and Google Sheets
 labels: excel-formulas, text-functions, small-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with a Python mirror of the formulas over 8 workbooks and 512 comparisons, with 0 mismatches. Checked: spacing, capitalization, trailing periods, decimals, unit-first text, fl oz, fractions, hyphens, two units in one cell and blank weights. The PDF export pages are US Letter. Excel and Google Sheets were not used.

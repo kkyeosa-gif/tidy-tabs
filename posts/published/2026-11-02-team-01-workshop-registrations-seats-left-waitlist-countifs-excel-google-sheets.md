@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfPYdu0nFo0
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-track-workshop-registrations-and.html
 title: How to Track Workshop Registrations and Seats Left in Excel and Google Sheets
 labels: excel-formulas, small-business, templates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux). Not tested in Excel or Google Sheets. The template was recalculated in 16 edited copies and compared with an independent Python model (9,517 cell comparisons across all five templates built that day, 0 mismatches). Checked: sign-ups equal to and one over the seat count, zero sign-ups, different capitalization, a trailing space in a workshop name, a misspelled workshop, Paid typed with a trailing space, 0 seats, seats typed as text, a duplicate workshop row and blank rows in Signups. The PDF export pages are US Letter.

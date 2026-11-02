@@ -567,7 +567,30 @@ def heroes_2026_11_02():
                 "Invoices", hide_cols="IJK", widths={"H": 125}, name="reminders"))
 
 
+def heroes_2026_11_03():
+    t = "templates/"
+    d = "images/2026-11-03-team-0%d-%s/"
+    save(d % (1, "weekly-sales-totals-from-daily-log-sumifs-excel-google-sheets") + "weekly-sales-totals-by-week-template.png",
+         render(compact_copy(t + "tidy-tabs-weekly-sales-totals.xlsx", "Weeks", 13, "weeklysales", hide_rows=[1], clear=["A1"]),
+                "Weeks", widths={"A": 32}, name="weeklysales"))
+    save(d % (2, "best-by-date-from-made-on-date-shelf-life-edate-excel-google-sheets") + "best-by-date-edate-template.png",
+         render(compact_copy(t + "tidy-tabs-best-by-dates.xlsx", "Batches", 15, "bestby", hide_rows=[1, 4], clear=["A1", "C2"]),
+                "Batches", name="bestby"))
+    save(d % (3, "buy-2-get-1-free-price-calculator-int-excel-google-sheets") + "buy-2-get-1-free-price-calculator.png",
+         render(compact_copy(t + "tidy-tabs-buy-x-get-y-free.xlsx", "Deal", 30, "buyxgety", hide_rows=[1, 7], clear=["A1"]),
+                "Deal", name="buyxgety"))
+    save(d % (4, "flip-last-first-names-to-first-last-find-mid-excel-google-sheets") + "flip-last-first-names-template.png",
+         render(compact_copy(t + "tidy-tabs-flip-last-first-names.xlsx", "Names", 16, "flipnames", hide_rows=[1, 2, 3], clear=["A1", "A2"]),
+                "Names", name="flipnames"))
+    save(d % (5, "loyalty-punch-card-free-reward-tracker-countifs-excel-google-sheets") + "loyalty-punch-card-tracker-template.png",
+         render(compact_copy(t + "tidy-tabs-loyalty-punch-card.xlsx", "Customers", 14, "punchcard", hide_rows=[1], clear=["A1"]),
+                "Customers", widths={"A": 34}, name="punchcard"))
+
+
 def main():
+    if "--only-2026-11-03" in sys.argv:
+        heroes_2026_11_03()
+        return
     if "--only-2026-11-02" in sys.argv:
         heroes_2026_11_02()
         return

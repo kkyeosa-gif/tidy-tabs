@@ -11755,6 +11755,387 @@ def payment_reminders():
     wb.save(OUT / "tidy-tabs-payment-reminders.xlsx")
 
 
+def weekly_sales_totals():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    ws["A1"] = "Sales log: one row per sale"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type the sale date, channel and amount in the yellow cells. Weekly totals are on the Weeks tab."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Sale date", "Channel", "Amount"], [13, 18, 12])
+    sales = [
+        (date(2026, 9, 7), "Etsy", 34.00), (date(2026, 9, 8), "Farmers market", 112.50),
+        (date(2026, 9, 10), "Etsy", 27.00), (date(2026, 9, 12), "Farmers market", 186.00),
+        (date(2026, 9, 13), "Farmers market", 94.25), (date(2026, 9, 14), "Shopify", 58.00),
+        (date(2026, 9, 15), "Etsy", 41.00), (date(2026, 9, 17), "Shopify", 73.50),
+        (date(2026, 9, 19), "Farmers market", 205.75), (date(2026, 9, 20), "Etsy", 36.00),
+        (date(2026, 9, 21), "Etsy", 52.00), (date(2026, 9, 23), "Shopify", 88.00),
+        (date(2026, 9, 26), "Farmers market", 143.00), (date(2026, 9, 27), "Farmers market", 121.50),
+        (date(2026, 9, 28), "Etsy", 64.00), (date(2026, 9, 30), "Shopify", 19.00),
+        (date(2026, 10, 2), "Etsy", 45.00), (date(2026, 10, 3), "Farmers market", 230.00),
+        (date(2026, 10, 4), "Farmers market", 98.00), (date(2026, 10, 5), "Shopify", 77.25),
+        (date(2026, 10, 6), "Etsy", 31.00), (date(2026, 10, 9), "Shopify", 120.00),
+        (date(2026, 10, 10), "Farmers market", 176.50), (date(2026, 10, 11), "Etsy", 29.00),
+    ]
+    for r in range(5, 205):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+    for i, (d, ch, amt) in enumerate(sales):
+        ws[f"A{5 + i}"], ws[f"B{5 + i}"], ws[f"C{5 + i}"] = d, ch, amt
+    ws.freeze_panes = "A5"
+    wk = wb.create_sheet("Weeks")
+    wk["A1"] = "Weekly sales totals (weeks run Monday to Sunday)"
+    wk["A1"].font = Font(bold=True, size=13)
+    wk["A2"] = "First Monday"
+    wk["A2"].font = Font(bold=True)
+    wk["B2"] = date(2026, 9, 7)
+    wk["B2"].number_format = US_DATE
+    wk["B2"].fill = INPUT_FILL
+    wk["A3"] = "Monday on or before first sale"
+    wk["A3"].font = Font(bold=True)
+    wk["B3"] = '=IF(COUNT(Sales!A5:A204)=0,"",MIN(Sales!A5:A204)-WEEKDAY(MIN(Sales!A5:A204),2)+1)'
+    wk["B3"].number_format = US_DATE
+    wk["B3"].fill = FORMULA_FILL
+    _head_row(wk, 5, ["Week starting", "Week ending", "Sales", "Orders", "Average order"], [26, 14, 13, 9, 14])
+    for r in range(6, 22):
+        wk[f"A{r}"] = '=IF(AND(ISNUMBER($B$2),WEEKDAY($B$2,2)=1),$B$2,"")' if r == 6 else f'=IF(A{r-1}="","",A{r-1}+7)'
+        wk[f"B{r}"] = f'=IF(A{r}="","",A{r}+6)'
+        wk[f"C{r}"] = f'=IF(A{r}="","",SUMIFS(Sales!$C$5:$C$204,Sales!$A$5:$A$204,">="&A{r},Sales!$A$5:$A$204,"<="&B{r}))'
+        wk[f"D{r}"] = f'=IF(A{r}="","",COUNTIFS(Sales!$A$5:$A$204,">="&A{r},Sales!$A$5:$A$204,"<="&B{r}))'
+        wk[f"E{r}"] = f'=IF(OR(A{r}="",D{r}=0),"",ROUND(C{r}/D{r},2))'
+        for col in "AB":
+            wk[f"{col}{r}"].number_format = US_DATE
+        for col in "CE":
+            wk[f"{col}{r}"].number_format = USD
+        for col in "ABCDE":
+            wk[f"{col}{r}"].fill = FORMULA_FILL
+            wk[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    wk.column_dimensions["F"].width = 3
+    wk.column_dimensions["G"].width = 30
+    wk.column_dimensions["H"].width = 14
+    _summary_block(wk, "G", "H", [
+        (5, "Total of all sales", "=SUM(Sales!C5:C204)", USD),
+        (6, "Total in the weeks listed", "=SUM(C6:C21)", USD),
+        (7, "Sales outside these weeks", "=ROUND(H5-H6,2)", USD),
+        (8, "Best week starting", '=IF(COUNT(C6:C21)=0,"",INDEX(A6:A21,MATCH(MAX(C6:C21),C6:C21,0)))', US_DATE),
+        (9, "CHECK", '=IF(AND(ISNUMBER(A6),H7=0,COUNT(Sales!A5:A204)=COUNT(Sales!C5:C204)),"OK","Check")', "General"),
+    ])
+    wk.conditional_formatting.add("H9", FormulaRule(formula=['$H$9<>"OK"'], fill=ALERT_FILL))
+    wk.freeze_panes = "A6"
+    notes_sheet(wb, [
+        "Tidy Tabs: Weekly Sales Totals From a Daily Sales Log",
+        "",
+        "1. Sales tab: type each sale's date, channel and amount in the yellow cells (rows 5 to 204). The sales are fictional.",
+        "2. Weeks tab: type the first Monday in B2. B3 shows the Monday on or before your earliest sale if you are not sure.",
+        "3. Week starting, A6, is B2 if it is a Monday. Each row below adds 7 days. Week ending, B6, is A6+6.",
+        "4. Sales, C6: =SUMIFS(Sales!$C$5:$C$204,Sales!$A$5:$A$204,\">=\"&A6,Sales!$A$5:$A$204,\"<=\"&B6). Orders, D6, is the same with COUNTIFS.",
+        "5. The date test uses whole dates. A sale typed with a time of day on the last Sunday would fall outside the week; type dates only.",
+        "6. H7 shows sales dated outside the 16 weeks listed. H9 says OK when B2 is a Monday, nothing falls outside the weeks and every date has an amount.",
+        "7. To get any Monday from a date: =A5-WEEKDAY(A5,2)+1.",
+        "",
+        "Sample data is fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Weeks"].print_title_rows = "5:5"
+    wb["Sales"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-weekly-sales-totals.xlsx")
+
+
+def best_by_dates():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Batches"
+    ws["A1"] = "Best-by dates from the made-on date and shelf life"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"], ws["B2"] = "As-of date", date(2026, 11, 2)
+    ws["A3"], ws["B3"] = "Use-soon window (days)", 30
+    for c in ("A2", "A3"):
+        ws[c].font = Font(bold=True)
+    for c in ("B2", "B3"):
+        ws[c].fill = INPUT_FILL
+    ws["B2"].number_format = US_DATE
+    ws["C2"] = "Type the date to check against, or =TODAY() if you want it to follow the calendar."
+    ws["C2"].font = Font(italic=True)
+    _head_row(ws, 5, ["Product", "Made on", "Shelf life (months)", "Best by", "Days left", "Status"], [28, 13, 13, 13, 11, 13])
+    data = [
+        ("Lavender soy candle", date(2026, 3, 14), 24), ("Oatmeal goat milk soap", date(2026, 1, 31), 12),
+        ("Peppermint lip balm", date(2025, 9, 20), 18), ("Lemon sugar scrub", date(2026, 8, 3), 6),
+        ("Bath bomb set", date(2026, 5, 29), 6), ("Cedar beard oil", date(2026, 6, 30), 12),
+        ("Rose body butter", date(2026, 4, 12), 9), ("Charcoal soap bar", date(2026, 10, 8), 12),
+        ("Eucalyptus shower steamer", date(2026, 9, 1), 2), ("Vanilla room spray", date(2026, 2, 28), 8),
+    ]
+    for r in range(6, 46):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"D{r}"] = f'=IF(A{r}="","",IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r})),EDATE(B{r},C{r}),"Check"))'
+        ws[f"E{r}"] = f'=IF(OR(A{r}="",NOT(ISNUMBER(D{r}))),"",IF(ISNUMBER($B$2),D{r}-$B$2,"Check"))'
+        ws[f"F{r}"] = (f'=IF(A{r}="","",IF(OR(NOT(ISNUMBER(E{r})),NOT(ISNUMBER($B$3))),"Check",'
+                       f'IF(E{r}<0,"Past date",IF(E{r}<=$B$3,"Use soon","OK"))))')
+        ws[f"D{r}"].number_format = US_DATE
+        ws[f"E{r}"].number_format = "0"
+        for col in "DEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (p, m, s) in enumerate(data):
+        ws[f"A{6 + i}"], ws[f"B{6 + i}"], ws[f"C{6 + i}"] = p, m, s
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 22
+    ws.column_dimensions["I"].width = 10
+    _summary_block(ws, "H", "I", [
+        (5, "Past the date", '=COUNTIF(F6:F45,"Past date")', "0"),
+        (6, "Use soon", '=COUNTIF(F6:F45,"Use soon")', "0"),
+        (7, "OK", '=COUNTIF(F6:F45,"OK")', "0"),
+        (8, "Rows to fix", '=COUNTIF(F6:F45,"Check")', "0"),
+        (9, "CHECK", '=IF(AND(ISNUMBER(B2),ISNUMBER(B3),I8=0,COUNTA(A6:A45)=I5+I6+I7),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("F6:F45", FormulaRule(formula=['$F6="Past date"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("F6:F45", FormulaRule(formula=['$F6="Use soon"'], fill=PatternFill("solid", fgColor="FFF2CC")))
+    ws.conditional_formatting.add("I9", FormulaRule(formula=['$I$9<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A6"
+    notes_sheet(wb, [
+        "Tidy Tabs: Best-By Date From the Made-On Date and Shelf Life",
+        "",
+        "1. Batches tab: type the as-of date in B2, the use-soon window in B3, then each product, made-on date and shelf life in months (yellow cells). The products are fictional.",
+        "2. Best by, D6: =EDATE(B6,C6). EDATE moves a date forward by whole months and keeps the day of the month.",
+        "3. When the target month is shorter, EDATE uses its last day: 01/31/2026 plus 1 month is 02/28/2026.",
+        "4. Days left, E6: =D6-$B$2. Negative means the date has passed.",
+        "5. Status, F6: Past date when days left is below 0, Use soon when it is 0 up to the window in B3, otherwise OK.",
+        "6. Text in a date or months cell shows Check in D:F instead of an error. I9 says OK when no row needs fixing.",
+        "7. This sheet does arithmetic on dates you enter. It does not say how long any product stays safe or sellable.",
+        "",
+        "Sample data is fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Batches"].print_title_rows = "5:5"
+    wb.save(OUT / "tidy-tabs-best-by-dates.xlsx")
+
+
+def buy_x_get_y_free():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Deal"
+    ws["A1"] = "Buy some, get some free: what does the cart cost?"
+    ws["A1"].font = Font(bold=True, size=13)
+    labels = [(2, "Price each", 18.00, USD), (3, "Buy this many (paid)", 2, "0"), (4, "Get this many free", 1, "0")]
+    for r, lab, val, fmt in labels:
+        ws[f"A{r}"], ws[f"B{r}"] = lab, val
+        ws[f"A{r}"].font = Font(bold=True)
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = fmt
+    ws["A5"] = "Input check"
+    ws["B5"] = ('=IF(AND(ISNUMBER(B2),ISNUMBER(B3),ISNUMBER(B4)),IF(AND(B2>=0,B3>=1,B4>=0,B3=INT(B3),B4=INT(B4)),"OK",'
+                '"Price 0 or more. Buy 1 or more. Free 0 or more, whole numbers"),"Type a number in each yellow cell")')
+    ws["A6"] = "Items in one full deal"
+    ws["B6"] = '=IF($B$5<>"OK","",B3+B4)'
+    ws["A5"].font = ws["A6"].font = Font(bold=True)
+    ws["B5"].fill = ws["B6"].fill = FORMULA_FILL
+    ws["A8"] = "One cart"
+    ws["A8"].font = Font(bold=True, size=12)
+    ws["A9"], ws["B9"] = "Items in the cart", 7
+    ws["B9"].fill = INPUT_FILL
+    ws["A9"].font = Font(bold=True)
+    rows = [
+        (10, "Free items", '=IF(OR($B$5<>"OK",NOT(ISNUMBER(B9))),"",IF(AND(B9>=0,B9=INT(B9)),INT(B9/B6)*B4,""))', "0"),
+        (11, "Items you pay for", '=IF(B10="","",B9-B10)', "0"),
+        (12, "Cart total", '=IF(B10="","",ROUND(B11*B2,2))', USD),
+        (13, "Cost without the deal", '=IF(B10="","",ROUND(B9*B2,2))', USD),
+        (14, "You save", '=IF(B10="","",ROUND(B13-B12,2))', USD),
+        (15, "CHECK", '=IF(AND(B5="OK",ISNUMBER(B12),COUNT(B19:B30)=COUNT(A19:A30),COUNTIF(D19:D30,"<0")=0),"OK","Check")', "General"),
+    ]
+    for r, lab, f, fmt in rows:
+        ws[f"A{r}"], ws[f"B{r}"] = lab, f
+        ws[f"A{r}"].font = Font(bold=True)
+        ws[f"B{r}"].fill = FORMULA_FILL
+        ws[f"B{r}"].number_format = fmt
+        ws[f"B{r}"].alignment = Alignment(horizontal="right")
+    ws["B5"].alignment = ws["B6"].alignment = Alignment(horizontal="right")
+    _head_row(ws, 18, ["Items in cart", "Items you pay for", "Free items", "Cart total", "Average per item"], [30, 18, 12, 14, 16])
+    for i, q in enumerate(range(1, 13)):
+        r = 19 + i
+        ws[f"A{r}"] = q
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"C{r}"] = f'=IF(OR($B$5<>"OK",NOT(ISNUMBER(A{r}))),"",IF(AND(A{r}>=0,A{r}=INT(A{r})),INT(A{r}/$B$6)*$B$4,""))'
+        ws[f"B{r}"] = f'=IF(C{r}="","",A{r}-C{r})'
+        ws[f"D{r}"] = f'=IF(C{r}="","",ROUND(B{r}*$B$2,2))'
+        ws[f"E{r}"] = f'=IF(OR(C{r}="",A{r}=0),"",ROUND(D{r}/A{r},2))'
+        ws[f"D{r}"].number_format = ws[f"E{r}"].number_format = USD
+        for col in "BCDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("B15", FormulaRule(formula=['$B$15<>"OK"'], fill=ALERT_FILL))
+    notes_sheet(wb, [
+        "Tidy Tabs: Buy 2 Get 1 Free (or Any Buy X Get Y Free) Price",
+        "",
+        "1. Deal tab: type the price in B2, how many items are paid in each deal in B3 and how many are free in B4 (yellow). The $18.00 price is an example.",
+        "2. B6 is the size of one full deal: paid plus free. Buy 2 get 1 free is a deal of 3.",
+        "3. Free items, B10: =INT(B9/B6)*B4. INT drops the remainder, so a cart of 7 holds two full deals of 3 and one left over: 2 free items.",
+        "4. Items you pay for is the cart minus the free items. Cart total, B12: =ROUND(B11*B2,2).",
+        "5. The table in A19:E30 repeats the same formulas for 12 cart sizes. Change the yellow numbers in A19:A30 to any whole numbers.",
+        "6. This assumes the free items are the same price as the paid ones, and that every full group of items earns its free ones.",
+        "7. B5 shows a message instead of a price when a number is missing, a count is not a whole number, or buy is below 1.",
+        "",
+        "Prices are examples. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Deal"].print_title_rows = None
+    wb.save(OUT / "tidy-tabs-buy-x-get-y-free.xlsx")
+
+
+def flip_last_first_names():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Names"
+    ws["A1"] = "Flip Last, First into First Last"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type or paste names as Last, First in column A. Gray columns B:D are formulas."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Typed name", "First", "Last", "First Last"], [28, 16, 18, 28])
+    data = ["Alvarez, Maria", "O'Brien, Kevin", "Garcia Lopez, Ana", "de la Cruz, Luis", "Nguyen,  Linh",
+            "Brown, Pat A.", "  Patel,Raj  ", "Reyes, Carlos", "Thompson, Dana", "Okafor, Chidi", "Johnson, Ruth Ann", "Walker, DeShawn"]
+    for r in range(5, 65):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = "@"
+        ok = (f'IF(LEN(A{r})-LEN(SUBSTITUTE(A{r},",",""))=1,AND(LEN(TRIM(LEFT(A{r},FIND(",",A{r})-1)))>0,'
+              f'LEN(TRIM(MID(A{r},FIND(",",A{r})+1,200)))>0),FALSE)')
+        ws[f"B{r}"] = f'=IF(TRIM(A{r})="","",IF({ok},TRIM(MID(A{r},FIND(",",A{r})+1,200)),"Check"))'
+        ws[f"C{r}"] = f'=IF(TRIM(A{r})="","",IF({ok},TRIM(LEFT(A{r},FIND(",",A{r})-1)),"Check"))'
+        ws[f"D{r}"] = f'=IF(TRIM(A{r})="","",IF(B{r}="Check","Check",B{r}&" "&C{r}))'
+        for col in "BCD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    for i, n in enumerate(data):
+        ws[f"A{5 + i}"] = n
+    ws.column_dimensions["E"].width = 3
+    ws.column_dimensions["F"].width = 24
+    ws.column_dimensions["G"].width = 10
+    _summary_block(ws, "F", "G", [
+        (4, "Names typed", '=SUMPRODUCT(--(TRIM(A5:A64)<>""))', "0"),
+        (5, "Flipped", '=COUNTIF(D5:D64,"?*")-G6', "0"),
+        (6, "Rows showing Check", '=COUNTIF(D5:D64,"Check")', "0"),
+        (7, "CHECK", '=IF(AND(G6=0,G4=G5),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("D5:D64", FormulaRule(formula=['$D5="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("G7", FormulaRule(formula=['$G$7<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Flip Last, First Into First Last",
+        "",
+        "1. Names tab: type or paste names as Last, First in A5:A64 (yellow). The names are fictional.",
+        "2. Last, C5: =TRIM(LEFT(A5,FIND(\",\",A5)-1)). FIND locates the comma, LEFT keeps what is before it, TRIM removes extra spaces.",
+        "3. First, B5: =TRIM(MID(A5,FIND(\",\",A5)+1,200)). MID keeps what is after the comma.",
+        "4. First Last, D5: =B5&\" \"&C5.",
+        "5. A row shows Check instead of a guess when the name has no comma, more than one comma (Smith, Jr., John) or nothing on one side of the comma.",
+        "6. Last names with more than one word (Garcia Lopez, de la Cruz) stay together because everything before the comma is the last name.",
+        "7. To paste the result as plain text: copy D5:D64, then Paste special > Values only.",
+        "",
+        "Names are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Names"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-flip-last-first-names.xlsx")
+
+
+def loyalty_punch_card():
+    wb = Workbook()
+    cu = wb.active
+    cu.title = "Customers"
+    cu["A1"] = "Punch card: purchases counted, rewards earned and rewards ready"
+    cu["A1"].font = Font(bold=True, size=13)
+    cu["A2"], cu["B2"] = "Punches for a free reward", 10
+    cu["A3"], cu["B3"] = "Smallest purchase that earns a punch", 5.00
+    cu["B3"].number_format = USD
+    for c in ("A2", "A3"):
+        cu[c].font = Font(bold=True)
+    for c in ("B2", "B3"):
+        cu[c].fill = INPUT_FILL
+    cu["A4"], cu["B4"] = "Settings check", ('=IF(AND(ISNUMBER(B2),ISNUMBER(B3)),IF(AND(B2>=1,B2=INT(B2),B3>=0),"OK",'
+                                          '"Punches: whole number 1 or more. Smallest purchase: 0 or more"),"Type a number in each yellow cell")')
+    cu["A4"].font = Font(bold=True)
+    cu["B4"].fill = FORMULA_FILL
+    _head_row(cu, 5, ["Customer", "Punches", "Rewards earned", "Rewards used", "Rewards ready", "Punches to next reward", "Status"],
+              [24, 10, 10, 10, 10, 12, 14], height=45)
+    names = ["Maya R.", "Devon T.", "Priya S.", "Sam K.", "Alicia M.", "Tom H.", "Grace L.", "Luis P."]
+    used = [0, 0, 1, 0, 0, 0, 0, 1]
+    for r in range(6, 26):
+        for col in "AD":
+            cu[f"{col}{r}"].fill = INPUT_FILL
+        cu[f"B{r}"] = f'=IF(A{r}="","",IF($B$4<>"OK","",COUNTIFS(Purchases!$B$5:$B$304,A{r},Purchases!$C$5:$C$304,">="&$B$3)))'
+        cu[f"C{r}"] = f'=IF(OR(A{r}="",B{r}=""),"",INT(B{r}/$B$2))'
+        cu[f"E{r}"] = f'=IF(C{r}="","",C{r}-N(D{r}))'
+        cu[f"F{r}"] = f'=IF(B{r}="","",$B$2-MOD(B{r},$B$2))'
+        cu[f"G{r}"] = f'=IF(A{r}="","",IF(E{r}="","Check",IF(E{r}<0,"Check",IF(E{r}>0,"Reward ready","Collecting"))))'
+        for col in "BCEFG":
+            cu[f"{col}{r}"].fill = FORMULA_FILL
+            cu[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, n in enumerate(names):
+        cu[f"A{6 + i}"] = n
+        cu[f"D{6 + i}"] = used[i]
+    cu.column_dimensions["H"].width = 3
+    cu.column_dimensions["I"].width = 30
+    cu.column_dimensions["J"].width = 10
+    _summary_block(cu, "I", "J", [
+        (5, "Customers listed", "=COUNTA(A6:A25)", "0"),
+        (6, "Rewards ready", "=SUMIF(E6:E25,\">0\")", "0"),
+        (7, "Purchases not on the list", "=SUMPRODUCT((Purchases!B5:B304<>\"\")*(COUNTIF(A6:A25,Purchases!B5:B304)=0))", "0"),
+        (8, "Rows showing Check", '=COUNTIF(G6:G25,"Check")', "0"),
+        (9, "CHECK", '=IF(AND(B4="OK",J7=0,J8=0),"OK","Check")', "General"),
+    ])
+    cu.conditional_formatting.add("G6:G25", FormulaRule(formula=['$G6="Reward ready"'], fill=DONE_FILL))
+    cu.conditional_formatting.add("G6:G25", FormulaRule(formula=['$G6="Check"'], fill=ALERT_FILL))
+    cu.conditional_formatting.add("J9", FormulaRule(formula=['$J$9<>"OK"'], fill=ALERT_FILL))
+    cu.freeze_panes = "A6"
+    pu = wb.create_sheet("Purchases")
+    pu["A1"] = "Purchases: one row per sale"
+    pu["A1"].font = Font(bold=True, size=13)
+    pu["A2"] = "Type the date, the customer exactly as spelled on the Customers tab, and the amount."
+    pu["A2"].font = Font(italic=True)
+    _head_row(pu, 4, ["Date", "Customer", "Amount"], [13, 24, 12])
+    import random
+    rnd = random.Random(1103)
+    amounts = [3.75, 4.50, 5.00, 6.25, 7.50, 8.00, 9.75, 12.00, 4.95, 5.50]
+    counts = {"Maya R.": 12, "Devon T.": 4, "Priya S.": 23, "Sam K.": 9, "Alicia M.": 10, "Tom H.": 7, "Grace L.": 1, "Luis P.": 21}
+    sale_rows = []
+    for n, k in counts.items():
+        for _ in range(k):
+            sale_rows.append((n, rnd.choice(amounts)))
+    rnd.shuffle(sale_rows)
+    for r in range(5, 305):
+        for col in "ABC":
+            pu[f"{col}{r}"].fill = INPUT_FILL
+        pu[f"A{r}"].number_format = US_DATE
+        pu[f"C{r}"].number_format = USD
+    d0 = date(2026, 9, 1).toordinal()
+    for i, (n, a) in enumerate(sale_rows):
+        pu[f"A{5 + i}"] = date.fromordinal(d0 + i * 60 // len(sale_rows))
+        pu[f"B{5 + i}"], pu[f"C{5 + i}"] = n, a
+    pu.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Loyalty Punch Card Tracker",
+        "",
+        "1. Customers tab: type the punches needed for a reward in B2 and the smallest purchase that earns a punch in B3 (yellow). Both are examples.",
+        "2. List each customer once in A6:A25. Type how many rewards they have already used in D.",
+        "3. Purchases tab: log each sale with the customer spelled exactly as on the Customers tab. Customers and amounts are fictional.",
+        "4. Punches, B6: =COUNTIFS(Purchases!$B$5:$B$304,A6,Purchases!$C$5:$C$304,\">=\"&$B$3). Only purchases at or above B3 count.",
+        "5. Rewards earned, C6: =INT(B6/$B$2). Rewards ready, E6: earned minus used. Punches to next reward, F6: =$B$2-MOD(B6,$B$2).",
+        "6. J7 counts purchases whose customer is not on the Customers tab (a misspelling). J9 says OK when none are unmatched and no row shows Check.",
+        "7. COUNTIF ignores upper and lower case but not extra spaces: Maya R. with a trailing space is a different customer.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Customers"].print_title_rows = "5:5"
+    wb["Purchases"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-loyalty-punch-card.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -11902,4 +12283,9 @@ if __name__ == "__main__":
     top_unpaid_invoices()
     number_from_text_units()
     payment_reminders()
+    weekly_sales_totals()
+    best_by_dates()
+    buy_x_get_y_free()
+    flip_last_first_names()
+    loyalty_punch_card()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

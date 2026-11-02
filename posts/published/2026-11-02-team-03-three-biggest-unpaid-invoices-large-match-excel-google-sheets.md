@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfP6AVXiVqF
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-show-your-3-biggest-unpaid.html
 title: How to Show Your 3 Biggest Unpaid Invoices in Excel and Google Sheets
 labels: excel-formulas, invoicing, small-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model across 19 workbooks and 4,123 comparisons, with 0 mismatches. Checked: fewer than 3 open invoices, all invoices paid, a tie for first place, a tie across ranks 3 and 4, status typed as paid and PAID, a status with a trailing space, an amount typed as text, a blank amount, a negative amount, a missing invoice number, a blank row in the middle and 100 random rows. Excel and Google Sheets were not used.

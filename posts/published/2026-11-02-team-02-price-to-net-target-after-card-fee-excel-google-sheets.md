@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfPsSfqFQNU
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-set-price-that-still-nets-amount.html
 title: How to Set a Price That Still Nets the Amount You Want After a Card Fee in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model (Decimal) across 46 workbooks and 1,380 comparisons with 0 mismatches. Checked: fee 0%, flat fee $0.00, fee 99%, fee 100% and 150%, a percent typed as 2.9, a negative flat fee, a blank target, text in the yellow cells and a $1,000,000.00 target. The ROUND result was checked on a sample of 238 prices, not proven for every input. Excel and Google Sheets were not used.

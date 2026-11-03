@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfQqD84gBf-
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-write-friendly-payment-reminder.html
 title: How to Write a Friendly Payment Reminder From Your Invoice List in Excel and Google Sheets
 labels: excel-formulas, small-business, invoicing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there in 14 edited copies and 2,590 comparisons of exact message text and numbers against an independent Python model, with 0 mismatches. Checked: due dates equal to, one day after and 1, 13, 14, 15 and 16 days before the as-of date, a due date with a time, leap day and year end, amounts from $0.00 to $1,234,567.89, an amount typed as text, blank and padded client names, a due date or as-of date typed as text, and Paid typed yes, Yes, Y and No. TEXT returned the US format with the en-US setting. TODAY() was not used. Excel and Google Sheets were not used.

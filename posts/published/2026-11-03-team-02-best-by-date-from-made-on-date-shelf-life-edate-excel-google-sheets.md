@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfSREvSmo5b
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-best-by-date-from-made.html
 title: How to Calculate a Best-By Date From the Made-On Date and Shelf Life in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 14 workbooks and 1,750 comparisons with 0 mismatches. Checked: an empty list, 3, 12 and 40 batches, shelf lives from 1 to 36 months, text in a date and a blank months cell, a text or blank as-of date, a window of 0 days, and 01/31 and 02/29 dates. Excel and Google Sheets were not used.

@@ -12136,6 +12136,434 @@ def loyalty_punch_card():
     wb.save(OUT / "tidy-tabs-loyalty-punch-card.xlsx")
 
 
+def shipping_charged_vs_label():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Shipping charged vs what the label cost"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type the order number, date, shipping you charged and the label cost in the yellow cells. Gray columns and the summary are formulas."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Order #", "Order date", "Shipping charged", "Label cost", "Difference", "Status"], [10, 13, 14, 12, 12, 11], height=32)
+    data = [
+        (1041, date(2026, 10, 19), 5.00, 4.35), (1042, date(2026, 10, 19), 5.00, 7.82), (1043, date(2026, 10, 20), 0.00, 6.15),
+        (1044, date(2026, 10, 21), 8.95, 8.95), (1045, date(2026, 10, 21), 5.00, 4.10), (1046, date(2026, 10, 22), 5.00, 9.40),
+        (1047, date(2026, 10, 23), 12.00, 10.55), (1048, date(2026, 10, 24), 5.00, 5.00), (1049, date(2026, 10, 24), 0.00, 4.70),
+        (1050, date(2026, 10, 25), 5.00, 3.95), (1051, date(2026, 10, 26), 8.95, 6.80), (1052, date(2026, 10, 26), 5.00, 5.35),
+        (1053, date(2026, 10, 27), 5.00, 4.25), (1054, date(2026, 10, 28), 12.00, 14.20), (1055, date(2026, 10, 28), 5.00, 4.60),
+        (1056, date(2026, 10, 29), 8.95, 7.45), (1057, date(2026, 10, 30), 5.00, 8.10), (1058, date(2026, 10, 30), 5.00, 4.35),
+        (1059, date(2026, 10, 31), 0.00, 5.20), (1060, date(2026, 11, 1), 5.00, 4.90), (1061, date(2026, 11, 2), 8.95, 8.20),
+        (1062, date(2026, 11, 2), 5.00, 6.05), (1063, date(2026, 11, 3), 5.00, 4.35), (1064, date(2026, 11, 3), 12.00, 11.30),
+    ]
+    for r in range(5, 205):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        for col in "CDE":
+            ws[f"{col}{r}"].number_format = USD
+        ws[f"E{r}"] = (f'=IF(AND(A{r}="",C{r}="",D{r}=""),"",IF(AND(ISNUMBER(C{r}),ISNUMBER(D{r})),ROUND(C{r}-D{r},2),"Check"))')
+        ws[f"F{r}"] = f'=IF(E{r}="","",IF(E{r}="Check","Check",IF(E{r}<0,"Short",IF(E{r}=0,"Even","Covered"))))'
+        for col in "EF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, d, c, l) in enumerate(data):
+        r = 5 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"] = n, d, c, l
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 34
+    ws.column_dimensions["I"].width = 14
+    _summary_block(ws, "H", "I", [
+        (4, "Summary", None, "General"),
+        (5, "Orders counted", "=COUNT(E5:E204)", "0"),
+        (6, "Shipping charged", "=SUM(C5:C204)", USD),
+        (7, "Label cost", "=SUM(D5:D204)", USD),
+        (8, "Net (charged minus labels)", "=ROUND(I6-I7,2)", USD),
+        (9, "Orders where shipping fell short", '=COUNTIF(E5:E204,"<0")', "0"),
+        (10, "Total lost on those orders", '=ROUND(-SUMIF(E5:E204,"<0"),2)', USD),
+        (11, "Order with the biggest shortfall", '=IF(I9=0,"",INDEX(A5:A204,MATCH(MIN(E5:E204),E5:E204,0)))', "0"),
+        (12, "Label cost as percent of charged", '=IF(I6=0,"",I7/I6)', "0.0%"),
+        (13, "Rows showing Check", '=COUNTIF(F5:F204,"Check")', "0"),
+        (14, "CHECK", '=IF(AND(I13=0,ROUND(I8-SUM(E5:E204),2)=0),"OK","Check")', "General"),
+    ])
+    ws["H4"].fill, ws["H4"].font = HEADER_FILL, HEADER_FONT
+    ws["I4"].fill = HEADER_FILL
+    ws.conditional_formatting.add("F5:F204", FormulaRule(formula=['$F5="Short"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("F5:F204", FormulaRule(formula=['$F5="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("I14", FormulaRule(formula=['$I$14<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Shipping Charged vs Label Cost",
+        "",
+        "1. Orders tab: for each order type the order number, date, the shipping you charged the buyer (C) and what the label cost you (D). All orders and amounts are fictional.",
+        "2. Difference, E5: =ROUND(C5-D5,2). A negative number means the label cost more than the buyer paid for shipping.",
+        "3. Status, F5: Short when the difference is below 0, Even when it is 0, Covered when it is above 0, Check when a row has a missing or non-numeric amount.",
+        "4. I8 is shipping charged minus label cost for all counted orders. I10 adds up only the shortfalls.",
+        "5. I11 names the order with the biggest shortfall. With a tie it names the first one in the list.",
+        "6. I14 says OK when no row shows Check and the Difference column adds up to I8.",
+        "7. This compares shipping charged with label cost only. It does not include packaging, marketplace fees or the time it took.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-shipping-charged-vs-label-cost.xlsx")
+
+
+def inventory_age_buckets():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Stock"
+    ws["A1"] = "Stock list: how long has each item been on the shelf?"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"], ws["B2"] = "As-of date (typed)", date(2026, 11, 4)
+    ws["A2"].font = Font(bold=True)
+    ws["B2"].fill = INPUT_FILL
+    ws["B2"].number_format = US_DATE
+    ws["A3"] = "Type the item, the date you received it, units on hand and unit cost. Gray columns are formulas."
+    ws["A3"].font = Font(italic=True)
+    _head_row(ws, 5, ["Item", "Date received", "Units on hand", "Unit cost", "Days in stock", "Age group", "Stock value"], [30, 13, 10, 11, 10, 16, 13], height=32)
+    items = [
+        ("Lavender soy candle, 8 oz", date(2026, 10, 14), 28, 4.10), ("Cedar soy candle, 8 oz", date(2026, 9, 2), 19, 4.25),
+        ("Oatmeal soap bar", date(2026, 10, 28), 60, 1.85), ("Charcoal soap bar", date(2026, 7, 20), 22, 2.05),
+        ("Brass hoop earrings", date(2026, 5, 11), 14, 3.40), ("Letterpress birthday card", date(2026, 10, 1), 75, 0.95),
+        ("Enamel camp mug", date(2026, 8, 3), 12, 5.20), ("Canvas tote bag", date(2026, 3, 16), 9, 4.80),
+        ("Mini art print, 5 x 7", date(2026, 9, 25), 40, 1.60), ("Dotted notebook", date(2026, 11, 2), 36, 1.90),
+        ("Sticker pack", date(2026, 6, 8), 55, 0.70), ("Gift box, small", date(2026, 10, 10), 100, 0.62),
+        ("Beeswax lip balm", date(2026, 8, 24), 48, 1.15), ("Linen napkin set", date(2026, 1, 12), 6, 8.40),
+        ("Ceramic ring dish", date(2026, 7, 6), 17, 3.30), ("Holiday ornament", date(2026, 10, 30), 30, 2.75),
+    ]
+    for r in range(6, 106):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = USD
+        ws[f"G{r}"].number_format = USD
+        ws[f"E{r}"] = f'=IF(A{r}="","",IF(AND(ISNUMBER(B{r}),ISNUMBER($B$2)),IF($B$2>=B{r},$B$2-B{r},"Check"),"Check"))'
+        ws[f"F{r}"] = f'=IF(E{r}="","",IF(E{r}="Check","Check",INDEX(Summary!$B$5:$B$9,MATCH(E{r},Summary!$A$5:$A$9,1))))'
+        ws[f"G{r}"] = f'=IF(A{r}="","",IF(AND(ISNUMBER(C{r}),ISNUMBER(D{r})),ROUND(C{r}*D{r},2),"Check"))'
+        for col in "EFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, d, q, c) in enumerate(items):
+        r = 6 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"] = n, d, q, c
+    ws.conditional_formatting.add("F6:F105", FormulaRule(formula=['$F6="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A6"
+    sm = wb.create_sheet("Summary")
+    sm["A1"] = "Stock value by age group"
+    sm["A1"].font = Font(bold=True, size=13)
+    sm["A2"] = "Type the first day of each age group in column A (yellow). Group 1 must start at 0 and each start must be larger than the one above."
+    sm["A2"].font = Font(italic=True)
+    _head_row(sm, 4, ["Group starts at (days)", "Age group", "Items", "Units", "Stock value", "Share of value"], [20, 18, 9, 9, 14, 12], height=32)
+    lowers = [0, 31, 61, 91, 181]
+    for i, lo in enumerate(lowers):
+        r = 5 + i
+        sm[f"A{r}"] = lo
+        sm[f"A{r}"].fill = INPUT_FILL
+        if i < 4:
+            sm[f"B{r}"] = f'=IF(AND(ISNUMBER(A{r}),ISNUMBER(A{r+1})),A{r}&" to "&(A{r+1}-1)&" days","")'
+            hi = f',Stock!$E$6:$E$105,"<"&A{r+1}'
+        else:
+            sm[f"B{r}"] = f'=IF(ISNUMBER(A{r}),A{r}&" days or more","")'
+            hi = ""
+        crit = f'Stock!$E$6:$E$105,">="&A{r}{hi}'
+        sm[f"C{r}"] = f"=COUNTIFS({crit})"
+        sm[f"D{r}"] = f"=SUMIFS(Stock!$C$6:$C$105,{crit})"
+        sm[f"E{r}"] = f"=SUMIFS(Stock!$G$6:$G$105,{crit})"
+        sm[f"F{r}"] = f'=IF($E$10=0,"",E{r}/$E$10)'
+        sm[f"E{r}"].number_format = USD
+        sm[f"F{r}"].number_format = "0.0%"
+        for col in "BCDEF":
+            sm[f"{col}{r}"].fill = FORMULA_FILL
+            sm[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    sm["A10"], sm["B10"] = "All items", ""
+    sm["C10"], sm["D10"], sm["E10"] = "=SUM(C5:C9)", "=SUM(D5:D9)", "=SUM(E5:E9)"
+    sm["E10"].number_format = USD
+    for col in "ABCDE":
+        sm[f"{col}10"].font = Font(bold=True)
+    sm.column_dimensions["G"].width = 3
+    sm.column_dimensions["H"].width = 34
+    sm.column_dimensions["I"].width = 22
+    _summary_block(sm, "H", "I", [
+        (5, "Items on the Stock tab", "=COUNTA(Stock!A6:A105)", "0"),
+        (6, "Oldest item", '=IF(COUNT(Stock!E6:E105)=0,"",INDEX(Stock!A6:A105,MATCH(MAX(Stock!E6:E105),Stock!E6:E105,0)))', "General"),
+        (7, "Days in stock for the oldest item", '=IF(COUNT(Stock!E6:E105)=0,"",MAX(Stock!E6:E105))', "0"),
+        (8, "Rows showing Check", '=COUNTIF(Stock!E6:E105,"Check")+COUNTIF(Stock!G6:G105,"Check")', "0"),
+        (9, "CHECK", ('=IF(AND(I8=0,A5=0,A6>A5,A7>A6,A8>A7,A9>A8,C10=COUNT(Stock!E6:E105),'
+                      'ROUND(E10-SUM(Stock!G6:G105),2)=0),"OK","Check")'), "General"),
+    ])
+    sm.conditional_formatting.add("I9", FormulaRule(formula=['$I$9<>"OK"'], fill=ALERT_FILL))
+    notes_sheet(wb, [
+        "Tidy Tabs: Inventory Age Groups",
+        "",
+        "1. Stock tab: type the as-of date in B2 and then each item, its received date, units on hand and unit cost (yellow). Items, dates and costs are fictional.",
+        "2. Days in stock, E6: =B2 minus the received date. A received date after the as-of date shows Check.",
+        "3. Age group, F6: =INDEX(Summary!$B$5:$B$9,MATCH(E6,Summary!$A$5:$A$9,1)). MATCH with 1 finds the last group start that is not larger than the days in stock.",
+        "4. Summary tab: the five group starts in A5:A9 (0, 31, 61, 91, 181) are yellow and can be changed. Group names in column B are built from them.",
+        "5. Items, C5: =COUNTIFS(Stock!$E$6:$E$105,\">=\"&A5,Stock!$E$6:$E$105,\"<\"&A6). Units and Stock value use SUMIFS the same way. The last group has no upper limit.",
+        "6. Stock value, Stock!G6: =ROUND(C6*D6,2), units on hand times unit cost.",
+        "7. The as-of date is typed, not TODAY(), so the groups do not change when you reopen the file. Type =TODAY() in B2 for a live date.",
+        "8. I9 says OK when no row shows Check, the group starts rise from 0, every item is in a group and the group values add up to the Stock value column.",
+        "9. The date received is when the units arrived. If you restock an item, the sheet does not average the dates; list each lot on its own row.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Stock"].print_title_rows = "5:5"
+    wb.save(OUT / "tidy-tabs-inventory-age-buckets.xlsx")
+
+
+def initials_from_names():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Names"
+    ws["A1"] = "Initials from full names (for monogram and engraving orders)"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type or paste names as First Last in column A. Gray columns B:E are formulas."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Full name", "First initial", "Last initial", "Initials", "With periods"], [28, 10, 10, 10, 12], height=32)
+    data = ["Maria Alvarez", "kevin o'brien", "Ana Garcia Lopez", "Luis de la Cruz", "  Linh   Nguyen ", "Pat A. Brown",
+            "Raj Patel", "Carlos Reyes", "Dana Marie Thompson", "Chidi Okafor", "Ruth Ann Johnson-Lee", "DeShawn Walker"]
+    for r in range(5, 105):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = "@"
+        ws[f"B{r}"] = f'=IF(TRIM(A{r})="","",UPPER(LEFT(TRIM(A{r}),1)))'
+        ws[f"C{r}"] = (f'=IF(TRIM(A{r})="","",IF(ISNUMBER(FIND(" ",TRIM(A{r}))),'
+                       f'UPPER(LEFT(TRIM(RIGHT(SUBSTITUTE(TRIM(A{r})," ",REPT(" ",100)),100)),1)),"Check"))')
+        ws[f"D{r}"] = f'=IF(C{r}="","",IF(C{r}="Check","Check",B{r}&C{r}))'
+        ws[f"E{r}"] = f'=IF(D{r}="","",IF(D{r}="Check","Check",B{r}&"."&C{r}&"."))'
+        for col in "BCDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    for i, n in enumerate(data):
+        ws[f"A{5 + i}"] = n
+    ws.column_dimensions["F"].width = 3
+    ws.column_dimensions["G"].width = 24
+    ws.column_dimensions["H"].width = 10
+    _summary_block(ws, "G", "H", [
+        (4, "Names typed", '=SUMPRODUCT(--(TRIM(A5:A104)<>""))', "0"),
+        (5, "Initials made", '=COUNTIF(D5:D104,"?*")-H6', "0"),
+        (6, "Rows showing Check", '=COUNTIF(D5:D104,"Check")', "0"),
+        (7, "CHECK", '=IF(AND(H6=0,H4=H5),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("D5:E104", FormulaRule(formula=['$D5="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("H7", FormulaRule(formula=['$H$7<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Initials From Full Names",
+        "",
+        "1. Names tab: type or paste names as First Last in A5:A104 (yellow). The names are fictional.",
+        "2. First initial, B5: =UPPER(LEFT(TRIM(A5),1)). TRIM removes extra spaces, LEFT keeps one character, UPPER makes it a capital.",
+        "3. Last initial, C5: the first letter of the last word. SUBSTITUTE swaps each space for 100 spaces, RIGHT takes the last 100 characters and TRIM leaves only the last word:",
+        "   =UPPER(LEFT(TRIM(RIGHT(SUBSTITUTE(TRIM(A5),\" \",REPT(\" \",100)),100)),1))",
+        "4. Initials, D5: =B5&C5. With periods, E5: =B5&\".\"&C5&\".\".",
+        "5. A name with only one word shows Check, because there is no last name to take a letter from.",
+        "6. Middle names are skipped: Dana Marie Thompson gives DT. A suffix such as Jr. counts as the last word, so Maria Alvarez Jr. gives MJ.",
+        "7. A name typed Last, First gives the letters in that order. Flip it first.",
+        "8. To paste the result as plain text: copy D5:D104, then Paste special > Values only.",
+        "",
+        "Names are fictional. Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Names"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-initials-from-names.xlsx")
+
+
+def return_rate_by_product():
+    import random
+    wb = Workbook()
+    pr = wb.active
+    pr.title = "Products"
+    pr["A1"] = "Return rate by product"
+    pr["A1"].font = Font(bold=True, size=13)
+    pr["A2"], pr["B2"] = "Flag a product above this return rate", 0.10
+    pr["B2"].number_format = "0.0%"
+    pr["A3"], pr["B3"] = "Settings check", '=IF(ISNUMBER(B2),IF(AND(B2>=0,B2<=1),"OK","Rate: between 0% and 100%"),"Type a percent in the yellow cell")'
+    for c in ("A2", "A3"):
+        pr[c].font = Font(bold=True)
+    pr["B2"].fill = INPUT_FILL
+    pr["B3"].fill = FORMULA_FILL
+    _head_row(pr, 5, ["Product", "Units sold", "Units returned", "Return rate", "Status"], [28, 11, 11, 11, 12], height=32)
+    prods = ["Lavender candle", "Cedar candle", "Oatmeal soap", "Enamel mug", "Canvas tote", "Hoop earrings", "Art print"]
+    for r in range(6, 18):
+        pr[f"A{r}"].fill = INPUT_FILL
+        pr[f"B{r}"] = f'=IF(A{r}="","",SUMIFS(Orders!$D$5:$D$304,Orders!$C$5:$C$304,A{r}))'
+        pr[f"C{r}"] = f'=IF(A{r}="","",SUMIFS(Orders!$E$5:$E$304,Orders!$C$5:$C$304,A{r}))'
+        pr[f"D{r}"] = f'=IF(OR(A{r}="",B{r}=0),"",C{r}/B{r})'
+        pr[f"E{r}"] = f'=IF(A{r}="","",IF($B$3<>"OK","Check settings",IF(B{r}=0,"No sales",IF(D{r}>$B$2,"High","OK"))))'
+        pr[f"D{r}"].number_format = "0.0%"
+        for col in "BCDE":
+            pr[f"{col}{r}"].fill = FORMULA_FILL
+            pr[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, p in enumerate(prods):
+        pr[f"A{6 + i}"] = p
+    pr.column_dimensions["F"].width = 3
+    pr.column_dimensions["G"].width = 34
+    pr.column_dimensions["H"].width = 16
+    _summary_block(pr, "G", "H", [
+        (5, "Units sold, all orders", "=SUM(Orders!D5:D304)", "0"),
+        (6, "Units returned, all orders", "=SUM(Orders!E5:E304)", "0"),
+        (7, "Overall return rate", '=IF(H5=0,"",H6/H5)', "0.0%"),
+        (8, "Highest return rate", '=IF(COUNT(D6:D17)=0,"",INDEX(A6:A17,MATCH(MAX(D6:D17),D6:D17,0)))', "General"),
+        (9, "Products above the flag", '=COUNTIF(E6:E17,"High")', "0"),
+        (10, "Units sold under products not listed", "=SUM(Orders!D5:D304)-SUM(B6:B17)", "0"),
+        (11, "CHECK", ('=IF(AND(B3="OK",H10=0,COUNTA(Orders!C5:C304)=COUNT(Orders!D5:D304),COUNTA(Orders!E5:E304)=COUNT(Orders!E5:E304),'
+                       'SUMPRODUCT(--(Orders!E5:E304>Orders!D5:D304))=0),"OK","Check")'), "General"),
+    ])
+    pr.conditional_formatting.add("E6:E17", FormulaRule(formula=['$E6="High"'], fill=ALERT_FILL))
+    pr.conditional_formatting.add("H11", FormulaRule(formula=['$H$11<>"OK"'], fill=ALERT_FILL))
+    pr.freeze_panes = "A6"
+    od = wb.create_sheet("Orders")
+    od["A1"] = "Order lines: units sold and units returned"
+    od["A1"].font = Font(bold=True, size=13)
+    od["A2"] = "One row per product on an order. Type the product exactly as spelled on the Products tab. Type 0 when nothing came back."
+    od["A2"].font = Font(italic=True)
+    _head_row(od, 4, ["Order #", "Order date", "Product", "Units sold", "Units returned"], [10, 13, 24, 10, 10], height=32)
+    rnd = random.Random(1104)
+    ret_p = {"Lavender candle": 0.03, "Cedar candle": 0.04, "Oatmeal soap": 0.02, "Enamel mug": 0.22, "Canvas tote": 0.12,
+             "Hoop earrings": 0.14, "Art print": 0.05}
+    lines = []
+    for i in range(44):
+        p = rnd.choice(prods)
+        q = rnd.choice([1, 1, 2, 2, 3, 4])
+        rt = sum(1 for _ in range(q) if rnd.random() < ret_p[p])
+        lines.append((p, q, rt))
+    for r in range(5, 305):
+        for col in "ABCDE":
+            od[f"{col}{r}"].fill = INPUT_FILL
+        od[f"B{r}"].number_format = US_DATE
+    d0 = date(2026, 9, 1).toordinal()
+    for i, (p, q, rt) in enumerate(lines):
+        r = 5 + i
+        od[f"A{r}"], od[f"B{r}"] = 2001 + i, date.fromordinal(d0 + i * 60 // len(lines))
+        od[f"C{r}"], od[f"D{r}"], od[f"E{r}"] = p, q, rt
+    od.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Return Rate by Product",
+        "",
+        "1. Orders tab: one row per product on an order, with units sold (D) and units returned (E). Orders, products and numbers are fictional.",
+        "2. Products tab: list each product once in A6:A17 (yellow), spelled exactly as on the Orders tab. Type the flag rate in B2.",
+        "3. Units sold, B6: =SUMIFS(Orders!$D$5:$D$304,Orders!$C$5:$C$304,A6). Units returned, C6, is the same on column E.",
+        "4. Return rate, D6: =C6/B6, units returned divided by units sold. It is blank for a product with no sales.",
+        "5. Status, E6: High when the rate is above B2, OK when it is at or below B2, No sales when nothing was sold.",
+        "6. H10 counts units sold under a product that is not on the list (a misspelling or a new product). H11 says OK when none are unmatched and no row has returns above sales.",
+        "7. SUMIFS ignores upper and lower case but not extra spaces: Enamel mug with a trailing space is a different product.",
+        "8. This counts units that came back. It does not include refund amounts, reasons or shipping.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Products"].print_title_rows = "5:5"
+    wb["Orders"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-return-rate-by-product.xlsx")
+
+
+def real_hourly_rate():
+    import random
+    wb = Workbook()
+    pj = wb.active
+    pj.title = "Projects"
+    pj["A1"] = "Real hourly rate on fixed-price projects"
+    pj["A1"].font = Font(bold=True, size=13)
+    pj["A2"], pj["B2"] = "Your target hourly rate", 60.00
+    pj["B2"].number_format = USD
+    pj["A3"], pj["B3"] = "Settings check", '=IF(ISNUMBER(B2),IF(B2>0,"OK","Target rate: more than $0.00"),"Type a number in the yellow cell")'
+    for c in ("A2", "A3"):
+        pj[c].font = Font(bold=True)
+    pj["B2"].fill = INPUT_FILL
+    pj["B3"].fill = FORMULA_FILL
+    _head_row(pj, 5, ["Project", "Fixed price", "Hours logged", "Real hourly rate", "Hours the price covers at target", "Hours to spare", "Status"],
+              [26, 12, 10, 12, 14, 10, 18], height=58)
+    projects = [("Bakery logo and labels", 900.00), ("Studio website refresh", 2400.00), ("Product photos, 40 items", 640.00),
+                ("Newsletter template", 450.00), ("Menu redesign", 780.00), ("Packaging mockups", 1200.00)]
+    for r in range(6, 26):
+        pj[f"A{r}"].fill = pj[f"B{r}"].fill = INPUT_FILL
+        pj[f"B{r}"].number_format = USD
+        pj[f"C{r}"] = f'=IF(A{r}="","",ROUND(SUMIFS(Time!$C$5:$C$404,Time!$B$5:$B$404,A{r}),2))'
+        pj[f"D{r}"] = f'=IF(OR(A{r}="",$B$3<>"OK",NOT(ISNUMBER(B{r}))),"",IF(C{r}>0,ROUND(B{r}/C{r},2),""))'
+        pj[f"E{r}"] = f'=IF(D{r}="","",ROUND(B{r}/$B$2,2))'
+        pj[f"F{r}"] = f'=IF(E{r}="","",ROUND(E{r}-C{r},2))'
+        pj[f"G{r}"] = (f'=IF(A{r}="","",IF($B$3<>"OK","Check settings",IF(NOT(ISNUMBER(B{r})),"Check price",'
+                       f'IF(C{r}<=0,"No hours",IF(D{r}>=$B$2,"At or above target","Below target")))))')
+        for col in "DE":
+            pj[f"{col}{r}"].number_format = USD if col == "D" else "0.00"
+        pj[f"F{r}"].number_format = "0.00"
+        pj[f"C{r}"].number_format = "0.00"
+        for col in "CDEFG":
+            pj[f"{col}{r}"].fill = FORMULA_FILL
+            pj[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, p) in enumerate(projects):
+        pj[f"A{6 + i}"], pj[f"B{6 + i}"] = n, p
+    pj.column_dimensions["H"].width = 3
+    pj.column_dimensions["I"].width = 34
+    pj.column_dimensions["J"].width = 22
+    _summary_block(pj, "I", "J", [
+        (5, "Projects listed", "=COUNTA(A6:A25)", "0"),
+        (6, "Total fixed price", "=SUM(B6:B25)", USD),
+        (7, "Total hours logged", "=SUM(C6:C25)", "0.00"),
+        (8, "Overall real hourly rate", '=IF(J7=0,"",ROUND(J6/J7,2))', USD),
+        (9, "Projects below target", '=COUNTIF(G6:G25,"Below target")', "0"),
+        (10, "Lowest real hourly rate", '=IF(COUNT(D6:D25)=0,"",INDEX(A6:A25,MATCH(MIN(D6:D25),D6:D25,0)))', "General"),
+        (11, "Hours logged on projects not listed", "=ROUND(SUM(Time!C5:C404)-SUM(C6:C25),2)", "0.00"),
+        (12, "CHECK", ('=IF(AND(B3="OK",J11=0,COUNTIF(G6:G25,"Check*")=0,COUNTIF(G6:G25,"No hours")=0,'
+                       'COUNTA(Time!B5:B404)=COUNT(Time!C5:C404)),"OK","Check")'), "General"),
+    ])
+    pj.conditional_formatting.add("G6:G25", FormulaRule(formula=['$G6="Below target"'], fill=ALERT_FILL))
+    pj.conditional_formatting.add("J12", FormulaRule(formula=['$J$12<>"OK"'], fill=ALERT_FILL))
+    pj.freeze_panes = "A6"
+    tm = wb.create_sheet("Time")
+    tm["A1"] = "Time log: hours worked on each project"
+    tm["A1"].font = Font(bold=True, size=13)
+    tm["A2"] = "Type the date, the project exactly as spelled on the Projects tab, and the hours as a decimal (1.5 for an hour and a half)."
+    tm["A2"].font = Font(italic=True)
+    _head_row(tm, 4, ["Date", "Project", "Hours"], [13, 28, 9], height=30)
+    rnd = random.Random(1105)
+    target_hours = {"Bakery logo and labels": 13.5, "Studio website refresh": 52, "Product photos, 40 items": 14.25,
+                    "Newsletter template": 6.75, "Menu redesign": 11.5, "Packaging mockups": 17.25}
+    entries = []
+    for n, tot in target_hours.items():
+        left = int(tot * 4)
+        k = {"Bakery logo and labels": 5, "Studio website refresh": 9, "Product photos, 40 items": 4,
+             "Newsletter template": 3, "Menu redesign": 4, "Packaging mockups": 5}[n]
+        cuts = sorted(rnd.sample(range(1, left), k - 1))
+        parts = [b - a for a, b in zip([0] + cuts, cuts + [left])]
+        entries += [(n, p / 4) for p in parts]
+    rnd.shuffle(entries)
+    for r in range(5, 405):
+        for col in "ABC":
+            tm[f"{col}{r}"].fill = INPUT_FILL
+        tm[f"A{r}"].number_format = US_DATE
+        tm[f"C{r}"].number_format = "0.00"
+    d0 = date(2026, 9, 8).toordinal()
+    for i, (n, h) in enumerate(entries):
+        r = 5 + i
+        tm[f"A{r}"], tm[f"B{r}"], tm[f"C{r}"] = date.fromordinal(d0 + i * 55 // len(entries)), n, h
+    tm.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Real Hourly Rate on a Fixed-Price Project",
+        "",
+        "1. Time tab: log each work session with the date, the project and the hours as a decimal. Projects, prices and hours are fictional.",
+        "2. Projects tab: list each project once in A6:A25 with its fixed price in B (yellow). Type your target hourly rate in B2.",
+        "3. Hours logged, C6: =ROUND(SUMIFS(Time!$C$5:$C$404,Time!$B$5:$B$404,A6),2).",
+        "4. Real hourly rate, D6: =ROUND(B6/C6,2), the fixed price divided by the hours logged.",
+        "5. Hours the price covers at target, E6: =ROUND(B6/$B$2,2). Hours to spare, F6: =ROUND(E6-C6,2). A negative number means you worked more hours than the price covers at your target.",
+        "6. Status, G6: Below target when the real rate is under B2, At or above target when it is equal or higher, No hours when nothing is logged.",
+        "7. J11 shows hours logged under a project that is not on the Projects tab (a misspelling). J12 says OK when none are unmatched and no row shows Check or No hours.",
+        "8. SUMIFS ignores upper and lower case but not extra spaces: a trailing space makes a different project name.",
+        "9. This divides the price by hours only. It does not subtract software, materials, fees or taxes, and it is not tax or pricing advice.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Projects"].print_title_rows = "5:5"
+    wb["Time"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-real-hourly-rate-fixed-price.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -12288,4 +12716,9 @@ if __name__ == "__main__":
     buy_x_get_y_free()
     flip_last_first_names()
     loyalty_punch_card()
+    shipping_charged_vs_label()
+    inventory_age_buckets()
+    initials_from_names()
+    return_rate_by_product()
+    real_hourly_rate()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

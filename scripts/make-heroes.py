@@ -587,7 +587,30 @@ def heroes_2026_11_03():
                 "Customers", widths={"A": 34}, name="punchcard"))
 
 
+def heroes_2026_11_04():
+    t = "templates/"
+    d = "images/2026-11-04-team-0%d-%s/"
+    save(d % (1, "shipping-charged-vs-label-cost-difference-sumif-excel-google-sheets") + "shipping-charged-vs-label-cost-template.png",
+         render(compact_copy(t + "tidy-tabs-shipping-charged-vs-label-cost.xlsx", "Orders", 21, "shipcost", hide_rows=[1, 2, 3], clear=["A1", "A2"]),
+                "Orders", name="shipcost"))
+    save(d % (2, "inventory-age-groups-days-in-stock-countifs-excel-google-sheets") + "inventory-age-groups-by-days-in-stock-template.png",
+         render(compact_copy(t + "tidy-tabs-inventory-age-buckets.xlsx", "Summary", 10, "invage", hide_rows=[1, 2, 3], clear=["A1", "A2"]),
+                "Summary", hide_cols="GHI", name="invage"))
+    save(d % (3, "initials-from-full-name-monogram-left-substitute-excel-google-sheets") + "initials-from-full-names-template.png",
+         render(compact_copy(t + "tidy-tabs-initials-from-names.xlsx", "Names", 16, "initials", hide_rows=[1, 2, 3], clear=["A1", "A2"]),
+                "Names", name="initials"))
+    save(d % (4, "return-rate-by-product-sumifs-excel-google-sheets") + "return-rate-by-product-template.png",
+         render(compact_copy(t + "tidy-tabs-return-rate-by-product.xlsx", "Products", 12, "retrate", hide_rows=[1, 4], clear=["A1"]),
+                "Products", widths={"A": 40}, name="retrate"))
+    save(d % (5, "real-hourly-rate-fixed-price-project-sumifs-excel-google-sheets") + "real-hourly-rate-fixed-price-projects-template.png",
+         render(compact_copy(t + "tidy-tabs-real-hourly-rate-fixed-price.xlsx", "Projects", 12, "realrate", hide_rows=[1], clear=["A1"]),
+                "Projects", name="realrate"))
+
+
 def main():
+    if "--only-2026-11-04" in sys.argv:
+        heroes_2026_11_04()
+        return
     if "--only-2026-11-03" in sys.argv:
         heroes_2026_11_03()
         return

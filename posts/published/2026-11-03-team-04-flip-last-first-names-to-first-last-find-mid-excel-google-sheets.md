@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfSzcP7D9yd
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-flip-last-first-names-to-first.html
 title: How to Flip Last, First Names to First Last in Excel and Google Sheets
 labels: excel-formulas, text-functions, small-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 8 workbooks and 1,472 comparisons with 0 mismatches. Checked: names with extra spaces, no space after the comma, an apostrophe, multi-word last names, a middle initial, no comma, two commas, nothing before or after the comma, blank and space-only cells, and 60 rows. Excel and Google Sheets were not used.

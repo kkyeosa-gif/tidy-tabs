@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfR9RDYG-qx
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-add-up-weekly-sales-from-daily.html
 title: How to Add Up Weekly Sales From a Daily Sales Log in Excel and Google Sheets
 labels: excel-formulas, small-business, sales-tracking
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 14 workbooks and 1,071 comparisons with 0 mismatches. Checked: an empty log, 1, 5, 40 and 200 sales, a first date that is not a Monday, a blank first date, text in an amount cell, and a sale typed with a time of day on a Sunday. Excel and Google Sheets were not used.

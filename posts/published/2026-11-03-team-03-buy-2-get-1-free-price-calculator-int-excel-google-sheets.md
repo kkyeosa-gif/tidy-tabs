@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfSe1XOlizR
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-price-buy-2-get-1-free-deals-in.html
 title: How to Price Buy 2 Get 1 Free Deals in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model (Decimal) over 24 workbooks and 1,276 comparisons with 0 mismatches. Checked: prices from $0.00 to $100.01, buy counts 1 to 5, free counts 0 to 3, carts from 0 to 100 items, buy of 0, a buy count of 2.5, a negative free count, and text in a yellow cell. Excel and Google Sheets were not used.

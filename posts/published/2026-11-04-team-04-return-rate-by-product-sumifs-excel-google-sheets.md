@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfVYL4ZmhSB
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-return-rate-by-product.html
 title: How to Calculate Return Rate by Product in Excel and Google Sheets
 labels: excel-formulas, small-business, products
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 23 workbooks and 1,288 comparisons with 0 mismatches. Checked: no orders, no products, flag rates of 0%, 5%, 10%, 100%, 150%, -10% and text, a rate exactly at the flag, a tie for the highest rate, a product with no sales, a misspelled product, lower and upper case, a trailing space, returns above sales, text and blank units, and five random sets of up to 300 order lines and 12 products. Excel and Google Sheets were not used.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfVDmPtFgJ0
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-make-initials-from-full-name-in.html
 title: How to Make Initials From a Full Name in Excel and Google Sheets
 labels: excel-formulas, small-business, text
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 10 workbooks and 4,040 comparisons with 0 mismatches. Checked: an empty list, a one-word name, extra spaces, lower case, a name of five words, a hyphenated last name, an apostrophe, a suffix of Jr., a name typed Last, First, a name starting with a digit, a name with accented letters, and five random lists of up to 100 names. Excel and Google Sheets were not used.

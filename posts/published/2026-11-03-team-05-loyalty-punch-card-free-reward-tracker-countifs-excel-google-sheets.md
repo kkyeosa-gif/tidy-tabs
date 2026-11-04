@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfTO26iFOCN
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-track-loyalty-punch-card-and.html
 title: How to Track a Loyalty Punch Card and Free Rewards in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 14 workbooks and 1,448 comparisons with 0 mismatches. Checked: 0, 2 and 5 customers, 0, 10, 100 and 300 purchases, punches per reward of 1, 3, 5 and 10, a smallest purchase from $0.00 to $10.00, a customer typed in lower case, a customer with a trailing space, rewards used above rewards earned, and settings of 0, 2.5, text and a negative number. Excel and Google Sheets were not used.

@@ -607,7 +607,30 @@ def heroes_2026_11_04():
                 "Projects", name="realrate"))
 
 
+def heroes_2026_11_05():
+    t = "templates/"
+    d = "images/2026-11-05-team-0%d-%s/"
+    save(d % (1, "orders-by-state-countifs-sumifs-excel-google-sheets") + "orders-and-sales-by-state-template.png",
+         render(compact_copy(t + "tidy-tabs-orders-by-state.xlsx", "States", 18, "bystate", hide_rows=[2, 3], clear=["A2"]),
+                "States", name="bystate"))
+    save(d % (2, "order-status-counts-oldest-open-order-countif-excel-google-sheets") + "order-status-counts-oldest-open-order-template.png",
+         render(compact_copy(t + "tidy-tabs-order-status-counts.xlsx", "Summary", 11, "statuscounts", hide_rows=[2, 3], clear=["A2"]),
+                "Summary", name="statuscounts"))
+    save(d % (3, "count-words-in-cell-product-description-len-substitute-excel-google-sheets") + "product-description-word-count-template.png",
+         render(compact_copy(t + "tidy-tabs-word-count-descriptions.xlsx", "Descriptions", 15, "wordcount"),
+                "Descriptions", widths={"G": 26}, name="wordcount"))
+    save(d % (4, "clearance-price-minimum-margin-floor-max-roundup-excel-google-sheets") + "clearance-price-margin-floor-template.png",
+         render(compact_copy(t + "tidy-tabs-clearance-price-floor.xlsx", "Clearance", 17, "clearance"),
+                "Clearance", hide_cols="LMN", name="clearance"))
+    save(d % (5, "pieces-per-letter-sheet-int-roundup-excel-google-sheets") + "pieces-per-us-letter-sheet-template.png",
+         render(compact_copy(t + "tidy-tabs-pieces-per-letter-sheet.xlsx", "Sheet fit", 15, "letterfit"),
+                "Sheet fit", hide_cols="LMN", widths={"A": 30}, name="letterfit"))
+
+
 def main():
+    if "--only-2026-11-05" in sys.argv:
+        heroes_2026_11_05()
+        return
     if "--only-2026-11-04" in sys.argv:
         heroes_2026_11_04()
         return

@@ -182,3 +182,10 @@
 - How to Show Your 3 Biggest Unpaid Invoices in Excel and Google Sheets - `three-biggest-unpaid-invoices-large-match-excel-google-sheets`
 - How to Pull the Number Out of Text Like 12 oz or 3 lb in Excel and Google Sheets - `pull-number-out-of-text-12-oz-value-left-find-excel-google-sheets`
 - How to Write a Friendly Payment Reminder From Your Invoice List in Excel and Google Sheets - `payment-reminder-message-from-invoice-data-text-excel-google-sheets`
+
+## 2026-11-05 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 수식은 LibreOffice Calc 24.2.7.2 에서 확인, 상세는 tasks/team-topics-2026-11-05.md)
+- How to Count Orders and Sales by State in Excel and Google Sheets - `orders-by-state-countifs-sumifs-excel-google-sheets`
+- How to Count Orders by Status and Find the Oldest Open Order in Excel and Google Sheets - `order-status-counts-oldest-open-order-countif-excel-google-sheets`
+- How to Count Words in a Cell in Excel and Google Sheets - `count-words-in-cell-product-description-len-substitute-excel-google-sheets`
+- How to Set Clearance Prices With a Minimum Margin in Excel and Google Sheets - `clearance-price-minimum-margin-floor-max-roundup-excel-google-sheets`
+- How to Calculate How Many Pieces Fit on a US Letter Sheet in Excel and Google Sheets - `pieces-per-letter-sheet-int-roundup-excel-google-sheets`

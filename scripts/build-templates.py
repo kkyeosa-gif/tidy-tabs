@@ -12564,6 +12564,440 @@ def real_hourly_rate():
     wb.save(OUT / "tidy-tabs-real-hourly-rate-fixed-price.xlsx")
 
 
+def orders_by_state():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Orders: type the two-letter ship-to state"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type the order number, date, state (MA, NY, CA) and order total in the yellow cells. Totals are fictional."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Order #", "Order date", "State", "Order total"], [10, 13, 8, 13], height=30)
+    data = [
+        (2201, date(2026, 10, 1), "MA", 48.00), (2202, date(2026, 10, 2), "NY", 36.50), (2203, date(2026, 10, 2), "CA", 72.00),
+        (2204, date(2026, 10, 4), "MA", 24.00), (2205, date(2026, 10, 5), "TX", 58.25), (2206, date(2026, 10, 6), "NY", 91.00),
+        (2207, date(2026, 10, 7), "FL", 33.00), (2208, date(2026, 10, 9), "WA", 64.50), (2209, date(2026, 10, 9), "MA", 19.00),
+        (2210, date(2026, 10, 11), "CA", 45.00), (2211, date(2026, 10, 12), "IL", 52.00), (2212, date(2026, 10, 13), "NY", 28.00),
+        (2213, date(2026, 10, 14), "VT", 41.00), (2214, date(2026, 10, 15), "TX", 87.75), (2215, date(2026, 10, 16), "CA", 39.00),
+        (2216, date(2026, 10, 18), "PA", 66.00), (2217, date(2026, 10, 19), "MA", 55.00), (2218, date(2026, 10, 20), "FL", 29.50),
+        (2219, date(2026, 10, 21), "NY", 74.00), (2220, date(2026, 10, 22), "OR", 22.00), (2221, date(2026, 10, 24), "CA", 118.00),
+        (2222, date(2026, 10, 25), "TX", 31.00), (2223, date(2026, 10, 26), "WA", 47.00), (2224, date(2026, 10, 27), "MA", 62.00),
+        (2225, date(2026, 10, 28), "NY", 35.00), (2226, date(2026, 10, 29), "IL", 44.00), (2227, date(2026, 10, 30), "CA", 53.50),
+        (2228, date(2026, 10, 31), "FL", 68.00), (2229, date(2026, 11, 1), "MA", 26.00), (2230, date(2026, 11, 3), "NY", 59.00),
+    ]
+    for r in range(5, 305):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = USD
+    for i, (n, d, s, t) in enumerate(data):
+        r = 5 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"] = n, d, s, t
+    ws.freeze_panes = "A5"
+    st = wb.create_sheet("States")
+    st["A1"] = "Orders and sales by state"
+    st["A1"].font = Font(bold=True, size=13)
+    st["A2"] = "Type up to 12 states in column A (yellow). Every other state on the Orders tab is added up in the All other row."
+    st["A2"].font = Font(italic=True)
+    _head_row(st, 4, ["State", "Orders", "Sales", "Share of sales", "Average order"], [16, 9, 13, 11, 12], height=32)
+    states = ["MA", "NY", "CA", "TX", "FL", "WA", "IL", "PA", "OH", "NC", "CO", "GA"]
+    for i in range(12):
+        r = 5 + i
+        st[f"A{r}"] = states[i]
+        st[f"A{r}"].fill = INPUT_FILL
+        st[f"B{r}"] = f'=IF(A{r}="","",COUNTIFS(Orders!$C$5:$C$304,A{r}))'
+        st[f"C{r}"] = f'=IF(A{r}="","",SUMIFS(Orders!$D$5:$D$304,Orders!$C$5:$C$304,A{r}))'
+        st[f"D{r}"] = f'=IF(OR(A{r}="",$C$18=0),"",C{r}/$C$18)'
+        st[f"E{r}"] = f'=IF(OR(A{r}="",B{r}=0),"",ROUND(C{r}/B{r},2))'
+    st["A17"] = "All other"
+    st["B17"] = "=COUNTA(Orders!A5:A304)-SUM(B5:B16)"
+    st["C17"] = "=ROUND(SUM(Orders!D5:D304)-SUM(C5:C16),2)"
+    st["D17"] = '=IF($C$18=0,"",C17/$C$18)'
+    st["E17"] = '=IF(B17=0,"",ROUND(C17/B17,2))'
+    st["A18"] = "All orders"
+    st["B18"], st["C18"] = "=SUM(B5:B17)", "=SUM(C5:C17)"
+    st["D18"] = '=IF(C18=0,"",C18/C18)'
+    st["E18"] = '=IF(B18=0,"",ROUND(C18/B18,2))'
+    for r in range(5, 19):
+        st[f"C{r}"].number_format = st[f"E{r}"].number_format = USD
+        st[f"D{r}"].number_format = "0.0%"
+        for col in "BCDE":
+            st[f"{col}{r}"].fill = FORMULA_FILL
+            st[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for col in "ABCDE":
+        st[f"{col}18"].font = Font(bold=True)
+    st.column_dimensions["F"].width = 3
+    st.column_dimensions["G"].width = 36
+    st.column_dimensions["H"].width = 14
+    _summary_block(st, "G", "H", [
+        (4, "Summary", None, "General"),
+        (5, "Order rows on the Orders tab", "=COUNTA(Orders!A5:A304)", "0"),
+        (6, "Top state by sales", '=IF(MAX(C5:C16)=0,"",INDEX(A5:A16,MATCH(MAX(C5:C16),C5:C16,0)))', "General"),
+        (7, "Top state by number of orders", '=IF(MAX(B5:B16)=0,"",INDEX(A5:A16,MATCH(MAX(B5:B16),B5:B16,0)))', "General"),
+        (8, "Orders in the states you listed", "=SUM(B5:B16)", "0"),
+        (9, "Orders in All other", "=B17", "0"),
+        (10, "Rows with a missing state", "=COUNTA(Orders!A5:A304)-COUNTA(Orders!C5:C304)", "0"),
+        (11, "Rows where the total is not a number", "=COUNTA(Orders!A5:A304)-COUNT(Orders!D5:D304)", "0"),
+        (12, "CHECK", '=IF(AND(H10=0,H11=0,B17>=0,B18=H5,ROUND(C18-SUM(Orders!D5:D304),2)=0),"OK","Check")', "General"),
+    ])
+    st["G4"].fill, st["G4"].font = HEADER_FILL, HEADER_FONT
+    st["H4"].fill = HEADER_FILL
+    st.conditional_formatting.add("H12", FormulaRule(formula=['$H$12<>"OK"'], fill=ALERT_FILL))
+    notes_sheet(wb, [
+        "Tidy Tabs: Orders and Sales by State",
+        "",
+        "1. Orders tab: one row per order with the two-letter ship-to state in column C. Orders, dates, states and totals are fictional.",
+        "2. States tab: type the states you want listed in A5:A16 (yellow).",
+        "3. Orders, B5: =COUNTIFS(Orders!$C$5:$C$304,A5). Sales, C5: =SUMIFS(Orders!$D$5:$D$304,Orders!$C$5:$C$304,A5). Upper and lower case both match; a space after the state does not.",
+        "4. All other, row 17: every order not counted above (a state not in your list, a misspelled state, or a blank state).",
+        "5. Top state, H6: =INDEX(A5:A16,MATCH(MAX(C5:C16),C5:C16,0)). With a tie it names the first one in your list.",
+        "6. H12 says OK when no row is missing a state, every total is a number, no state is listed twice and the table adds up to the Orders tab.",
+        "7. This counts orders by ship-to state only. It does not decide whether you owe sales tax anywhere; use the state's own site for that.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_title_rows = "4:4"
+    wb["States"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-orders-by-state.xlsx")
+
+
+def order_status_counts():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Open orders: how long has each one waited?"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"], ws["B2"] = "As-of date (typed)", date(2026, 11, 4)
+    ws["A2"].font = Font(bold=True)
+    ws["B2"].fill = INPUT_FILL
+    ws["B2"].number_format = US_DATE
+    ws["A3"] = "Pick each status from the dropdown. The statuses and which ones count as open are on the Summary tab."
+    ws["A3"].font = Font(italic=True)
+    _head_row(ws, 5, ["Order #", "Order date", "Status", "Open?", "Days open"], [10, 13, 14, 9, 10], height=30)
+    data = [
+        (3101, date(2026, 10, 12), "Delivered"), (3102, date(2026, 10, 14), "Delivered"), (3103, date(2026, 10, 15), "On hold"),
+        (3104, date(2026, 10, 19), "Shipped"), (3105, date(2026, 10, 21), "Packing"), (3106, date(2026, 10, 22), "Shipped"),
+        (3107, date(2026, 10, 24), "Packing"), (3108, date(2026, 10, 25), "Delivered"), (3109, date(2026, 10, 27), "Packing"),
+        (3110, date(2026, 10, 28), "Shipped"), (3111, date(2026, 10, 29), "New"), (3112, date(2026, 10, 30), "Packing"),
+        (3113, date(2026, 10, 31), "New"), (3114, date(2026, 11, 1), "New"), (3115, date(2026, 11, 2), "Shipped"),
+        (3116, date(2026, 11, 3), "New"), (3117, date(2026, 11, 3), "New"), (3118, date(2026, 11, 4), "New"),
+    ]
+    for r in range(6, 206):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"D{r}"] = f'=IF(C{r}="","",IFERROR(INDEX(Summary!$B$5:$B$9,MATCH(C{r},Summary!$A$5:$A$9,0)),"Check"))'
+        ws[f"E{r}"] = (f'=IF(D{r}="Yes",IF(AND(ISNUMBER(B{r}),ISNUMBER($B$2)),IF($B$2>=B{r},$B$2-B{r},"Check"),"Check"),'
+                       f'IF(D{r}="Check","Check",""))')
+        for col in "DE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, d, s) in enumerate(data):
+        r = 6 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = n, d, s
+    dv = DataValidation(type="list", formula1="=Summary!$A$5:$A$9", allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add("C6:C205")
+    ws.conditional_formatting.add("D6:E205", FormulaRule(formula=['D6="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A6"
+    sm = wb.create_sheet("Summary")
+    sm["A1"] = "Orders by status"
+    sm["A1"].font = Font(bold=True, size=13)
+    sm["A2"] = "Type your five statuses in column A and Yes or No in column B for whether the order still needs work (yellow)."
+    sm["A2"].font = Font(italic=True)
+    _head_row(sm, 4, ["Status", "Open?", "Orders"], [16, 9, 9], height=30)
+    sts = [("New", "Yes"), ("Packing", "Yes"), ("On hold", "Yes"), ("Shipped", "No"), ("Delivered", "No")]
+    for i, (s, o) in enumerate(sts):
+        r = 5 + i
+        sm[f"A{r}"], sm[f"B{r}"] = s, o
+        sm[f"A{r}"].fill = sm[f"B{r}"].fill = INPUT_FILL
+        sm[f"C{r}"] = f'=IF(A{r}="","",COUNTIF(Orders!$C$6:$C$205,A{r}))'
+        sm[f"C{r}"].fill = FORMULA_FILL
+        sm[f"C{r}"].alignment = Alignment(horizontal="right")
+    sm["A10"], sm["C10"] = "All orders", "=SUM(C5:C9)"
+    sm["A10"].font = sm["C10"].font = Font(bold=True)
+    sm.column_dimensions["D"].width = 3
+    sm.column_dimensions["E"].width = 36
+    sm.column_dimensions["F"].width = 14
+    _summary_block(sm, "E", "F", [
+        (4, "Open orders", '=COUNTIF(Orders!D6:D205,"Yes")', "0"),
+        (5, "Oldest open order", '=IF(COUNT(Orders!E6:E205)=0,"",INDEX(Orders!A6:A205,MATCH(MAX(Orders!E6:E205),Orders!E6:E205,0)))', "0"),
+        (6, "Days it has been open", '=IF(COUNT(Orders!E6:E205)=0,"",MAX(Orders!E6:E205))', "0"),
+        (7, "Open orders older than 7 days", '=COUNTIF(Orders!E6:E205,">7")', "0"),
+        (8, "Order rows on the Orders tab", "=COUNTA(Orders!A6:A205)", "0"),
+        (9, "Rows with a status not in the list", '=COUNTIF(Orders!D6:D205,"Check")', "0"),
+        (10, "Rows with no status", "=COUNTA(Orders!A6:A205)-COUNTA(Orders!C6:C205)", "0"),
+        (11, "CHECK", ('=IF(AND(F9=0,F10=0,C10=F8,COUNTIF(Orders!E6:E205,"Check")=0,'
+                       'COUNTIF(B5:B9,"Yes")+COUNTIF(B5:B9,"No")=5),"OK","Check")'), "General"),
+    ])
+    sm.conditional_formatting.add("F11", FormulaRule(formula=['$F$11<>"OK"'], fill=ALERT_FILL))
+    notes_sheet(wb, [
+        "Tidy Tabs: Order Status Counts and Oldest Open Order",
+        "",
+        "1. Orders tab: type the as-of date in B2, then one row per order with its date and a status picked from the dropdown. Orders and dates are fictional.",
+        "2. Open?, D6: =IFERROR(INDEX(Summary!$B$5:$B$9,MATCH(C6,Summary!$A$5:$A$9,0)),\"Check\"). It looks up Yes or No for the status.",
+        "3. Days open, E6: the as-of date minus the order date, shown only for open orders. An order dated after the as-of date shows Check.",
+        "4. Summary tab, Orders, C5: =COUNTIF(Orders!$C$6:$C$205,A5). Upper and lower case both match; a space after the status does not.",
+        "5. Oldest open order, F5: =INDEX(Orders!A6:A205,MATCH(MAX(Orders!E6:E205),Orders!E6:E205,0)). With a tie it names the first one in the list.",
+        "6. The as-of date is typed, not TODAY(), so the days do not change when you reopen the file. Type =TODAY() in B2 for a live date.",
+        "7. F11 says OK when every status is in the list, no row shows Check and the counts add up to the number of orders.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_title_rows = "5:5"
+    wb["Summary"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-order-status-counts.xlsx")
+
+
+def description_word_count():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Descriptions"
+    ws["A1"] = "Word count for product descriptions"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"], ws["B2"] = "Minimum words wanted", 25
+    ws["A3"], ws["B3"] = "Settings check", '=IF(ISNUMBER(B2),IF(B2>=1,"OK","Minimum: 1 or more"),"Type a number in the yellow cell")'
+    for c in ("A2", "A3"):
+        ws[c].font = Font(bold=True)
+    ws["B2"].fill = INPUT_FILL
+    ws["B3"].fill = FORMULA_FILL
+    _head_row(ws, 5, ["Product", "Description", "Words", "Status"], [24, 70, 8, 10], height=30)
+    data = [
+        ("Lavender soy candle", "Hand-poured soy wax candle scented with real lavender oil. Burns about 40 hours in an 8 oz amber jar. Trim the wick to 1/4 inch before each burn."),
+        ("Cedar soy candle", "Warm cedar scent in a plain 8 oz tin. Burns about 40 hours."),
+        ("Oatmeal soap bar", "Cold-process soap made with oats and goat milk. Gentle on dry hands, 4 oz bar, wrapped in paper with no plastic. Lasts about six weeks with daily use."),
+        ("Brass hoop earrings", "Light brass hoops, 1 inch across. Nickel-free posts."),
+        ("Letterpress birthday card", "Printed one card at a time on cotton paper. Blank inside, A2 size (4.25 x 5.5 in), comes with a kraft envelope. Ships flat in a stiff mailer so the corners stay sharp."),
+        ("Enamel camp mug", "Speckled enamel mug that holds 12 oz. Dishwasher safe."),
+        ("Canvas tote bag", "Heavy cotton canvas tote with an inside pocket and long handles that fit over the shoulder. Holds about 20 pounds of groceries or books. Machine wash cold and hang to dry."),
+        ("Dotted notebook", ""),
+        ("Sticker pack", "Five matte vinyl stickers, waterproof and dishwasher safe, 3 inches wide."),
+        ("Linen napkin set", "Set of four stone-washed linen napkins, 18 inches square, with mitered corners. Softer after every wash. Machine wash warm, tumble dry low, and press with a hot iron while damp for a crisp edge."),
+    ]
+    for r in range(6, 106):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].alignment = Alignment(wrap_text=True, vertical="top")
+        clean = f'TRIM(SUBSTITUTE(B{r},CHAR(10)," "))'
+        ws[f"C{r}"] = f'=IF(AND(A{r}="",B{r}=""),"",IF({clean}="",0,LEN({clean})-LEN(SUBSTITUTE({clean}," ",""))+1))'
+        ws[f"D{r}"] = f'=IF(C{r}="","",IF($B$3<>"OK","Check",IF(C{r}=0,"Missing",IF(C{r}<$B$2,"Short","OK"))))'
+        for col in "CD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (p, d) in enumerate(data):
+        r = 6 + i
+        ws[f"A{r}"] = p
+        if d:
+            ws[f"B{r}"] = d
+    ws.column_dimensions["E"].width = 3
+    ws.column_dimensions["F"].width = 32
+    ws.column_dimensions["G"].width = 12
+    _summary_block(ws, "F", "G", [
+        (5, "Products listed", '=COUNTIF(C6:C105,">=0")', "0"),
+        (6, "Total words", "=SUM(C6:C105)", "0"),
+        (7, "Average words per product", '=IF(G5=0,"",ROUND(G6/G5,1))', "0.0"),
+        (8, "Shortest description (words)", '=IF(G5=0,"",MIN(C6:C105))', "0"),
+        (9, "Product with the fewest words", '=IF(G5=0,"",INDEX(A6:A105,MATCH(MIN(C6:C105),C6:C105,0)))', "General"),
+        (10, "Short or missing", '=COUNTIF(D6:D105,"Short")+COUNTIF(D6:D105,"Missing")', "0"),
+        (11, "CHECK", '=IF(AND(B3="OK",COUNTIF(D6:D105,"Check")=0,COUNT(C6:C105)=COUNTA(A6:A105)+COUNTA(B6:B105)-SUMPRODUCT((A6:A105<>"")*(B6:B105<>""))),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("D6:D105", FormulaRule(formula=['OR($D6="Short",$D6="Missing")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("G11", FormulaRule(formula=['$G$11<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A6"
+    notes_sheet(wb, [
+        "Tidy Tabs: Word Count for Product Descriptions",
+        "",
+        "1. Descriptions tab: type the minimum words wanted in B2, then a product and its description in each row (yellow). Products and descriptions are fictional.",
+        "2. Words, C6: =LEN(TRIM(B6))-LEN(SUBSTITUTE(TRIM(B6),\" \",\"\"))+1. That is the number of spaces between words plus 1. The file's formula also turns line breaks into spaces first and returns 0 for an empty description.",
+        "3. Status, D6: Missing when the description is empty, Short when the word count is below B2, OK otherwise.",
+        "4. G9 names the product with the fewest words. With a tie it names the first one in the list.",
+        "5. A word here is any run of characters between spaces, so 1/4 or 4.25 or a dash by itself each count as one word. Non-breaking spaces (copied from some web pages) are not treated as spaces.",
+        "6. G11 says OK when the minimum is a number of 1 or more and every row has a word count.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Descriptions"].print_title_rows = "5:5"
+    wb.save(OUT / "tidy-tabs-word-count-descriptions.xlsx")
+
+
+def clearance_price_floor():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Clearance"
+    ws["A1"] = "Clearance prices that never go below a minimum margin"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"], ws["B2"] = "Lowest margin you accept", 0.20
+    ws["A3"], ws["B3"] = "Settings check", '=IF(ISNUMBER(B2),IF(AND(B2>=0,B2<1),"OK","Margin: 0% up to 99%"),"Type a percent in the yellow cell")'
+    for c in ("A2", "A3"):
+        ws[c].font = Font(bold=True)
+    ws["B2"].fill = INPUT_FILL
+    ws["B2"].number_format = "0.0%"
+    ws["B3"].fill = FORMULA_FILL
+    _head_row(ws, 5, ["Item", "Unit cost", "Regular price", "Days in stock", "Markdown", "Price after markdown", "Lowest price at your margin",
+                      "Clearance price", "Margin at clearance", "Status"], [26, 9, 10, 9, 10, 12, 13, 11, 11, 17], height=58)
+    items = [
+        ("Lavender soy candle, 8 oz", 4.10, 18.00, 20), ("Cedar soy candle, 8 oz", 4.25, 18.00, 74),
+        ("Oatmeal soap bar", 1.85, 8.00, 8), ("Charcoal soap bar", 2.05, 8.50, 107),
+        ("Brass hoop earrings", 3.40, 24.00, 177), ("Letterpress birthday card", 0.95, 6.00, 34),
+        ("Enamel camp mug", 5.20, 16.00, 93), ("Canvas tote bag", 4.80, 14.00, 232),
+        ("Mini art print, 5 x 7", 1.60, 9.00, 40), ("Linen napkin set", 10.20, 22.00, 296),
+        ("Ceramic ring dish", 3.30, 12.00, 120), ("Sticker pack", 0.70, 4.00, 149),
+    ]
+    for r in range(6, 106):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"E{r}"] = f'=IF(A{r}="","",IFERROR(IF(ISNUMBER(D{r}),INDEX(Steps!$B$5:$B$8,MATCH(D{r},Steps!$A$5:$A$8,1)),"Check"),"Check"))'
+        ws[f"F{r}"] = f'=IF(OR(E{r}="",E{r}="Check",NOT(ISNUMBER(C{r}))),"",ROUND(C{r}*(1-E{r}),2))'
+        ws[f"G{r}"] = f'=IF(AND(A{r}<>"",ISNUMBER(B{r}),$B$3="OK"),ROUNDUP(ROUND(B{r}/(1-$B$2),6),2),"")'
+        ws[f"H{r}"] = f'=IF(OR(F{r}="",G{r}=""),"",MIN(C{r},MAX(F{r},G{r})))'
+        ws[f"I{r}"] = f'=IF(H{r}="","",IF(H{r}>0,(H{r}-B{r})/H{r},""))'
+        ws[f"J{r}"] = (f'=IF(A{r}="","",IF(OR(H{r}="",E{r}="Check"),"Check",IF(G{r}>C{r},"Below min margin",'
+                       f'IF(E{r}=0,"Full price",IF(F{r}<G{r},"At floor","Marked down")))))')
+        for col in "BCFGH":
+            ws[f"{col}{r}"].number_format = USD
+        ws[f"E{r}"].number_format = "0%"
+        ws[f"I{r}"].number_format = "0.0%"
+        for col in "EFGHIJ":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, c, p, d) in enumerate(items):
+        r = 6 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"] = n, c, p, d
+    ws.column_dimensions["K"].width = 3
+    ws.column_dimensions["L"].width = 36
+    ws.column_dimensions["M"].width = 14
+    _summary_block(ws, "L", "M", [
+        (5, "Items listed", "=COUNTA(A6:A105)", "0"),
+        (6, "Marked down (including at floor)", '=COUNTIF(J6:J105,"Marked down")+COUNTIF(J6:J105,"At floor")', "0"),
+        (7, "Held at the floor", '=COUNTIF(J6:J105,"At floor")', "0"),
+        (8, "Regular price of items priced", '=SUMIF(H6:H105,">0",C6:C105)', USD),
+        (9, "Clearance price of the same items", "=SUM(H6:H105)", USD),
+        (10, "Margin if one of each sells", '=IF(M9=0,"",(M9-SUMIF(H6:H105,">0",B6:B105))/M9)', "0.0%"),
+        (11, "CHECK", ('=IF(AND(B3="OK",COUNTIF(J6:J105,"Check")=0,COUNTIF(J6:J105,"Below min margin")=0,'
+                       'Steps!A5=0,Steps!A6>Steps!A5,Steps!A7>Steps!A6,Steps!A8>Steps!A7,'
+                       'MIN(Steps!B5:B8)>=0,MAX(Steps!B5:B8)<=1),"OK","Check")'), "General"),
+    ])
+    ws.conditional_formatting.add("J6:J105", FormulaRule(formula=['OR($J6="Check",$J6="Below min margin")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("J6:J105", FormulaRule(formula=['$J6="At floor"'], fill=DONE_FILL))
+    ws.conditional_formatting.add("M11", FormulaRule(formula=['$M$11<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A6"
+    sp = wb.create_sheet("Steps")
+    sp["A1"] = "Markdown steps by days in stock"
+    sp["A1"].font = Font(bold=True, size=13)
+    sp["A2"] = "Type the first day of each step (it must start at 0 and rise) and the markdown percent for that step."
+    sp["A2"].font = Font(italic=True)
+    _head_row(sp, 4, ["Days in stock starts at", "Markdown percent"], [22, 18], height=30)
+    for i, (d, m) in enumerate([(0, 0), (60, 0.15), (120, 0.30), (180, 0.50)]):
+        r = 5 + i
+        sp[f"A{r}"], sp[f"B{r}"] = d, m
+        sp[f"A{r}"].fill = sp[f"B{r}"].fill = INPUT_FILL
+        sp[f"B{r}"].number_format = "0%"
+    notes_sheet(wb, [
+        "Tidy Tabs: Clearance Prices With a Minimum Margin Floor",
+        "",
+        "1. Clearance tab: type the lowest margin you accept in B2, then each item with its unit cost, regular price and days in stock (yellow). Items and numbers are fictional.",
+        "2. Steps tab: the markdown percent for each age step. MATCH with 1 finds the last step start that is not larger than the days in stock.",
+        "3. Price after markdown, F6: =ROUND(C6*(1-E6),2).",
+        "4. Lowest price at your margin, G6: =ROUNDUP(B6/(1-$B$2),2). At that price (price minus cost) divided by price is at least B2. It rounds up to the next cent so the margin is never below B2.",
+        "5. Clearance price, H6: =MIN(C6,MAX(F6,G6)). The markdown, but never below the floor and never above the regular price.",
+        "6. Margin at clearance, I6: =(H6-B6)/H6. This is margin on price, not markup on cost.",
+        "7. Status: Full price (no markdown yet), Marked down, At floor (the floor price was used), Below min margin (even the regular price is under your margin), Check (missing or non-numeric input).",
+        "8. M11 says OK when the margin is a percent from 0% to 99%, the steps rise from 0 with percents from 0% to 100%, and no row shows Check or Below min margin.",
+        "9. This is price arithmetic on numbers you type. It does not include fees, shipping or taxes.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Clearance"].print_title_rows = "5:5"
+    wb["Steps"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-clearance-price-floor.xlsx")
+
+
+def pieces_per_letter_sheet():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sheet fit"
+    ws["A1"] = "How many pieces fit on a US Letter sheet?"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"], ws["B2"] = "Sheet width (in)", 8.5
+    ws["A3"], ws["B3"] = "Sheet height (in)", 11
+    ws["A4"], ws["B4"] = "Blank margin on every edge (in)", 0.25
+    ws["A5"], ws["B5"] = "Settings check", ('=IF(AND(ISNUMBER(B2),ISNUMBER(B3),ISNUMBER(B4)),IF(AND(B4>=0,B2-2*B4>0,B3-2*B4>0),"OK",'
+                                            '"Margins leave no room"),"Type numbers in the yellow cells")')
+    for r in range(2, 6):
+        ws[f"A{r}"].font = Font(bold=True)
+    for c in ("B2", "B3", "B4"):
+        ws[c].fill = INPUT_FILL
+    ws["B5"].fill = FORMULA_FILL
+    _head_row(ws, 7, ["Job", "Piece width (in)", "Piece height (in)", "Gap between (in)", "Pieces needed", "Per sheet as typed",
+                      "Per sheet turned 90 degrees", "Best per sheet", "Layout", "Sheets to print", "Spare pieces"],
+              [26, 9, 9, 9, 9, 10, 12, 9, 13, 9, 9], height=58)
+    jobs = [
+        ("Business cards", 3.5, 2, 0, 250), ("Square stickers, 2 in", 2, 2, 0.125, 120), ("Thank-you cards", 4.25, 5.5, 0, 60),
+        ("Product tags", 1.5, 3, 0.125, 300), ("Shipping labels, 5.5 x 8.5", 8.5, 5.5, 0, 40), ("Postcards", 4, 6, 0, 100),
+        ("Bookmarks", 2, 7, 0.1, 80), ("Gift tags, small", 1.25, 2.5, 0.1, 200),
+    ]
+    for r in range(8, 38):
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"E{r}"].number_format = "0"
+        ok = f'AND(ISNUMBER(B{r}),ISNUMBER(C{r}),ISNUMBER(D{r}),$B$5="OK")'
+        ws[f"F{r}"] = (f'=IF(A{r}="","",IF({ok},IF(AND(B{r}>0,C{r}>0,D{r}>=0),'
+                       f'INT(ROUND(($B$2-2*$B$4+D{r})/(B{r}+D{r}),6))*INT(ROUND(($B$3-2*$B$4+D{r})/(C{r}+D{r}),6)),"Check"),"Check"))')
+        ws[f"G{r}"] = (f'=IF(A{r}="","",IF(F{r}="Check","Check",'
+                       f'INT(ROUND(($B$2-2*$B$4+D{r})/(C{r}+D{r}),6))*INT(ROUND(($B$3-2*$B$4+D{r})/(B{r}+D{r}),6))))')
+        ws[f"H{r}"] = f'=IF(A{r}="","",IF(F{r}="Check","Check",MAX(F{r},G{r})))'
+        ws[f"I{r}"] = f'=IF(A{r}="","",IF(H{r}="Check","Check",IF(H{r}=0,"Does not fit",IF(F{r}>=G{r},"As typed","Turned"))))'
+        ws[f"J{r}"] = (f'=IF(A{r}="","",IF(OR(H{r}="Check",NOT(ISNUMBER(E{r}))),"Check",IF(H{r}=0,"",'
+                       f'IF(E{r}<0,"Check",ROUNDUP(E{r}/H{r},0)))))')
+        ws[f"K{r}"] = f'=IF(ISNUMBER(J{r}),J{r}*H{r}-E{r},"")'
+        for col in "FGHIJK":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        for col in "BCD":
+            ws[f"{col}{r}"].number_format = "0.000"
+    for i, (n, w, h, g, q) in enumerate(jobs):
+        r = 8 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"], ws[f"E{r}"] = n, w, h, g, q
+    ws.column_dimensions["L"].width = 3
+    ws.column_dimensions["M"].width = 34
+    ws.column_dimensions["N"].width = 12
+    _summary_block(ws, "M", "N", [
+        (7, "Jobs listed", "=COUNTA(A8:A37)", "0"),
+        (8, "Jobs that do not fit", '=COUNTIF(I8:I37,"Does not fit")', "0"),
+        (9, "Jobs where turning the piece helps", '=COUNTIF(I8:I37,"Turned")', "0"),
+        (10, "Sheets to print, all jobs", "=SUM(J8:J37)", "0"),
+        (11, "CHECK", '=IF(AND(B5="OK",COUNTIF(I8:I37,"Check")=0,COUNTIF(I8:I37,"Does not fit")=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("I8:I37", FormulaRule(formula=['OR($I8="Does not fit",$I8="Check")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("N11", FormulaRule(formula=['$N$11<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A8"
+    notes_sheet(wb, [
+        "Tidy Tabs: Pieces Per US Letter Sheet",
+        "",
+        "1. Sheet fit tab: the sheet is 8.5 x 11 in (B2, B3). B4 is the blank margin on every edge, for example 0.25 in for what many printers cannot reach. Type the size of each piece, the gap between pieces and how many you need (yellow). Jobs and sizes are fictional.",
+        "2. Per sheet as typed, F8: =INT((B2-2*B4+D8)/(B8+D8))*INT((B3-2*B4+D8)/(C8+D8)). Pieces across times pieces down. Adding the gap once to the usable width gives the same count as fitting a gap after every piece but the last.",
+        "3. Per sheet turned, G8: the same with the piece's width and height swapped.",
+        "4. The file's formulas wrap each division in ROUND(...,6) before INT, so a size that should fit exactly (such as 0.1 in gaps) is not lost to a 0.0000000001 decimal error.",
+        "5. Best per sheet, H8: =MAX(F8,G8). Layout says Turned when turning gives more pieces, As typed on a tie.",
+        "6. Sheets to print, J8: =ROUNDUP(E8/H8,0). Spare pieces, K8: =J8*H8-E8.",
+        "7. N11 says OK when the settings are valid and no row shows Check or Does not fit.",
+        "8. This counts a plain grid. It does not allow for bleed, a mix of sizes on one sheet, or what your printer can actually reach; check a test print.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Sheet fit"].print_title_rows = "7:7"
+    wb.save(OUT / "tidy-tabs-pieces-per-letter-sheet.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -12721,4 +13155,9 @@ if __name__ == "__main__":
     initials_from_names()
     return_rate_by_product()
     real_hourly_rate()
+    orders_by_state()
+    order_status_counts()
+    description_word_count()
+    clearance_price_floor()
+    pieces_per_letter_sheet()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfUiDvREaH7
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-check-that-your-shipping-charges.html
 title: How to Check That Your Shipping Charges Cover Your Label Costs in Excel and Google Sheets
 labels: excel-formulas, small-business, shipping
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 16 workbooks and 6,560 comparisons with 0 mismatches. Checked: an empty log, text in a charged amount, a blank label cost, an order number with no amounts, all-zero amounts, half-cent amounts, a tie for the biggest shortfall, negative amounts, a log with no shortfall, and six random logs of 1 to 200 orders. Excel and Google Sheets were not used.

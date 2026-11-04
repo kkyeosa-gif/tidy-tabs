@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfU124YIJsI
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-group-inventory-by-days-in-stock.html
 title: How to Group Inventory by Days in Stock in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 16 workbooks and 5,328 comparisons with 0 mismatches. Checked: an empty list, items at 0, 1, 30, 31, 60, 61, 90, 91, 180, 181, 365 and 700 days, a received date after the as-of date, a date typed as text, an as-of date typed as text, an as-of date of 02/28/2027, custom group starts, group starts that do not rise, text units, a blank cost, half-cent values, 100 items, and four random lists. Excel and Google Sheets were not used.

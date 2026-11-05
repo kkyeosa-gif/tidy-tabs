@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfVzplIDCBV
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-find-your-real-hourly-rate-on.html
 title: How to Find Your Real Hourly Rate on a Fixed-Price Project in Excel and Google Sheets
 labels: excel-formulas, freelancers, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 22 workbooks and 2,398 comparisons with 0 mismatches. Checked: an empty time log, no projects, target rates of $0.00, -$5.00, text, $45.00 and $120.50, a rate exactly at the target, a rate of 59.996 that rounds to the target, half-cent rates, a text price, a blank price, a misspelled project in the log, a trailing space, lower case, text hours, odd decimal hours, and five random sets of up to 20 projects and 400 time entries. Excel and Google Sheets were not used.

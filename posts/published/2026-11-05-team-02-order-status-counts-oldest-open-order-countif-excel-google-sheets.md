@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfXoYeJiQO7
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-count-orders-by-status-and-find.html
 title: How to Count Orders by Status and Find the Oldest Open Order in Excel and Google Sheets
 labels: excel-formulas, small-business, orders
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 24 workbooks and 1,654 comparisons with 0 mismatches. Checked: the sample, no orders, a misspelled status, a trailing space, lower and upper case, a blank status, an order dated after the as-of date, a same-day order, a tie for the oldest, 7 and 8 days open, a text date, a blank date, an as-of date typed as text or blank, all orders closed, custom status names, a duplicate status in the list, Maybe instead of Yes or No, and six random sets of 5 to 200 orders. Excel and Google Sheets were not used. Not run: TODAY(), more than 200 orders, and the status dropdown.

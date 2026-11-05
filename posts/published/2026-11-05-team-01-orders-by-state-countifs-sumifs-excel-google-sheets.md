@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfXG3S8lqN4
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-count-orders-and-sales-by-state.html
 title: How to Count Orders and Sales by State in Excel and Google Sheets
 labels: excel-formulas, small-business, orders
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 22 workbooks and 1,408 comparisons with 0 mismatches. Checked: the sample, no orders, no states listed, a text total, a blank state, lower and mixed case, a trailing and a leading space, a misspelled state, a tie for the top state by sales and by orders, a state listed twice, gaps in the state list, all zero totals, a negative refund, a half-cent average, one state only, and six random lists of 1 to 300 orders over 50 states. Excel and Google Sheets were not used. Not run: 300 orders (more than the slots), TODAY, a non-US language setting.

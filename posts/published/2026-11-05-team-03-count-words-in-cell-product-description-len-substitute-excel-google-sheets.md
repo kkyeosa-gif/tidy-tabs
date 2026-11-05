@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfX8_AmgW7-
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-count-words-in-cell-in-excel-and.html
 title: How to Count Words in a Cell in Excel and Google Sheets
 labels: excel-formulas, small-business, text
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 26 workbooks and 1,152 comparisons with 0 mismatches. Checked: the sample, an empty cell, one word, extra spaces, a cell of only spaces, line breaks, a tab, a non-breaking space, numbers, a product without a description, a description without a product, exactly 25 and 24 words with a minimum of 25, minimums of 1, 0, text and blank, a decimal minimum, punctuation tokens, ties for shortest, accents and emoji, and six random sets of 3 to 100 rows. Not run: more than 100 descriptions, a non-US language setting. Non-breaking spaces were tested only in the word-count text. Excel and Google Sheets were not used.

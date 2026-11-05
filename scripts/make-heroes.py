@@ -627,7 +627,40 @@ def heroes_2026_11_05():
                 "Sheet fit", hide_cols="LMN", widths={"A": 30}, name="letterfit"))
 
 
+def seconds_shown_copy(path, sheet, cells):
+    """Show seconds in the order time cells so 2:00:00 PM and 2:00:01 PM can be told apart."""
+    wb = load_workbook(path)
+    for row in wb[sheet][cells]:
+        for c in row:
+            c.number_format = "mm/dd/yyyy h:mm:ss AM/PM"
+    wb.save(path)
+    return path
+
+
+def heroes_2026_11_06():
+    t = "templates/"
+    d = "images/2026-11-06-team-0%d-%s/"
+    save(d % (1, "extract-text-between-parentheses-mid-find-excel-google-sheets") + "text-between-parentheses-listing-titles-template.png",
+         render(compact_copy(t + "tidy-tabs-text-between-parentheses.xlsx", "Listings", 16, "parens", hide_rows=[1, 2, 3], clear=["A1", "A2"]),
+                "Listings", hide_cols="HI", widths={"A": 38}, name="parens"))
+    save(d % (2, "ship-date-daily-cutoff-time-workday-excel-google-sheets") + "ship-date-with-cutoff-time-template.png",
+         render(seconds_shown_copy(compact_copy(t + "tidy-tabs-ship-date-cutoff-time.xlsx", "Orders", 18, "cutoff", hide_rows=[1, 5], clear=["A1"]), "Orders", "B7:B18"),
+                "Orders", hide_cols="HIJ", widths={"A": 40, "B": 27}, name="cutoff"))
+    save(d % (3, "change-due-count-bills-coins-int-sumproduct-excel-google-sheets") + "change-due-bills-and-coins-template.png",
+         render(compact_copy(t + "tidy-tabs-change-due-bills-coins.xlsx", "Change", 17, "changedue", hide_rows=[1, 2, 3, 6], clear=["A1", "A2"]),
+                "Change", hide_cols="NOPQ", name="changedue"))
+    save(d % (4, "shipping-zone-from-zip-code-index-match-excel-google-sheets") + "shipping-zone-from-zip-code-template.png",
+         render(compact_copy(t + "tidy-tabs-shipping-zone-from-zip.xlsx", "Orders", 20, "zipzone", hide_rows=[1, 2, 3], clear=["A1", "A2"]),
+                "Orders", name="zipzone"))
+    save(d % (5, "new-vs-returning-customers-by-month-minifs-countifs-excel-google-sheets") + "new-vs-returning-customers-by-month-template.png",
+         render(compact_copy(t + "tidy-tabs-new-vs-returning-customers.xlsx", "Months", 17, "newret", hide_rows=[1, 3], clear=["A1"]),
+                "Months", hide_cols="IJKL", name="newret"))
+
+
 def main():
+    if "--only-2026-11-06" in sys.argv:
+        heroes_2026_11_06()
+        return
     if "--only-2026-11-05" in sys.argv:
         heroes_2026_11_05()
         return

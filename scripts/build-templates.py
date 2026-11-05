@@ -8,7 +8,7 @@ File > Import in Google Sheets. Re-run after editing; the files are
 committed so readers download exactly what was checked.
 """
 import csv
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -12998,6 +12998,439 @@ def pieces_per_letter_sheet():
     wb.save(OUT / "tidy-tabs-pieces-per-letter-sheet.xlsx")
 
 
+def text_between_parentheses():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Listings"
+    ws["A1"] = "Pull the variation out of parentheses in a listing title"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type or paste listing titles in column A (yellow). Titles and shop items are fictional. Only the first pair of parentheses is used."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Listing title", "Inside the parentheses", "Title without them", "Status", "Before the first comma", "After the first comma"],
+              [38, 24, 28, 14, 16, 18], height=32)
+    titles = [
+        "Soy candle (Lavender, 8 oz)", "Soy candle (Cedar, 8 oz)", "Brass hoop earrings (Gold, Small)",
+        "Brass hoop earrings (Silver, Large)", "Enamel mug (Blue)", "Enamel mug (Speckled White)",
+        "Linen napkin set (Natural, Set of 4)", "Linen napkin set (Sage, Set of 6)", "Letterpress birthday card",
+        "Tote bag (Canvas, 12 oz) Medium", "Wool dryer balls (3 pack) (Gray)", "Oatmeal goat milk soap bar (Unscented)",
+    ]
+    for r in range(5, 105):
+        ws[f"A{r}"].fill = INPUT_FILL
+        fo = f'FIND("(",A{r})'
+        fc = f'FIND(")",A{r},FIND("(",A{r}))'
+        ws[f"B{r}"] = (f'=IF(A{r}="","",IF(ISNUMBER({fo}),IF(ISNUMBER({fc}),'
+                       f'TRIM(MID(A{r},{fo}+1,{fc}-{fo}-1)),""),""))')
+        ws[f"D{r}"] = (f'=IF(A{r}="","",IF(ISNUMBER({fo}),IF(ISNUMBER({fc}),IF(B{r}="","Empty ()","OK"),"No closing )"),"No ("))')
+        ws[f"C{r}"] = (f'=IF(A{r}="","",IF(OR(D{r}="OK",D{r}="Empty ()"),TRIM(LEFT(A{r},{fo}-1)&" "&MID(A{r},{fc}+1,500)),TRIM(A{r})))')
+        ws[f"E{r}"] = f'=IF(B{r}="","",TRIM(LEFT(B{r},FIND(",",B{r}&",")-1)))'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(FIND(",",B{r})),TRIM(MID(B{r},FIND(",",B{r})+1,500)),"")'
+        for col in "BCDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    for i, t in enumerate(titles):
+        ws[f"A{5 + i}"] = t
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 32
+    ws.column_dimensions["I"].width = 10
+    _summary_block(ws, "H", "I", [
+        (4, "Titles listed", "=COUNTA(A5:A104)", "0"),
+        (5, "With a pair of parentheses", '=COUNTIF(D5:D104,"OK")', "0"),
+        (6, "With no parentheses", '=COUNTIF(D5:D104,"No (")', "0"),
+        (7, "Missing the closing )", '=COUNTIF(D5:D104,"No closing )")', "0"),
+        (8, "Empty parentheses", '=COUNTIF(D5:D104,"Empty ()")', "0"),
+        (9, "CHECK", '=IF(AND(I7=0,I8=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("D5:D104", FormulaRule(formula=['OR($D5="No closing )",$D5="Empty ()")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("I9", FormulaRule(formula=['$I$9<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Text Between Parentheses",
+        "",
+        "1. Listings tab: one listing title per row in column A (yellow). Titles are fictional.",
+        "2. Inside the parentheses, B5: =TRIM(MID(A5,FIND(\"(\",A5)+1,FIND(\")\",A5,FIND(\"(\",A5))-FIND(\"(\",A5)-1)). The file wraps it in IF and ISNUMBER so a title with no ( or no ) shows a blank instead of an error.",
+        "3. Title without them, C5: the text before ( joined to the text after ), with TRIM removing the extra space.",
+        "4. Status, D5: OK, No ( , No closing ) or Empty (). Only the first ( and the first ) after it are used, so a second pair stays in the title and a nested pair is cut at the first ).",
+        "5. Before and after the first comma, E5 and F5: =TRIM(LEFT(B5,FIND(\",\",B5&\",\")-1)) and =TRIM(MID(B5,FIND(\",\",B5)+1,500)). Adding & \",\" to the text lets FIND succeed when there is no comma.",
+        "6. I9 says OK when no title is missing its closing parenthesis and none has empty parentheses.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Listings"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-text-between-parentheses.xlsx")
+
+
+def ship_date_with_cutoff():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Ship date with a daily cutoff time"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"], ws["B2"] = "Daily cutoff time", time(14, 0)
+    ws["A3"], ws["B3"] = "Business days to ship after the order counts", 1
+    ws["A4"] = "Settings check"
+    ws["B4"] = ('=IF(AND(ISNUMBER(B2),ISNUMBER(B3)),IF(AND(B2>=0,B2<1,B3>=0,B3=INT(B3),COUNT(Holidays!A5:A24)=COUNTA(Holidays!A5:A24)),'
+                '"OK","Check"),"Check")')
+    for r in range(2, 5):
+        ws[f"A{r}"].font = Font(bold=True)
+    ws["B2"].fill = ws["B3"].fill = INPUT_FILL
+    ws["B2"].number_format = "h:mm AM/PM"
+    ws["B4"].fill = FORMULA_FILL
+    ws["B4"].alignment = Alignment(horizontal="right")
+    _head_row(ws, 6, ["Order #", "Order date and time", "Order counts as", "Ship date", "Ship day", "Days after order date"],
+              [11, 21, 14, 13, 9, 11], height=44)
+    orders = [
+        (5101, datetime(2026, 11, 2, 9, 15)), (5102, datetime(2026, 11, 2, 13, 59, 59)), (5103, datetime(2026, 11, 2, 14, 0)),
+        (5104, datetime(2026, 11, 2, 14, 0, 1)), (5105, datetime(2026, 11, 5, 15, 30)), (5106, datetime(2026, 11, 6, 16, 45)),
+        (5107, datetime(2026, 11, 7, 10, 0)), (5108, datetime(2026, 11, 8, 22, 10)), (5109, datetime(2026, 11, 25, 8, 30)),
+        (5110, datetime(2026, 11, 25, 17, 5)), (5111, datetime(2026, 11, 26, 11, 20)), (5112, datetime(2026, 12, 24, 15, 0)),
+    ]
+    hol = "Holidays!$A$5:$A$24"
+    for r in range(7, 107):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATETIME
+        ws[f"C{r}"] = (f'=IF(B{r}="","",IF(AND(ISNUMBER(B{r}),$B$4="OK"),IF(B{r}>=1,'
+                       f'IF(ROUND(MOD(B{r},1)*86400,0)<=ROUND($B$2*86400,0),WORKDAY(INT(B{r})-1,1,{hol}),WORKDAY(INT(B{r}),1,{hol})),"Check"),"Check"))')
+        ws[f"D{r}"] = f'=IF(B{r}="","",IF(ISNUMBER(C{r}),WORKDAY(C{r},$B$3,{hol}),"Check"))'
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),TEXT(D{r},"ddd"),D{r})'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(D{r}),D{r}-INT(B{r}),D{r})'
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = US_DATE
+        ws[f"F{r}"].number_format = "0"
+        for col in "CDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, d) in enumerate(orders):
+        ws[f"A{7 + i}"], ws[f"B{7 + i}"] = n, d
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 30
+    ws.column_dimensions["I"].width = 13
+    _summary_block(ws, "H", "I", [
+        (6, "Orders listed", "=COUNTA(A7:A106)+COUNTIFS(A7:A106,\"\",B7:B106,\"<>\")", "0"),
+        (7, "Latest ship date", '=IF(COUNT(D7:D106)=0,"",MAX(D7:D106))', US_DATE),
+        (8, "Longest wait (calendar days)", '=IF(COUNT(F7:F106)=0,"",MAX(F7:F106))', "0"),
+        (9, "Rows showing Check", '=COUNTIF(D7:D106,"Check")', "0"),
+        (10, "CHECK", '=IF(AND(B4="OK",I9=0,COUNT(B7:B106)=COUNTA(B7:B106)),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("C7:F106", FormulaRule(formula=['C7="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("I10", FormulaRule(formula=['$I$10<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A7"
+    hs = wb.create_sheet("Holidays")
+    hs["A1"] = "Days you do not ship"
+    hs["A1"].font = Font(bold=True, size=13)
+    hs["A2"] = "Type each closed weekday as a date (yellow). Saturdays and Sundays are skipped automatically. Dates here are examples."
+    hs["A2"].font = Font(italic=True)
+    _head_row(hs, 4, ["Closed date", "Day"], [14, 10], height=24)
+    for i, d in enumerate([date(2026, 11, 26), date(2026, 12, 25), date(2027, 1, 1)]):
+        hs[f"A{5 + i}"] = d
+    for r in range(5, 25):
+        hs[f"A{r}"].fill = INPUT_FILL
+        hs[f"A{r}"].number_format = US_DATE
+        hs[f"B{r}"] = f'=IF(ISNUMBER(A{r}),TEXT(A{r},"ddd"),"")'
+        hs[f"B{r}"].fill = FORMULA_FILL
+    notes_sheet(wb, [
+        "Tidy Tabs: Ship Date With a Daily Cutoff Time",
+        "",
+        "1. Orders tab: type the cutoff time in B2 and the business days to ship in B3 (0 ships on the day the order counts). Type each order's date and time in column B (yellow). Orders are fictional.",
+        "2. Order counts as, C7: =IF(ROUND(MOD(B7,1)*86400,0)<=ROUND($B$2*86400,0),WORKDAY(INT(B7)-1,1,Holidays!$A$5:$A$24),WORKDAY(INT(B7),1,Holidays!$A$5:$A$24)). An order at or before the cutoff counts as the first business day on or after its date; a later order counts as the next business day. MOD(B7,1) is the time of day. Rounding to whole seconds keeps an order at exactly the cutoff from being pushed a day by a tiny decimal error.",
+        "3. Ship date, D7: =WORKDAY(C7,$B$3,Holidays!$A$5:$A$24). Ship day, E7: =TEXT(D7,\"ddd\").",
+        "4. Holidays tab: closed weekdays you type. Weekends are skipped by WORKDAY on its own.",
+        "5. B4 says OK when the cutoff is a time of day, the days are a whole number of 0 or more and every holiday cell holds a date.",
+        "6. This does not know carrier pickup times, weekend shipping, or how long delivery takes.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_title_rows = "6:6"
+    wb["Holidays"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-ship-date-cutoff-time.xlsx")
+
+
+def change_due_bills_coins():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Change"
+    ws["A1"] = "Change due and how many bills and coins to hand back"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type each sale total and the cash handed over (yellow). Sales are fictional. Uses $20, $10, $5, $1, quarters, dimes, nickels and pennies."
+    ws["A2"].font = Font(italic=True)
+    ws["A4"] = "Value in cents"
+    ws["A5"] = "Total to hand out, all sales"
+    ws["A4"].font = ws["A5"].font = Font(bold=True)
+    cents = [2000, 1000, 500, 100, 25, 10, 5, 1]
+    labels = ["$20 bills", "$10 bills", "$5 bills", "$1 bills", "Quarters", "Dimes", "Nickels", "Pennies"]
+    cols = "FGHIJKLM"
+    for c, v in zip(cols, cents):
+        ws[f"{c}4"] = v
+        ws[f"{c}4"].font = Font(bold=True)
+        ws[f"{c}4"].alignment = Alignment(horizontal="right")
+        ws[f"{c}5"] = f"=SUM({c}8:{c}67)"
+        ws[f"{c}5"].fill = FORMULA_FILL
+        ws[f"{c}5"].number_format = "0"
+    ws["D5"] = "=SUM(D8:D67)"
+    ws["D5"].number_format = USD
+    ws["D5"].fill = FORMULA_FILL
+    _head_row(ws, 7, ["Sale #", "Sale total", "Cash given", "Change due", "Change in cents"] + labels + ["Check"],
+              [8, 11, 11, 11, 10, 8, 8, 8, 8, 9, 8, 8, 8, 10], height=32)
+    sales = [(1, 7.50, 20), (2, 12.25, 20), (3, 18.00, 20), (4, 4.75, 5), (5, 23.40, 40), (6, 9.99, 10), (7, 15.00, 15),
+             (8, 31.35, 50), (9, 6.85, 10), (10, 8.20, 20)]
+    for r in range(8, 68):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = USD
+        ws[f"D{r}"] = (f'=IF(AND(B{r}="",C{r}=""),"",IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r})),IF(AND(B{r}>=0,C{r}>=0),'
+                       f'IF(ROUND(C{r}-B{r},2)>=0,ROUND(C{r}-B{r},2),"Short"),"Check"),"Check"))')
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),ROUND(D{r}*100,0),"")'
+        for i, c in enumerate(cols):
+            if i == 0:
+                f = f'=IF(ISNUMBER($E{r}),INT($E{r}/{c}$4),"")'
+            else:
+                f = f'=IF(ISNUMBER($E{r}),INT(($E{r}-SUMPRODUCT($F{r}:{cols[i - 1]}{r},$F$4:{cols[i - 1]}$4))/{c}$4),"")'
+            ws[f"{c}{r}"] = f
+        ws[f"N{r}"] = f'=IF(ISNUMBER(E{r}),IF(SUMPRODUCT(F{r}:M{r},$F$4:$M$4)=E{r},"OK","Check"),D{r})'
+        for col in "DEFGHIJKLMN":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, t, g) in enumerate(sales):
+        r = 8 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = n, t, g
+    ws.column_dimensions["O"].width = 3
+    ws.column_dimensions["P"].width = 28
+    ws.column_dimensions["Q"].width = 12
+    _summary_block(ws, "P", "Q", [
+        (7, "Sales listed", "=COUNT(B8:B67)", "0"),
+        (8, "Sales with exact change", '=COUNTIF(D8:D67,0)', "0"),
+        (9, "Sales where cash is short", '=COUNTIF(D8:D67,"Short")', "0"),
+        (10, "Largest change due", '=IF(COUNT(D8:D67)=0,"",MAX(D8:D67))', USD),
+        (11, "Rows showing Check", '=COUNTIF(N8:N67,"Check")', "0"),
+        (12, "CHECK", '=IF(AND(Q11=0,COUNT(B8:B67)=COUNT(C8:C67),Q9=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("N8:N67", FormulaRule(formula=['OR($N8="Check",$N8="Short")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("Q12", FormulaRule(formula=['$Q$12<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A8"
+    notes_sheet(wb, [
+        "Tidy Tabs: Change Due and Bills and Coins to Hand Back",
+        "",
+        "1. Change tab: type each sale total (column B) and the cash handed over (column C) in the yellow cells. Sales are fictional.",
+        "2. Change due, D8: =ROUND(C8-B8,2). ROUND to 2 decimals removes the tiny error that can make 5.00 - 4.35 come out as 0.6500000000000004. It shows Short when the cash is less than the total.",
+        "3. Change in cents, E8: =ROUND(D8*100,0). Working in whole cents keeps every later step exact.",
+        "4. $20 bills, F8: =INT($E8/F$4). Each later column subtracts what the larger pieces already cover: G8: =INT(($E8-SUMPRODUCT($F8:F8,$F$4:F$4))/G$4). Row 4 holds each piece's value in cents.",
+        "5. Check, N8: OK when the pieces add back up to the change in cents.",
+        "6. Row 5 adds each column, so you know how many of each piece to have in the box.",
+        "7. Type amounts in whole cents. A difference of exactly half a cent (such as 5.00 - 4.995) is stored as 0.004999... and rounds down to $0.00.",
+        "8. This hands back the fewest pieces using the eight values in row 4. It does not know what is actually in your cash box, and it has no $2 bills, half dollars or $50 and $100 bills.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Change"].print_title_rows = "7:7"
+    wb.save(OUT / "tidy-tabs-change-due-bills-coins.xlsx")
+
+
+def shipping_zone_from_zip():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Shipping zone and price from a ZIP code"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type the ZIP as it came, even without the leading zero (yellow). Zones and prices are on the Zones tab and are fictional."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Order #", "Customer", "ZIP as typed", "ZIP (5 digits)", "First 3 digits", "Zone", "Shipping price"],
+              [10, 20, 13, 11, 9, 10, 11], height=32)
+    orders = [
+        (7001, "Maria Alvarez", "02108"), (7002, "Ben Carter", 2108), (7003, "Priya Shah", "07030"), (7004, "Tom Nguyen", 7030),
+        (7005, "Lena Fischer", 10001), (7006, "Omar Haddad", 33101), (7007, "Chloe Park", "60601"), (7008, "Jamal Reed", 94105),
+        (7009, "Sofia Rossi", 98101), (7010, "Ana Torres", 73301), (7011, "Dan Whitaker", "02134-1234"), (7012, "Kira Olsen", 90210),
+        (7013, "Ravi Patel", "30301"), (7014, "Grace Kim", "85001"), (7015, "Noah Brooks", "05401"), (7016, "Ella Davis", 80202),
+    ]
+    for r in range(5, 205):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"C{r}"].number_format = "@"
+        z = f"TRIM(C{r})"
+        ws[f"D{r}"] = (f'=IF(C{r}="","",IF(ISNUMBER(C{r}),IF(AND(C{r}>=0,C{r}<=99999,C{r}=INT(C{r})),TEXT(C{r},"00000"),"Check"),'
+                       f'IF(OR(LEN({z})=5,AND(LEN({z})=10,MID({z},6,1)="-")),'
+                       f'IF(SUMPRODUCT(--ISNUMBER(FIND(MID({z},{{1,2,3,4,5}},1),"0123456789")))=5,LEFT({z},5),"Check"),"Check")))')
+        ws[f"E{r}"] = f'=IF(OR(D{r}="",D{r}="Check"),"",VALUE(LEFT(D{r},3)))'
+        ws[f"F{r}"] = (f'=IF(D{r}="","",IF(OR(D{r}="Check",Zones!$H$4<>"OK"),"Check",'
+                       f'INDEX(Zones!$B$5:$B$14,MATCH(E{r},Zones!$A$5:$A$14,1))))')
+        ws[f"G{r}"] = (f'=IF(D{r}="","",IF(F{r}="Check","Check",INDEX(Zones!$C$5:$C$14,MATCH(E{r},Zones!$A$5:$A$14,1))))')
+        ws[f"G{r}"].number_format = USD
+        for col in "DEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, c, z) in enumerate(orders):
+        r = 5 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = n, c, z
+        ws[f"C{r}"].number_format = "General" if isinstance(z, int) else "@"
+    ws.conditional_formatting.add("D5:G204", FormulaRule(formula=['D5="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    zs = wb.create_sheet("Zones")
+    zs["A1"] = "Zone table (fictional, for a shop shipping from Boston, MA)"
+    zs["A1"].font = Font(bold=True, size=13)
+    zs["A2"] = "Column A is the first three ZIP digits where a zone starts, smallest first, beginning with 0. Edit the yellow cells."
+    zs["A2"].font = Font(italic=True)
+    _head_row(zs, 4, ["Zone starts at first 3 digits", "Zone", "Shipping price", "Orders", "Shipping total"], [16, 10, 12, 9, 13], height=44)
+    table = [(0, "Zone 1", 5.90), (100, "Zone 2", 6.40), (200, "Zone 3", 7.10), (300, "Zone 4", 7.80),
+             (500, "Zone 5", 8.60), (700, "Zone 6", 9.30), (850, "Zone 7", 10.20), (960, "Zone 8", 11.40)]
+    for r in range(5, 15):
+        for col in "ABC":
+            zs[f"{col}{r}"].fill = INPUT_FILL
+        zs[f"C{r}"].number_format = USD
+        zs[f"D{r}"] = f'=IF(B{r}="","",COUNTIF(Orders!$F$5:$F$204,B{r}))'
+        zs[f"E{r}"] = f'=IF(B{r}="","",SUMIF(Orders!$F$5:$F$204,B{r},Orders!$G$5:$G$204))'
+        zs[f"E{r}"].number_format = USD
+        for col in "DE":
+            zs[f"{col}{r}"].fill = FORMULA_FILL
+    for i, (a, b, c) in enumerate(table):
+        r = 5 + i
+        zs[f"A{r}"], zs[f"B{r}"], zs[f"C{r}"] = a, b, c
+    zs["A15"], zs["D15"], zs["E15"] = "All zones", "=SUM(D5:D14)", "=SUM(E5:E14)"
+    zs["E15"].number_format = USD
+    for c in ("A15", "D15", "E15"):
+        zs[c].font = Font(bold=True)
+    zs.column_dimensions["F"].width = 3
+    zs.column_dimensions["G"].width = 32
+    zs.column_dimensions["H"].width = 12
+    _summary_block(zs, "G", "H", [
+        (4, "Zone table check", ('=IFERROR(IF(AND(COUNT(A5:A14)>=1,A5=0,COUNT(A5:A14)=COUNTA(A5:A14),COUNT(A5:A14)=MATCH(9.99E+307,A5:A14),'
+                                 'SUMPRODUCT(--(A6:A14>A5:A13),--ISNUMBER(A6:A14))=COUNT(A5:A14)-1,'
+                                 'COUNT(C5:C14)=COUNT(A5:A14),COUNTA(B5:B14)=COUNT(A5:A14)),"OK","Check"),"Check")'), "General"),
+        (5, "Orders listed", "=COUNTA(Orders!A5:A204)", "0"),
+        (6, "Orders with a ZIP to check", '=COUNTIF(Orders!D5:D204,"Check")', "0"),
+        (7, "Orders counted in a zone", "=D15", "0"),
+        (8, "CHECK", '=IF(AND(H4="OK",H6=0,H7=H5),"OK","Check")', "General"),
+    ])
+    zs.conditional_formatting.add("H8", FormulaRule(formula=['$H$8<>"OK"'], fill=ALERT_FILL))
+    zs.conditional_formatting.add("H4", FormulaRule(formula=['$H$4<>"OK"'], fill=ALERT_FILL))
+    notes_sheet(wb, [
+        "Tidy Tabs: Shipping Zone From a ZIP Code",
+        "",
+        "1. Orders tab: type the ZIP in column C exactly as it arrived (yellow). A ZIP that lost its leading zero (2108) is padded back to 02108. Orders and customers are fictional.",
+        "2. ZIP (5 digits), D5: for a number, =TEXT(C5,\"00000\"); for text, the first five characters after TRIM, accepted only when they are digits and the text is 5 characters or ZIP+4 such as 02134-1234. Anything else shows Check.",
+        "3. First 3 digits, E5: =VALUE(LEFT(D5,3)).",
+        "4. Zone, F5: =INDEX(Zones!$B$5:$B$14,MATCH(E5,Zones!$A$5:$A$14,1)). The 1 means the last start that is not above the number, so a table with 000, 100, 200 sends 164 to the 100 row. Shipping price, G5, is the same lookup in column C.",
+        "5. Zones tab: the starts must go smallest first, begin with 0 and have no gaps. H4 says OK when they do.",
+        "6. The zones and prices are made up for the example. Use your carrier's own zone chart for real prices.",
+        "7. A ZIP number with a leading zero that was typed as a number can only be restored if you know it had 5 digits. A number like 123 becomes 00123.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_title_rows = "4:4"
+    wb["Zones"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-shipping-zone-from-zip.xlsx")
+
+
+def new_vs_returning_customers():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Is this order from a new or a returning customer?"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type order date (dates only, no times), customer and amount in the yellow cells. Customers and orders are fictional."
+    ws["A2"].font = Font(italic=True)
+    ws["A3"] = "New means this is the customer's first date in this list. Anyone who ordered before the list starts looks new."
+    ws["A3"].font = Font(italic=True)
+    _head_row(ws, 5, ["Order #", "Order date", "Customer", "Amount", "First order date", "Type", "New customer"],
+              [9, 12, 18, 11, 12, 11, 10], height=32)
+    data = [
+        (1001, (8, 3), "Maria Alvarez", 42.00), (1002, (8, 5), "Ben Carter", 18.50), (1003, (8, 7), "Priya Shah", 64.00),
+        (1004, (8, 12), "Maria Alvarez", 27.50), (1005, (8, 14), "Tom Nguyen", 35.00), (1006, (8, 14), "Tom Nguyen", 12.00),
+        (1007, (8, 19), "Ben Carter", 22.00), (1008, (8, 26), "Lena Fischer", 48.75), (1009, (8, 30), "Priya Shah", 31.25),
+        (1010, (9, 2), "Omar Haddad", 56.00), (1011, (9, 4), "Maria Alvarez", 19.99), (1012, (9, 8), "Chloe Park", 73.50),
+        (1013, (9, 10), "Ben Carter", 40.00), (1014, (9, 11), "Lena Fischer", 16.25), (1015, (9, 15), "Jamal Reed", 29.00),
+        (1016, (9, 17), "Tom Nguyen", 44.00), (1017, (9, 22), "Chloe Park", 21.50), (1018, (9, 24), "Sofia Rossi", 67.25),
+        (1019, (9, 29), "Omar Haddad", 33.00), (1020, (10, 1), "Priya Shah", 25.00), (1021, (10, 3), "Jamal Reed", 38.50),
+        (1022, (10, 6), "Ana Torres", 52.00), (1023, (10, 9), "Maria Alvarez", 61.00), (1024, (10, 13), "Sofia Rossi", 14.75),
+        (1025, (10, 15), "Dan Whitaker", 47.00), (1026, (10, 20), "Ana Torres", 23.50), (1027, (10, 22), "Ben Carter", 36.00),
+        (1028, (10, 27), "Dan Whitaker", 18.00), (1029, (10, 29), "Kira Olsen", 59.00), (1030, (10, 31), "Lena Fischer", 27.00),
+    ]
+    for r in range(6, 306):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = ws[f"E{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = USD
+        ws[f"E{r}"] = (f'=IF(OR(B{r}="",C{r}=""),"",IF(AND(ISNUMBER(B{r}),B{r}=INT(B{r})),_xlfn.MINIFS($B$6:$B$305,$C$6:$C$305,C{r}),"Check"))')
+        ws[f"F{r}"] = f'=IF(E{r}="","",IF(E{r}="Check","Check",IF(B{r}=E{r},"New","Returning")))'
+        ws[f"G{r}"] = f'=IF(F{r}="New",IF(COUNTIFS($C$6:C{r},C{r},$B$6:B{r},B{r})=1,1,0),IF(F{r}="Returning",0,""))'
+        for col in "EFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, (m, d), c, a) in enumerate(data):
+        r = 6 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"] = n, date(2026, m, d), c, a
+    ws.conditional_formatting.add("E6:G305", FormulaRule(formula=['E6="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A6"
+    ms = wb.create_sheet("Months")
+    ms["A1"] = "New and returning customers by month"
+    ms["A1"].font = Font(bold=True, size=13)
+    ms["A2"], ms["B2"] = "Year", 2026
+    ms["A2"].font = Font(bold=True)
+    ms["B2"].fill = INPUT_FILL
+    _head_row(ms, 4, ["Month", "Orders", "New customers", "Orders on first day", "Orders from returning", "Sales on first day",
+                      "Sales from returning", "Returning share of orders"], [11, 8, 10, 11, 11, 12, 12, 12], height=58)
+    for i in range(12):
+        r = 5 + i
+        rng = f'Orders!$B$6:$B$305,">="&$A{r},Orders!$B$6:$B$305,"<"&EDATE($A{r},1)'
+        ms[f"A{r}"] = f"=DATE($B$2,{i + 1},1)"
+        ms[f"A{r}"].number_format = "mmmm"
+        ms[f"B{r}"] = f"=COUNTIFS({rng})"
+        ms[f"C{r}"] = f"=SUMIFS(Orders!$G$6:$G$305,{rng})"
+        ms[f"D{r}"] = f'=COUNTIFS({rng},Orders!$F$6:$F$305,"New")'
+        ms[f"E{r}"] = f'=COUNTIFS({rng},Orders!$F$6:$F$305,"Returning")'
+        ms[f"F{r}"] = f'=SUMIFS(Orders!$D$6:$D$305,{rng},Orders!$F$6:$F$305,"New")'
+        ms[f"G{r}"] = f'=SUMIFS(Orders!$D$6:$D$305,{rng},Orders!$F$6:$F$305,"Returning")'
+        ms[f"H{r}"] = f'=IF(B{r}=0,"",E{r}/B{r})'
+        ms[f"F{r}"].number_format = ms[f"G{r}"].number_format = USD
+        ms[f"H{r}"].number_format = "0.0%"
+        for col in "ABCDEFGH":
+            ms[f"{col}{r}"].fill = FORMULA_FILL
+            ms[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ms["A17"] = "Year total"
+    for col in "BCDEFG":
+        ms[f"{col}17"] = f"=SUM({col}5:{col}16)"
+    ms["H17"] = '=IF(B17=0,"",E17/B17)'
+    ms["F17"].number_format = ms["G17"].number_format = USD
+    ms["H17"].number_format = "0.0%"
+    for col in "ABCDEFGH":
+        ms[f"{col}17"].font = Font(bold=True)
+        ms[f"{col}17"].alignment = Alignment(horizontal="right" if col != "A" else "left")
+    ms.column_dimensions["I"].width = 3
+    ms.column_dimensions["J"].width = 32
+    ms.column_dimensions["K"].width = 11
+    _summary_block(ms, "J", "K", [
+        (4, "Order rows listed", "=COUNTA(Orders!A6:A305)", "0"),
+        (5, "Orders in other years", "=COUNT(Orders!B6:B305)-B17", "0"),
+        (6, "Rows showing Check", '=COUNTIF(Orders!F6:F305,"Check")', "0"),
+        (7, "Customers seen in the list", "=SUM(Orders!G6:G305)", "0"),
+        (8, "CHECK", ('=IF(AND(K6=0,COUNT(Orders!B6:B305)=COUNTA(Orders!B6:B305),COUNT(Orders!B6:B305)=COUNTA(Orders!C6:C305),'
+                      'B17=D17+E17,K5=0),"OK","Check")'), "General"),
+    ])
+    ms.conditional_formatting.add("K8", FormulaRule(formula=['$K$8<>"OK"'], fill=ALERT_FILL))
+    notes_sheet(wb, [
+        "Tidy Tabs: New vs Returning Customers",
+        "",
+        "1. Orders tab: one row per order with the date, customer and amount (yellow). Use dates only, no times. Names are fictional.",
+        "2. First order date, E6: =MINIFS($B$6:$B$305,$C$6:$C$305,C6), the earliest date for that customer. MINIFS is in Excel 2019 and Microsoft 365 and in Google Sheets, not in Excel 2016 or earlier. Names match without regard to capitals; a space after a name makes a different customer.",
+        "3. Type, F6: =IF(B6=E6,\"New\",\"Returning\"). Every order on the customer's first date is New. Orders on later dates are Returning.",
+        "4. New customer, G6: =IF(F6=\"New\",IF(COUNTIFS($C$6:C6,C6,$B$6:B6,B6)=1,1,0),0). It is 1 on the first listed row of a customer's first date, so adding it up counts each customer once.",
+        "5. Months tab: type the year in B2. New customers, C5: =SUMIFS(Orders!$G$6:$G$305, date >= month start, date < EDATE(month start,1)). Orders on first day and Orders from returning use COUNTIFS on the Type column. Sales use SUMIFS on the Amount column.",
+        "6. Returning share, H5: =E5/B5, blank when the month has no orders.",
+        "7. K8 says OK when no row shows Check, every order has both a date and a customer, all orders fall in the year in B2 and the two order counts add up to all orders.",
+        "8. The list only knows the orders you typed. Anyone who ordered before the list starts looks new in its first month.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Orders"].print_title_rows = "5:5"
+    wb["Months"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-new-vs-returning-customers.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -13160,4 +13593,9 @@ if __name__ == "__main__":
     description_word_count()
     clearance_price_floor()
     pieces_per_letter_sheet()
+    text_between_parentheses()
+    ship_date_with_cutoff()
+    change_due_bills_coins()
+    shipping_zone_from_zip()
+    new_vs_returning_customers()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

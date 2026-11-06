@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfZrptbm5YL
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-how-many-pieces-fit-on.html
 title: How to Calculate How Many Pieces Fit on a US Letter Sheet in Excel and Google Sheets
 labels: excel-formulas, small-business, printing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model (exact fractions, same 6-decimal rounding) over 33 workbooks and 1,848 comparisons. Checked: the sample, an empty list, exact fits, 0.1 in gaps, a piece 0.001 in too big, margin 0, margins with no room, a negative or text margin, an 8.5 x 14 sheet, text, blank, zero and negative sizes, odd quantities, a tie between typed and turned, 30 jobs, and random lists. Excel and Google Sheets were not used. Not run: more than 30 jobs, printing the layouts, a non-US locale.

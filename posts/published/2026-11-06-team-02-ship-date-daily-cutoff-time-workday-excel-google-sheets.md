@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfaNLKlmAJm
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-ship-date-with-daily.html
 title: How to Calculate a Ship Date With a Daily Cutoff Time in Excel and Google Sheets
 labels: excel-formulas, small-business, shipping
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 32 workbooks and 12,992 comparisons with 0 mismatches. Checked: the sample, no orders, orders at 12:00 AM, 9:00 AM, 1:59:59 PM, 2:00:00 PM, 2:00:01 PM and 11:59:59 PM on weekdays and weekends, cutoffs of 12:00 AM, 11:59:59 PM, 12:00 PM and 9:30:15 AM, 0, 1, 3 and 20 shipping days, closed days in a week, on a weekend, listed twice, none and 20 of them, bad settings (text cutoff, cutoff of 1 or -0.1, days of 1.5, -1, text or blank, text in the closed-day list), a time-only and a text order cell, year-end and leap-year dates, 100 rows, and six random sets of 5 to 100 orders. Excel and Google Sheets were not used. Not run: WORKDAY in Excel or Sheets, TODAY, a non-English language setting.

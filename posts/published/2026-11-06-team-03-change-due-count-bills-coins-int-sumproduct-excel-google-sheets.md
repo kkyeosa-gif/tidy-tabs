@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfahxuqFAbJ
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-change-due-and-count.html
 title: How to Calculate Change Due and Count Bills and Coins in Excel and Google Sheets
 labels: excel-formulas, small-business, cash
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 18 workbooks and 12,150 comparisons with 0 mismatches, and no error value appeared in any recalculated workbook. Checked: the sample, no sales, exact change and a zero sale, 1 cent of change, 60 amounts from $0.00 to $0.99 of change, whole dollar amounts, float traps (1.00 minus 0.30, 10.00 minus 9.99, 5.00 minus 4.35, 20.00 minus 8.20), 4.355 and 4.345 from 5.00, cash short, negative amounts, text, a blank cell, spaces, $10,000 in cash, 60 rows, and six random lists. In every row the pieces added back to the change. Found in a standalone run: a difference of exactly half a cent (2.505 minus 2.50, 5.00 minus 4.995) gives $0.00. Excel and Google Sheets were not used. Not run: more than 60 sales.

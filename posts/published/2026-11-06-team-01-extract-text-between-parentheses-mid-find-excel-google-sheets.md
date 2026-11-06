@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfZ_cTWkRsb
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-extract-text-between-parentheses.html
 title: How to Extract Text Between Parentheses in Excel and Google Sheets
 labels: excel-formulas, small-business, text
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 12 workbooks and 6,072 comparisons with 0 mismatches, and no error value appeared in any recalculated workbook. Checked: the sample, no titles, (), ( ), (,), (a,), (,b), several commas, spaces inside and around the parentheses, a parenthesis first in the title, a missing closing ), a ) before the (, a nested pair, three pairs, no parentheses, spaces only, accents and Japanese text, a tab inside, quotes, a number in the cell, a 300 character title, 100 rows, a blank row between titles, and six random sets of up to 100 titles. Excel and Google Sheets were not used. Not run: titles over 300 characters, non-breaking spaces.

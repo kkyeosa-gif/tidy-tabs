@@ -189,3 +189,8 @@
 - How to Count Words in a Cell in Excel and Google Sheets - `count-words-in-cell-product-description-len-substitute-excel-google-sheets`
 - How to Set Clearance Prices With a Minimum Margin in Excel and Google Sheets - `clearance-price-minimum-margin-floor-max-roundup-excel-google-sheets`
 - How to Calculate How Many Pieces Fit on a US Letter Sheet in Excel and Google Sheets - `pieces-per-letter-sheet-int-roundup-excel-google-sheets`
+- How to Split a File Name Into Name and Extension in Excel and Google Sheets - `split-file-name-and-extension-last-dot-substitute-excel-google-sheets`
+- How to Calculate a Return-By Date From the Delivery Date in Excel and Google Sheets - `return-by-date-from-delivery-date-days-left-excel-google-sheets`
+- How to Look Up a Price From Part of a Product Name in Excel and Google Sheets - `look-up-price-by-part-of-product-name-wildcard-match-excel-google-sheets`
+- How to Count Customers by Number of Orders in Excel and Google Sheets - `customers-by-number-of-orders-frequency-table-countif-excel-google-sheets`
+- How to Set a Wholesale Price From the Retail Price and Check Your Margin in Excel and Google Sheets - `wholesale-price-from-retail-price-margin-check-excel-google-sheets`

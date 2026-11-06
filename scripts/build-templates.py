@@ -13431,6 +13431,432 @@ def new_vs_returning_customers():
     wb.save(OUT / "tidy-tabs-new-vs-returning-customers.xlsx")
 
 
+def split_file_name_extension():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Files"
+    ws["A1"] = "Split a file name into the name and the extension"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type or paste file names in column A (yellow). File names are fictional. The extension is the text after the LAST dot."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["File name", "File name, spaces trimmed", "Last dot at position", "Extension", "Name without extension", "Status", "Extension in lowercase"],
+              [34, 30, 11, 12, 30, 16, 14], height=32)
+    names = [
+        "Mug-Wrap-Design_v2.png", "Cat Lover Planner.pdf", "Invoice.2026.11.docx", "wedding-sign.final.SVG",
+        "Thank You Card.JPG", "Logo.tar.gz", "Sticker Sheet 1.PNG", "Packing list", "bundle.zip",
+        "Order Form (copy).xlsx", "Dr. Smith flyer", "Price List 2026.pdf",
+    ]
+    for r in range(5, 105):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"B{r}"] = f'=IF(A{r}="","",TRIM(A{r}))'
+        dots = f'(LEN(B{r})-LEN(SUBSTITUTE(B{r},".","")))'
+        ws[f"C{r}"] = (f'=IF(B{r}="","",IF({dots}=0,0,FIND(CHAR(1),SUBSTITUTE(B{r},".",CHAR(1),{dots}))))')
+        ws[f"D{r}"] = f'=IF(B{r}="","",IF(OR(C{r}=0,C{r}=1,C{r}=LEN(B{r})),"",MID(B{r},C{r}+1,500)))'
+        ws[f"E{r}"] = f'=IF(B{r}="","",IF(OR(C{r}=0,AND(C{r}=1,LEN(B{r})>1)),B{r},LEFT(B{r},C{r}-1)))'
+        ws[f"F{r}"] = (f'=IF(B{r}="","",IF(C{r}=0,"No extension",IF(C{r}=LEN(B{r}),"Ends with dot",'
+                       f'IF(C{r}=1,"Starts with dot",IF(ISNUMBER(FIND(" ",D{r})),"Check extension","OK")))))')
+        ws[f"G{r}"] = f'=IF(B{r}="","",LOWER(D{r}))'
+        for col in "BCDEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    for i, t in enumerate(names):
+        ws[f"A{5 + i}"] = t
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 30
+    ws.column_dimensions["J"].width = 10
+    _summary_block(ws, "I", "J", [
+        (4, "Names listed", '=COUNTIF(F5:F104,"?*")', "0"),
+        (5, "With an extension (OK)", '=COUNTIF(F5:F104,"OK")', "0"),
+        (6, "No extension", '=COUNTIF(F5:F104,"No extension")', "0"),
+        (7, "Starts or ends with a dot", '=COUNTIF(F5:F104,"Starts with dot")+COUNTIF(F5:F104,"Ends with dot")', "0"),
+        (8, "Space in the extension", '=COUNTIF(F5:F104,"Check extension")', "0"),
+        (9, "CHECK", '=IF(AND(SUM(J5:J8)=J4,SUMPRODUCT(--ISERROR(B5:G104))=0,SUMPRODUCT((F5:F104="OK")*(E5:E104&"."&D5:D104<>B5:B104))=0),"OK","Check")', "General"),
+    ])
+    ws["I11"] = "Count files by extension (type yours)"
+    ws["I11"].font = Font(bold=True)
+    ws["I12"], ws["J12"] = "Extension", "Files"
+    ws["I12"].font = ws["J12"].font = Font(bold=True)
+    for i, e in enumerate(["png", "pdf", "svg", "jpg", "zip", "", "", ""]):
+        r = 13 + i
+        ws[f"I{r}"].fill = INPUT_FILL
+        if e:
+            ws[f"I{r}"] = e
+        ws[f"J{r}"] = (f'=IF(SUBSTITUTE(TRIM(I{r}),".","")="","",COUNTIF($G$5:$G$104,SUBSTITUTE(TRIM(I{r}),".","")))')
+        ws[f"J{r}"].fill = FORMULA_FILL
+        ws[f"J{r}"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("F5:F104", FormulaRule(formula=['$F5="Check extension"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("J9", FormulaRule(formula=['$J$9<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Split a File Name Into Name and Extension",
+        "",
+        "1. Files tab: one file name per row in column A (yellow). Names are fictional. Paste names, not full folder paths.",
+        "2. Cleaned name, B5: =IF(A5=\"\",\"\",TRIM(A5)). TRIM removes ordinary spaces at the ends and doubles inside.",
+        "3. Last dot at position, C5: with n = LEN(B5)-LEN(SUBSTITUTE(B5,\".\",\"\")) dots, =FIND(CHAR(1),SUBSTITUTE(B5,\".\",CHAR(1),n)). SUBSTITUTE with a 4th argument replaces only the n-th dot, with an invisible marker, and FIND reports where it is. 0 means no dot.",
+        "4. Extension, D5: =MID(B5,C5+1,500). Name without extension, E5: =LEFT(B5,C5-1). Both are blank or the whole name when there is no usable dot.",
+        "5. Status, F5: OK, No extension, Starts with dot (such as .gitignore), Ends with dot (such as report.) or Check extension (a space after the last dot, as in Dr. Smith flyer).",
+        "6. Extension in lowercase, G5, is what the count table on the right uses, so PNG and png are counted together. Type the extensions to count in the yellow cells I13:I20, with or without a leading dot.",
+        "7. J9 says OK when the status counts add up to the names listed, no cell shows an error, and name + dot + extension rebuilds every OK name.",
+        "8. Only ordinary spaces are trimmed. A non-breaking space copied from a web page stays; see the clean-up post on SUBSTITUTE and CHAR(160).",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Files"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-split-file-name-extension.xlsx")
+
+
+def return_deadline():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Return-by date and days left for each delivered order"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Default return window (days)"
+    ws["A3"] = "As-of date (type it; this file does not use today's date)"
+    ws["A4"] = "Call it Closing soon when this many days or fewer are left"
+    ws["A5"] = "Settings check"
+    for a in ("A2", "A3", "A4", "A5"):
+        ws[a].font = Font(bold=True)
+    ws["B2"], ws["B3"], ws["B4"] = 30, date(2026, 11, 15), 7
+    for a in ("B2", "B3", "B4"):
+        ws[a].fill = INPUT_FILL
+    ws["B3"].number_format = US_DATE
+    ws["B5"] = ('=IF(AND(ISNUMBER(B2),ISNUMBER(B3),ISNUMBER(B4)),IF(AND(B2>=0,B2=INT(B2),B3>=1,B3=INT(B3),B4>=0,B4=INT(B4)),"OK","Check"),"Check")')
+    ws["B5"].fill = FORMULA_FILL
+    ws["B5"].alignment = Alignment(horizontal="right")
+    _head_row(ws, 7, ["Order #", "Delivered on", "Window for this order (days, optional)", "Window used", "Return-by date", "Return-by day", "Days left as of date", "Status"],
+              [30, 14, 18, 10, 14, 11, 12, 15], height=46)
+    sample = [
+        ("1041", date(2026, 10, 9), None), ("1042", date(2026, 10, 12), None), ("1043", date(2026, 10, 16), 14),
+        ("1044", date(2026, 10, 20), None), ("1045", date(2026, 10, 27), None), ("1046", date(2026, 11, 2), 14),
+        ("1047", date(2026, 11, 4), None), ("1048", date(2026, 11, 9), None), ("1049", date(2026, 11, 13), 60),
+        ("1050", date(2026, 11, 14), None), ("1051", date(2026, 11, 15), 0), ("1052", None, None),
+    ]
+    for r in range(8, 108):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = ws[f"C{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"A{r}"].number_format = "@"
+        ws[f"D{r}"] = (f'=IF(B{r}="","",IF($B$5<>"OK","Check",IF(C{r}="",$B$2,'
+                       f'IF(ISNUMBER(C{r}),IF(AND(C{r}>=0,C{r}=INT(C{r})),C{r},"Check"),"Check"))))')
+        ws[f"E{r}"] = (f'=IF(B{r}="","",IF(AND(ISNUMBER(B{r}),ISNUMBER(D{r})),'
+                       f'IF(AND(B{r}>=1,INT(B{r})+D{r}<=2958465),INT(B{r})+D{r},"Check"),"Check"))')
+        ws[f"F{r}"] = f'=IF(ISNUMBER(E{r}),TEXT(E{r},"ddd"),E{r})'
+        ws[f"G{r}"] = f'=IF(ISNUMBER(E{r}),E{r}-$B$3,E{r})'
+        ws[f"H{r}"] = (f'=IF(ISNUMBER(G{r}),IF(G{r}<0,"Closed",IF(G{r}=0,"Last day",'
+                       f'IF(G{r}<=$B$4,"Closing soon","Open"))),G{r})')
+        ws[f"E{r}"].number_format = US_DATE
+        for col in "DEFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, d, w) in enumerate(sample):
+        r = 8 + i
+        ws[f"A{r}"] = n
+        if d:
+            ws[f"B{r}"] = d
+        if w is not None:
+            ws[f"C{r}"] = w
+    ws.column_dimensions["I"].width = 3
+    ws.column_dimensions["J"].width = 28
+    ws.column_dimensions["K"].width = 12
+    _summary_block(ws, "J", "K", [
+        (7, "Delivered orders listed", '=COUNTIF(H8:H107,"?*")', "0"),
+        (8, "Open", '=COUNTIF(H8:H107,"Open")', "0"),
+        (9, "Closing soon", '=COUNTIF(H8:H107,"Closing soon")', "0"),
+        (10, "Last day", '=COUNTIF(H8:H107,"Last day")', "0"),
+        (11, "Closed", '=COUNTIF(H8:H107,"Closed")', "0"),
+        (12, "Rows showing Check", '=COUNTIF(H8:H107,"Check")', "0"),
+        (13, "CHECK", '=IF(AND(B5="OK",K12=0,SUM(K8:K11)=K7),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("H8:H107", FormulaRule(formula=['OR($H8="Check",$H8="Last day")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("H8:H107", FormulaRule(formula=['$H8="Closed"'], fill=DONE_FILL))
+    ws.conditional_formatting.add("K13", FormulaRule(formula=['$K$13<>"OK"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("B5", FormulaRule(formula=['$B$5<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A8"
+    notes_sheet(wb, [
+        "Tidy Tabs: Return-By Date From the Delivery Date",
+        "",
+        "1. Orders tab: set the default window in B2, the as-of date in B3 and the Closing soon limit in B4 (yellow). Then type each order number and its delivery date in columns A and B. Orders are fictional.",
+        "2. The window is your own shop policy, counted in calendar days from the delivery date. This file gives no legal advice about what a buyer is entitled to.",
+        "3. Window used, D8: the number in C8 if you typed one (0 or more, whole days), otherwise B2. Type a different window in column C for a sale item or a holiday extension.",
+        "4. Return-by date, E8: =INT(B8)+D8. INT drops a time of day if the date has one. A window of 0 means the delivery day is the last day.",
+        "5. Return-by day, F8: =TEXT(E8,\"ddd\"). Days left, G8: =E8-$B$3. Negative means the window has passed.",
+        "6. Status, H8: Closed when days left is below 0, Last day at 0, Closing soon at 1 up to the B4 limit, otherwise Open.",
+        "7. B3 is typed on purpose. TODAY() changes every time the file opens, so a printed copy could not be matched to its date. Retype B3 when you want fresh numbers.",
+        "8. A text date, a time without a date, a window with decimals or a negative window shows Check. K13 says OK when B5 is OK and no row shows Check.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Orders"].print_title_rows = "7:7"
+    wb.save(OUT / "tidy-tabs-return-deadline.xlsx")
+
+
+def lookup_by_part_of_name():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Search"
+    pr = wb.create_sheet("Products")
+    ws["A1"] = "Find a product and its price from part of its name"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Type a word or part of a name in column A (yellow). Your product list goes on the Products tab. Products and prices are fictional."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Part of the name", "Search text used", "Matches", "First match is list row", "First matching product", "SKU", "Price", "Status"],
+              [22, 20, 9, 12, 34, 11, 11, 17], height=32)
+    terms = ["lavender", "SOY CANDLE", "  mug  ", "12 oz", "tote", "gift", "candle", "zzz", "50% off", ""]
+    for r in range(5, 25):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"B{r}"] = (f'=IF(TRIM(A{r})="","",IF(LEN(TRIM(A{r}))>200,"",'
+                       f'SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(TRIM(A{r}),"~","~~"),"*","~*"),"?","~?")))')
+        ws[f"C{r}"] = f'=IF(B{r}="","",COUNTIF(Products!$B$5:$B$104,"*"&B{r}&"*"))'
+        ws[f"D{r}"] = f'=IF(B{r}="","",IF(C{r}=0,"",MATCH("*"&B{r}&"*",Products!$B$5:$B$104,0)))'
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),INDEX(Products!$B$5:$B$104,D{r}),"")'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(D{r}),INDEX(Products!$A$5:$A$104,D{r})&"","")'
+        ws[f"G{r}"] = f'=IF(ISNUMBER(D{r}),IF(ISNUMBER(INDEX(Products!$C$5:$C$104,D{r})),INDEX(Products!$C$5:$C$104,D{r}),"No price"),"")'
+        ws[f"H{r}"] = (f'=IF(TRIM(A{r})="","",IF(B{r}="","Too long",IF(C{r}=0,"No match",'
+                       f'IF(C{r}=1,"One match","Several matches"))))')
+        ws[f"G{r}"].number_format = USD
+        for col in "BCDEFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right" if col in "CDGH" else "left")
+    for i, t in enumerate(terms):
+        if t:
+            ws[f"A{5 + i}"] = t
+    ws.column_dimensions["I"].width = 3
+    ws.column_dimensions["J"].width = 26
+    ws.column_dimensions["K"].width = 10
+    _summary_block(ws, "J", "K", [
+        (4, "Search words typed", '=COUNTIF(H5:H24,"?*")', "0"),
+        (5, "One match", '=COUNTIF(H5:H24,"One match")', "0"),
+        (6, "Several matches", '=COUNTIF(H5:H24,"Several matches")', "0"),
+        (7, "No match", '=COUNTIF(H5:H24,"No match")', "0"),
+        (8, "Too long (over 200 characters)", '=COUNTIF(H5:H24,"Too long")', "0"),
+        (9, "CHECK", '=IF(AND(K8=0,SUM(K5:K8)=K4,SUMPRODUCT(--ISERROR(B5:H24))=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("H5:H24", FormulaRule(formula=['OR($H5="Several matches",$H5="No match",$H5="Too long")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("K9", FormulaRule(formula=['$K$9<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    pr["A1"] = "Your product list"
+    pr["A1"].font = Font(bold=True, size=13)
+    pr["A2"] = "SKU, product name and price (yellow), rows 5 to 104. Products are fictional."
+    pr["A2"].font = Font(italic=True)
+    _head_row(pr, 4, ["SKU", "Product name", "Price"], [12, 40, 12], height=22)
+    products = [
+        ("CND-LAV8", "Soy candle, Lavender, 8 oz", 18.00), ("CND-CED8", "Soy candle, Cedar, 8 oz", 18.00),
+        ("CND-LAV4", "Soy candle, Lavender, 4 oz", 11.00), ("SOP-OAT", "Oatmeal goat milk soap bar", 8.00),
+        ("SOP-CHR", "Charcoal soap bar", 8.50), ("EAR-HOOP", "Brass hoop earrings", 24.00),
+        ("MUG-BLU", "Enamel mug, Blue, 12 oz", 16.00), ("MUG-WHT", "Enamel mug, Speckled White, 12 oz", 16.00),
+        ("TOT-CAN", "Canvas tote bag, 12 oz canvas", 22.00), ("CRD-BDAY", "Letterpress birthday card", 6.00),
+        ("NAP-NAT", "Linen napkin set, Natural, Set of 4", 38.00), ("DRY-WOOL", "Wool dryer balls, 3 pack", 14.00),
+    ]
+    for r in range(5, 105):
+        for col in "ABC":
+            pr[f"{col}{r}"].fill = INPUT_FILL
+        pr[f"C{r}"].number_format = USD
+    for i, (s, n, p) in enumerate(products):
+        pr[f"A{5 + i}"], pr[f"B{5 + i}"], pr[f"C{5 + i}"] = s, n, p
+    pr.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Look Up a Price From Part of a Product Name",
+        "",
+        "1. Products tab: SKU, product name and price in rows 5 to 104 (yellow). Search tab: type a word or part of a name in column A (20 rows). Products are fictional.",
+        "2. Matches, C5: =COUNTIF(Products!$B$5:$B$104,\"*\"&B5&\"*\"). The * on each side means \"anything before and after\", so lavender finds Soy candle, Lavender, 8 oz. COUNTIF ignores capitals.",
+        "3. First match is list row, D5: =MATCH(\"*\"&B5&\"*\",Products!$B$5:$B$104,0). The 0 asks for an exact match, which is the mode where * works as a wildcard. It returns the FIRST matching row only.",
+        "4. Product, SKU and price, E5:G5: =INDEX(Products!$B$5:$B$104,D5), and the same for columns A and C.",
+        "5. Search text used, B5: spaces trimmed, and any ~, * or ? you type is turned into ~~, ~* or ~? so it is searched for as a plain character instead of acting as a wildcard.",
+        "6. Status, H5: One match, Several matches (only the first is shown, so make the word longer), No match, or Too long (MATCH cannot search for text over 255 characters; this file stops at 200).",
+        "7. Keep product names as text. In LibreOffice Calc a name that is a plain number (such as 8) was counted by the wildcard search; Microsoft documents COUNTIF wildcards for text only, so apps can disagree. Not tested in Excel or Sheets.",
+        "8. K9 says OK when no search is Too long, the status counts add up and no cell shows an error.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets. Wildcards in MATCH and COUNTIF are documented by Microsoft; confirm them in Google Sheets before relying on this there.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Search"].print_title_rows = "4:4"
+    wb["Products"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-lookup-by-part-of-name.xlsx")
+
+
+def customers_by_order_count():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "How many customers ordered once, twice, three times or more"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "One row per order: customer name and order amount (yellow). Customers and amounts are fictional."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Customer", "Order amount", "Customer, spaces trimmed", "Orders by this customer", "First row of this customer (1 = yes)"],
+              [26, 13, 26, 12, 14], height=46)
+    sample = [
+        ("Maria Lopez", 42.00), ("Dana Whitaker", 18.50), ("Priya Shah", 64.00), ("Maria Lopez", 27.25), ("Tom Reilly", 12.00),
+        ("Dana Whitaker", 33.00), ("Maria Lopez", 55.50), ("Chen Wei", 21.00), ("Jo Ann Baker", 90.00), ("Priya Shah", 18.00),
+        ("Luis Ortega", 14.75), ("Maria Lopez", 38.00), ("Sam Okafor", 26.00), ("Tom Reilly", 45.00), ("Dana Whitaker", 16.00),
+        ("Chen Wei", 72.00), ("Rita Novak", 19.50), ("Maria Lopez", 61.00), ("Jo Ann Baker", 24.00), ("Luis Ortega", 30.00),
+        ("Ben Ferris", 15.00), ("Maria Lopez", 48.25), ("Priya Shah", 29.00), ("Amy Chu", 35.00), ("Dana Whitaker", 22.00),
+        ("Tom Reilly", 17.50), ("Sam Okafor", 58.00), ("Rita Novak", 13.00), ("Chen Wei", 44.00), ("Kim Delgado", 20.00),
+        ("Maria Lopez", 36.00), ("Jo Ann Baker", 41.00), ("Hugo Brandt", 27.00), ("Priya Shah", 52.00), ("Dana Whitaker", 31.75),
+        ("Ben Ferris", 23.00), ("Luis Ortega", 19.00), ("Tom Reilly", 66.00), ("Amy Chu", 10.50), ("Nora Quinn", 83.00),
+    ]
+    for r in range(5, 305):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = USD
+        ws[f"C{r}"] = f'=IF(TRIM(A{r})="","",TRIM(A{r}))'
+        ws[f"D{r}"] = f'=IF(C{r}="","",SUMPRODUCT(--($C$5:$C$304=C{r})))'
+        ws[f"E{r}"] = f'=IF(C{r}="","",IF(SUMPRODUCT(--($C$5:C{r}=C{r}))=1,1,0))'
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right" if col != "C" else "left")
+    for i, (c, a) in enumerate(sample):
+        ws[f"A{5 + i}"], ws[f"B{5 + i}"] = c, a
+    ws.column_dimensions["F"].width = 3
+    for col, w in zip("GHIJKLM", [18, 12, 14, 10, 14, 14, 14]):
+        ws.column_dimensions[col].width = w
+    heads = ["Orders placed", "Customers", "Share of customers", "Orders", "Sales", "Share of sales"]
+    for col, h in zip("GHIJKL", heads):
+        c = ws[f"{col}4"]
+        c.value, c.fill, c.font = h, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+    labels = [1, 2, 3, 4, "5 or more"]
+    for i, lab in enumerate(labels):
+        r = 5 + i
+        ws[f"G{r}"] = lab
+        ws[f"G{r}"].alignment = Alignment(horizontal="right")
+        crit = f'">=5"' if i == 4 else str(lab)
+        ws[f"H{r}"] = f'=COUNTIFS($E$5:$E$304,1,$D$5:$D$304,{crit})'
+        ws[f"I{r}"] = f'=IF($H$10=0,"",H{r}/$H$10)'
+        ws[f"J{r}"] = f'=COUNTIFS($D$5:$D$304,{crit})'
+        ws[f"K{r}"] = f'=SUMIFS($B$5:$B$304,$D$5:$D$304,{crit})'
+        ws[f"L{r}"] = f'=IF($K$10=0,"",K{r}/$K$10)'
+    ws["G10"] = "Total"
+    ws["G10"].font = Font(bold=True)
+    ws["G10"].alignment = Alignment(horizontal="right")
+    for col in "HJK":
+        ws[f"{col}10"] = f"=SUM({col}5:{col}9)"
+    ws["I10"] = '=IF($H$10=0,"",SUM(I5:I9))'
+    ws["L10"] = '=IF($K$10=0,"",SUM(L5:L9))'
+    for r in range(5, 11):
+        for col in "HIJKL":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+            ws[f"{col}{r}"].number_format = {"H": "0", "I": "0.0%", "J": "0", "K": USD, "L": "0.0%"}[col]
+    _summary_block(ws, "G", "H", [
+        (12, "Orders listed", '=COUNTIF(C5:C304,"?*")', "0"),
+        (13, "Customers", "=SUM(E5:E304)", "0"),
+        (14, "Average orders per customer", '=IF(H13=0,"",H12/H13)', "0.00"),
+        (15, "Most orders by one customer", '=IF(H12=0,"",MAX(D5:D304))', "0"),
+        (16, "Rows with an order amount that is not a number", '=SUMPRODUCT((C5:C304<>"")*(1-ISNUMBER(B5:B304)))', "0"),
+        (17, "Amounts with no customer name", '=SUMPRODUCT((C5:C304="")*(B5:B304<>""))', "0"),
+        (18, "CHECK", '=IF(AND(H10=H13,J10=H12,H16=0,H17=0,ROUND(K10-SUM(B5:B304),2)=0),"OK","Check")', "General"),
+    ])
+    ws.column_dimensions["G"].width = 30
+    ws.conditional_formatting.add("H18", FormulaRule(formula=['$H$18<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Customers by Number of Orders",
+        "",
+        "1. Orders tab: one row per order, customer name in column A and amount in column B (yellow), up to 300 orders. Customers and amounts are fictional.",
+        "2. Customer, spaces trimmed, C5: =TRIM(A5). Maria Lopez and Maria Lopez with a trailing space count as one customer. Capitals do not matter (maria lopez = Maria Lopez).",
+        "3. Orders by this customer, D5: =SUMPRODUCT(--($C$5:$C$304=C5)). SUMPRODUCT compares with = so a * or ? in a name is not treated as a wildcard, which COUNTIF would do.",
+        "4. First row of this customer, E5: =IF(SUMPRODUCT(--($C$5:C5=C5))=1,1,0). The range grows as it is copied down, so only the first row of each customer gets a 1. Adding the 1s counts each customer once without UNIQUE.",
+        "5. Table, H5: =COUNTIFS($E$5:$E$304,1,$D$5:$D$304,1) counts customers whose order count is 1. The last row uses \">=5\". Orders (J) counts rows, and Sales (K) is =SUMIFS($B$5:$B$304,$D$5:$D$304,1).",
+        "6. H18 says OK when customers in the table equal the customers counted, orders in the table equal the orders listed, every listed order has a numeric amount, no amount is missing its customer, and the table sales equal the column B total.",
+        "7. Two spellings of one person (Jo Ann Baker and JoAnn Baker) count as two customers. Fix the names first.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Orders"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-customers-by-number-of-orders.xlsx")
+
+
+def wholesale_from_retail():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Prices"
+    ws["A1"] = "Wholesale price from the retail price, and your margin at that price"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "Wholesale price as a percent of retail"
+    ws["A3"] = "Your target margin on wholesale sales"
+    ws["A4"] = "Settings check"
+    for a in ("A2", "A3", "A4"):
+        ws[a].font = Font(bold=True)
+    ws["B2"], ws["B3"] = 0.5, 0.4
+    ws["B2"].fill = ws["B3"].fill = INPUT_FILL
+    ws["B2"].number_format = ws["B3"].number_format = "0%"
+    ws["B4"] = '=IF(AND(ISNUMBER(B2),ISNUMBER(B3)),IF(AND(B2>0,B2<=1,B3>=0,B3<1),"OK","Check"),"Check")'
+    ws["B4"].fill = FORMULA_FILL
+    ws["B4"].alignment = Alignment(horizontal="right")
+    ws["C2"] = "Products and numbers are fictional. The percent and the target are yours to choose; this file does not say what they should be."
+    ws["C2"].font = Font(italic=True)
+    _head_row(ws, 6, ["Product", "Your unit cost", "Retail price", "Wholesale price", "Profit per unit at wholesale",
+                      "Margin at wholesale", "Margin at retail", "Shop's margin at retail", "Status",
+                      "Wholesale price needed for target", "Retail price needed for target"],
+              [30, 11, 11, 12, 13, 11, 10, 11, 14, 14, 14], height=46)
+    sample = [
+        ("Soy candle, Lavender, 8 oz", 4.10, 18.00), ("Soy candle, Cedar, 8 oz", 4.25, 18.00), ("Oatmeal goat milk soap bar", 1.85, 8.00),
+        ("Charcoal soap bar", 2.05, 8.50), ("Brass hoop earrings", 3.40, 24.00), ("Letterpress birthday card", 0.95, 6.00),
+        ("Enamel mug, Blue, 12 oz", 7.80, 16.00), ("Linen napkin set, Set of 4", 14.50, 38.00), ("Wool dryer balls, 3 pack", 4.90, 14.00),
+        ("Canvas tote bag", 9.25, 22.00), ("Bath bomb gift box", 11.00, 19.99),
+    ]
+    for r in range(7, 67):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = ws[f"C{r}"].fill = INPUT_FILL
+        ok = f'AND(ISNUMBER(B{r}),ISNUMBER(C{r}),$B$4="OK")'
+        ws[f"D{r}"] = (f'=IF(AND(B{r}="",C{r}=""),"",IF({ok},IF(AND(B{r}>=0,C{r}>0),IF(ROUND(C{r}*$B$2,2)>0,ROUND(C{r}*$B$2,2),"Check"),"Check"),"Check"))')
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),ROUND(D{r}-B{r},2),D{r})'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(E{r}),E{r}/D{r},E{r})'
+        ws[f"G{r}"] = f'=IF(ISNUMBER(D{r}),(C{r}-B{r})/C{r},D{r})'
+        ws[f"H{r}"] = f'=IF(ISNUMBER(D{r}),(C{r}-D{r})/C{r},D{r})'
+        ws[f"I{r}"] = (f'=IF(ISNUMBER(F{r}),IF(E{r}<0,"Loss",IF(ROUND(F{r},6)<ROUND($B$3,6),"Below target","OK")),F{r})')
+        ws[f"J{r}"] = f'=IF(ISNUMBER(D{r}),ROUNDUP(ROUND(B{r}/(1-$B$3),6),2),D{r})'
+        ws[f"K{r}"] = f'=IF(ISNUMBER(J{r}),ROUNDUP(ROUND(J{r}/$B$2,6),2),J{r})'
+        for col in "BCDEJK":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "FGH":
+            ws[f"{col}{r}"].number_format = "0.0%"
+        for col in "DEFGHIJK":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, c, p) in enumerate(sample):
+        r = 7 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = n, c, p
+    ws.column_dimensions["L"].width = 3
+    ws.column_dimensions["M"].width = 30
+    ws.column_dimensions["N"].width = 12
+    _summary_block(ws, "M", "N", [
+        (6, "Products listed", '=COUNTIF(I7:I66,"?*")', "0"),
+        (7, "At or above target", '=COUNTIF(I7:I66,"OK")', "0"),
+        (8, "Below target", '=COUNTIF(I7:I66,"Below target")', "0"),
+        (9, "Selling at a loss", '=COUNTIF(I7:I66,"Loss")', "0"),
+        (10, "Rows showing Check", '=COUNTIF(I7:I66,"Check")', "0"),
+        (11, "Lowest margin at wholesale", '=IF(COUNT(F7:F66)=0,"",MIN(F7:F66))', "0.0%"),
+        (12, "CHECK", '=IF(AND(B4="OK",N10=0,SUM(N7:N10)=N6),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("I7:I66", FormulaRule(formula=['OR($I7="Check",$I7="Loss",$I7="Below target")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("N12", FormulaRule(formula=['$N$12<>"OK"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("B4", FormulaRule(formula=['$B$4<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A7"
+    notes_sheet(wb, [
+        "Tidy Tabs: Wholesale Price From the Retail Price",
+        "",
+        "1. Prices tab: set the wholesale percent of retail in B2 and your target margin in B3 (yellow), then list each product with your unit cost and retail price. Products and numbers are fictional.",
+        "2. Wholesale price, D7: =ROUND(C7*$B$2,2). With 50% a retail price of $18.00 gives $9.00.",
+        "3. Profit per unit, E7: =ROUND(D7-B7,2). Margin at wholesale, F7: =E7/D7, profit as a share of the wholesale price. Margin at retail, G7: =(C7-B7)/C7. Shop's margin, H7: =(C7-D7)/C7, the share of the retail price the shop keeps.",
+        "4. Status, I7: Loss when the wholesale price is below your cost, Below target when the margin is under B3, otherwise OK. The comparison is rounded to 6 decimals so a margin exactly on the target counts as OK.",
+        "5. Wholesale price needed, J7: =ROUNDUP(ROUND(B7/(1-$B$3),6),2), the lowest wholesale price in whole cents that reaches the target. Retail price needed, K7: =ROUNDUP(ROUND(J7/$B$2,6),2), the lowest retail price in whole cents whose wholesale price reaches it.",
+        "6. Margin is profit divided by the price. Markup is profit divided by cost. This file uses margin throughout.",
+        "7. A percent typed as 50 instead of 50% or 0.5 shows Check. A retail price of 0, a negative cost or text shows Check on that row.",
+        "8. N12 says OK when B4 is OK and no row shows Check.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Prices"].print_title_rows = "6:6"
+    wb.save(OUT / "tidy-tabs-wholesale-from-retail-price.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -13598,4 +14024,9 @@ if __name__ == "__main__":
     change_due_bills_coins()
     shipping_zone_from_zip()
     new_vs_returning_customers()
+    split_file_name_extension()
+    return_deadline()
+    lookup_by_part_of_name()
+    customers_by_order_count()
+    wholesale_from_retail()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

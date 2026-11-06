@@ -55,8 +55,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh workflow run publish.yml --repo "$GITHUB_REPOSITORY" --ref main
-          gh workflow run threads-backfill.yml --repo "$GITHUB_REPOSITORY" --ref main
+          # GitHub sometimes answers a dispatch with HTTP 500 (it cost the
+          # 2026-11-05 08:00 PT slot). Retry each dispatch, and always try both.
+          dispatch() {
+            for i in 1 2 3 4 5; do
+              gh workflow run "$1" --repo "$GITHUB_REPOSITORY" --ref main && return 0
+              sleep $((i * 15))
+            done
+            return 1
+          }
+          rc=0
+          dispatch publish.yml || rc=1
+          dispatch threads-backfill.yml || rc=1
+          exit $rc
 
       - name: Re-arm the clock
         if: always()

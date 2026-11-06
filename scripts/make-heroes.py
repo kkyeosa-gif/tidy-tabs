@@ -657,7 +657,35 @@ def heroes_2026_11_06():
                 "Months", hide_cols="IJKL", name="newret"))
 
 
+def heroes_2026_11_07():
+    t = "templates/"
+    d = "images/2026-11-07-team-0%d-%s/"
+    save(d % (1, "split-file-name-and-extension-last-dot-substitute-excel-google-sheets") + "split-file-name-extension-template.png",
+         render(compact_copy(t + "tidy-tabs-split-file-name-extension.xlsx", "Files", 17, "splitname", hide_rows=[1, 2, 3], clear=["A1", "A2"]),
+                "Files", hide_cols="BCGH", widths={"A": 30}, name="splitname"))
+    save(d % (2, "return-by-date-from-delivery-date-days-left-excel-google-sheets") + "return-by-date-and-days-left-template.png",
+         render(compact_copy(t + "tidy-tabs-return-deadline.xlsx", "Orders", 19, "returnby", hide_rows=[1, 6],
+                             labels={"A3": "As-of date (typed)", "A4": "Closing soon at (days or fewer)", "C7": "Window (days)",
+                                     "D7": "Window used", "F7": "Return-by day", "G7": "Days left"}),
+                "Orders", hide_cols="I", widths={"D": 13, "F": 14, "G": 11}, name="returnby"))
+    save(d % (3, "look-up-price-by-part-of-product-name-wildcard-match-excel-google-sheets") + "look-up-price-by-part-of-product-name-template.png",
+         render(compact_copy(t + "tidy-tabs-lookup-by-part-of-name.xlsx", "Search", 13, "partname", hide_rows=[1, 2, 3], clear=["A1", "A2"],
+                             labels={"J8": "Too long"}),
+                "Search", hide_cols="BDI", name="partname"))
+    save(d % (4, "customers-by-number-of-orders-frequency-table-countif-excel-google-sheets") + "customers-by-number-of-orders-template.png",
+         render(compact_copy(t + "tidy-tabs-customers-by-number-of-orders.xlsx", "Orders", 18, "ordersfreq", hide_rows=[1, 2, 3], clear=["A1", "A2"],
+                             labels={"G16": "Amounts not a number", "G17": "Amounts with no name"}),
+                "Orders", hide_cols="CDEF", name="ordersfreq"))
+    save(d % (5, "wholesale-price-from-retail-price-margin-check-excel-google-sheets") + "wholesale-price-from-retail-price-template.png",
+         render(compact_copy(t + "tidy-tabs-wholesale-from-retail-price.xlsx", "Prices", 17, "wholesale", hide_rows=[1, 5], clear=["A1", "C2"],
+                             labels={"A2": "Wholesale % of retail", "A3": "Target margin"}),
+                "Prices", hide_cols="GHL", name="wholesale"))
+
+
 def main():
+    if "--only-2026-11-07" in sys.argv:
+        heroes_2026_11_07()
+        return
     if "--only-2026-11-06" in sys.argv:
         heroes_2026_11_06()
         return

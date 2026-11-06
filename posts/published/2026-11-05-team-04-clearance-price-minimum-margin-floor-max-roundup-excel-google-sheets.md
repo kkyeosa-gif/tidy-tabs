@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfYYcs5mgMt
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-set-clearance-prices-with.html
 title: How to Set Clearance Prices With a Minimum Margin in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 33 workbooks and 4,686 comparisons with 0 mismatches. Checked: the sample, an empty list, days in stock of 0, 1, 59, 60, 61, 119, 120, 121, 179, 180, 181 and 1000, negative, text and blank days, text and blank cost or price, a floor above the regular price, margin settings of 0, 50, 99, 100, negative, text and blank, half-cent markdowns, odd-cent floors, steps that do not rise, custom steps, and random lists of 3 to 100 items. The model also asserted that every Marked down or At floor price keeps at least the margin setting. Excel and Google Sheets were not used. Not run: TODAY(), more than 100 items, a non-US language setting.

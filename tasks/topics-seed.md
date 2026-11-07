@@ -194,3 +194,10 @@
 - How to Look Up a Price From Part of a Product Name in Excel and Google Sheets - `look-up-price-by-part-of-product-name-wildcard-match-excel-google-sheets`
 - How to Count Customers by Number of Orders in Excel and Google Sheets - `customers-by-number-of-orders-frequency-table-countif-excel-google-sheets`
 - How to Set a Wholesale Price From the Retail Price and Check Your Margin in Excel and Google Sheets - `wholesale-price-from-retail-price-margin-check-excel-google-sheets`
+
+## 2026-11-08 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 수식은 아직 LibreOffice 에서 실행하지 않음 - 빌드 때 확인, 상세는 tasks/team-topics-2026-11-08.md)
+- How to Calculate Profit by Product From a Sales Log in Excel and Google Sheets - `profit-by-product-from-sales-log-sumifs-excel-google-sheets`
+- How to Look Up a State Abbreviation From the Full State Name in Excel and Google Sheets - `state-name-to-abbreviation-lookup-index-match-excel-google-sheets`
+- How to Combine All Items in an Order Into One Cell in Excel and Google Sheets - `combine-order-items-into-one-cell-running-join-excel-google-sheets`
+- How to Find the Last Business Day of Each Month in Excel and Google Sheets - `last-business-day-of-month-eomonth-workday-excel-google-sheets`
+- How to Find the Date You Hit a Sales Goal in Excel and Google Sheets - `date-you-hit-sales-goal-cumulative-total-match-excel-google-sheets`

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfa9PWiFcD3
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-look-up-shipping-zone-from-zip.html
 title: How to Look Up a Shipping Zone From a ZIP Code in Excel and Google Sheets
 labels: excel-formulas, small-business, shipping
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 21 workbooks and 17,367 comparisons with 0 mismatches. Checked: the sample, no orders, 41 odd ZIPs (2108 as a number and as text, 7030, spaces around a ZIP, ZIP+4, decimals, negatives, 100000, 99999, 0, 4 and 6 digits, letters, 1e345, 12E45, an inner space, a dash in the wrong place, an empty string), every zone boundary (99/100, 199/200, 299/300, 499/500, 699/700, 849/850, 959/960), a table with one zone and with 10 zones, a table that does not start at 0, starts that do not rise, equal starts, a gap, a text price, a blank zone name, a repeated zone name, an empty table, 200 orders, and six random sets. Excel and Google Sheets were not used. Not run: a TRUE or FALSE value in the ZIP column, more than 200 orders.

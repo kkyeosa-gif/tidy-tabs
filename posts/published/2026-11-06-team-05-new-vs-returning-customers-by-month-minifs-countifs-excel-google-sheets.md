@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfcQcXOm0PV
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-count-new-and-returning.html
 title: How to Count New and Returning Customers Each Month in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 26 workbooks and 25,896 comparisons with 0 mismatches. Checked: the sample, no orders, one order, three orders from one customer on one day, an unsorted list, capitals in names, a trailing and a leading space in a name, orders on the first and last day of a month, orders in other years, the years 2027 and 2028 (leap day), a text date, a date with a time, a blank customer, a blank date, a text amount, a refund, one customer all year, all new customers, 300 orders, and six random lists of up to 300 orders and 60 customers. Excel and Google Sheets were not used. Not run: wildcard characters (* ? ~) in names, more than 300 orders, a non-US language setting.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfckPbVm5JZ
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-split-file-name-into-name-and.html
 title: How to Split a File Name Into Name and Extension in Excel and Google Sheets
 labels: excel-formulas, text-formulas, small-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 11 workbooks and 6,754 comparisons with 0 mismatches. Checked: the sample, no names, a.b, a, a., a.., .., a lone dot, .gitignore, .tar.gz, spaces around and doubled inside a name, capital and lowercase extensions, a space after the last dot, a plain number typed as a name (123), accents, a blank gap, whitespace-only cells, a 300-character name, 100 rows, the count table with and without a leading dot, and six random sets of up to 100 names. Excel and Google Sheets were not used. Not run: non-breaking spaces, names with a folder path, names containing CHAR(1), a decimal such as 12.5 typed as a name.

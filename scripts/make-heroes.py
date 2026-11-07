@@ -682,7 +682,30 @@ def heroes_2026_11_07():
                 "Prices", hide_cols="GHL", name="wholesale"))
 
 
+def heroes_2026_11_08():
+    t = "templates/"
+    d = "images/2026-11-08-team-0%d-%s/"
+    save(d % (1, "profit-by-product-from-sales-log-sumifs-excel-google-sheets") + "profit-by-product-from-sales-log-template.png",
+         render(compact_copy(t + "tidy-tabs-profit-by-product.xlsx", "Products", 7, "profitprod"),
+                "Products", hide_cols="IJK", name="profitprod"))
+    save(d % (2, "state-name-to-abbreviation-lookup-index-match-excel-google-sheets") + "state-name-to-abbreviation-lookup-template.png",
+         render(compact_copy(t + "tidy-tabs-state-abbreviations.xlsx", "Customers", 14, "stateabbr"),
+                "Customers", hide_cols="GHI", name="stateabbr"))
+    save(d % (3, "combine-order-items-into-one-cell-running-join-excel-google-sheets") + "order-items-in-one-cell-template.png",
+         render(compact_copy(t + "tidy-tabs-items-per-order-one-cell.xlsx", "Orders", 6, "orderitems"),
+                "Orders", hide_cols="DEFG", widths={"B": 70}, name="orderitems"))
+    save(d % (4, "last-business-day-of-month-eomonth-workday-excel-google-sheets") + "last-business-day-of-month-template.png",
+         render(compact_copy(t + "tidy-tabs-last-business-day.xlsx", "Months", 17, "lastbizday", clear=["C2"], labels={"A2": "First month"}),
+                "Months", hide_cols="FGHIJ", name="lastbizday"))
+    save(d % (5, "date-you-hit-sales-goal-cumulative-total-match-excel-google-sheets") + "date-you-hit-sales-goal-template.png",
+         render(compact_copy(t + "tidy-tabs-date-hit-sales-goal.xlsx", "Daily sales", 17, "goaldate", labels={"G9": "Rows showing Check"}),
+                "Daily sales", hide_cols="E", name="goaldate"))
+
+
 def main():
+    if "--only-2026-11-08" in sys.argv:
+        heroes_2026_11_08()
+        return
     if "--only-2026-11-07" in sys.argv:
         heroes_2026_11_07()
         return

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfcx-AumkKJ
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-return-by-date-from.html
 title: How to Calculate a Return-By Date From the Delivery Date in Excel and Google Sheets
 labels: excel-formulas, small-business, orders
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 26 workbooks and 13,208 comparisons with 0 mismatches. Checked: the sample, no orders, a delivery on the as-of date and one day either side of the 30 day edge, both sides of the Closing soon limit, a date with a time, a text date, a blank, 0, negative and decimal windows, per-order windows of 0, 14, 30, 365 and 400000, text overrides, year end, the 02/29/2028 leap day, the last Excel date 12/31/9999, an as-of date before every delivery, bad settings, 100 rows, and six random sets. Excel and Google Sheets were not used. Not run: TODAY(), a non-English weekday name, date serials below 61.

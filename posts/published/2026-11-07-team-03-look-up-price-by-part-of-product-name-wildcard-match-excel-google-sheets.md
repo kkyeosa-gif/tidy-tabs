@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfdGkRhmIeE
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-look-up-price-from-part-of.html
 title: How to Look Up a Price From Part of a Product Name in Excel and Google Sheets
 labels: excel-formulas, small-business, lookup
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 16 workbooks and 2,336 comparisons with 0 mismatches. Checked: the sample, no search words, capitals, spaces around and doubled inside the term, a term that matches none, one and several products, the first and last of 100 rows, terms with * ? ~ and 50%, terms of 200, 201, 250 and 300 characters, numeric terms, blank product cells, a blank or text price, duplicate names, 100 products, and six random lists. Excel and Google Sheets were not used. Not run: wildcards in MATCH and COUNTIF in Google Sheets, numeric product names, non-breaking spaces, a non-US language setting.

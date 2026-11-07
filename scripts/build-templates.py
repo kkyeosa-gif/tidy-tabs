@@ -13857,6 +13857,408 @@ def wholesale_from_retail():
     wb.save(OUT / "tidy-tabs-wholesale-from-retail-price.xlsx")
 
 
+def profit_by_product():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    pr = wb.create_sheet("Products")
+    # Products: price list on the left, summary on the right of the same rows
+    _head_row(pr, 1, ["Product", "Price", "Unit cost", "Units sold", "Revenue after discounts", "Cost of goods", "Profit", "Margin"],
+              [24, 10, 10, 11, 14, 13, 12, 10], height=46)
+    products = [("Soy Candle 8 oz", 18.00, 6.40), ("Lip Balm", 3.50, 0.95), ("Tote Bag", 24.00, 9.10),
+                ("Enamel Pin", 8.00, 2.30), ("Sticker Pack", 4.50, 0.70), ("Gift Box", 32.00, 14.25)]
+    for r in range(2, 22):
+        for col in "ABC":
+            pr[f"{col}{r}"].fill = INPUT_FILL
+        pr[f"B{r}"].number_format = pr[f"C{r}"].number_format = USD
+        pr[f"D{r}"] = f'=IF(A{r}="","",SUMIFS(Sales!$D$2:$D$61,Sales!$C$2:$C$61,$A{r}))'
+        pr[f"E{r}"] = (f'=IF(A{r}="","",IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r})),'
+                       f'ROUND(D{r}*B{r}-SUMIFS(Sales!$E$2:$E$61,Sales!$C$2:$C$61,$A{r}),2),"Check"))')
+        pr[f"F{r}"] = f'=IF(ISNUMBER(E{r}),ROUND(D{r}*C{r},2),E{r})'
+        pr[f"G{r}"] = f'=IF(ISNUMBER(E{r}),E{r}-F{r},E{r})'
+        pr[f"H{r}"] = f'=IF(ISNUMBER(G{r}),IF(E{r}=0,"",G{r}/E{r}),G{r})'
+        for col in "DEFGH":
+            pr[f"{col}{r}"].fill = FORMULA_FILL
+            pr[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        for col in "EFG":
+            pr[f"{col}{r}"].number_format = USD
+        pr[f"H{r}"].number_format = "0.0%"
+        pr[f"D{r}"].number_format = "#,##0.##"
+    for i, (n, p, c) in enumerate(products):
+        pr[f"A{2 + i}"], pr[f"B{2 + i}"], pr[f"C{2 + i}"] = n, p, c
+    pr["A22"] = "Total"
+    pr["D22"], pr["E22"], pr["F22"], pr["G22"] = "=SUM(D2:D21)", "=SUM(E2:E21)", "=SUM(F2:F21)", "=SUM(G2:G21)"
+    pr["H22"] = '=IF(E22=0,"",G22/E22)'
+    for col in "ABCDEFGH":
+        pr[f"{col}22"].font = Font(bold=True)
+    for col in "EFG":
+        pr[f"{col}22"].number_format = USD
+    pr["D22"].number_format = "#,##0.##"
+    pr["H22"].number_format = "0.0%"
+    pr.column_dimensions["I"].width = 3
+    pr.column_dimensions["J"].width = 34
+    pr.column_dimensions["K"].width = 12
+    _summary_block(pr, "J", "K", [
+        (1, "Products listed", '=COUNTIF(A2:A21,"?*")', "0"),
+        (2, "Products with no sales", '=COUNTIFS(A2:A21,"?*",D2:D21,0)', "0"),
+        (3, "Units sold (summary)", "=D22", "#,##0.##"),
+        (4, "Units on the Sales tab", "=SUM(Sales!D2:D61)", "#,##0.##"),
+        (5, "Unmatched units (must be 0)", "=K4-K3", "#,##0.##"),
+        (6, "Sales rows showing Check", '=COUNTIF(Sales!F2:F61,"Check*")', "0"),
+        (7, "CHECK", '=IF(AND(ROUND(K5,6)=0,K6=0,COUNTIF(E2:E21,"Check")=0),"OK","Check")', "General"),
+    ])
+    pr.conditional_formatting.add("K7", FormulaRule(formula=['$K$7<>"OK"'], fill=ALERT_FILL))
+    pr.conditional_formatting.add("K5", FormulaRule(formula=['ROUND($K$5,6)<>0'], fill=ALERT_FILL))
+    pr.freeze_panes = "A2"
+    # Sales log
+    _head_row(ws, 1, ["Date", "Order", "Product", "Qty", "Discount $", "Row check"], [12, 9, 24, 8, 11, 20], height=32)
+    sales = [
+        (date(2026, 10, 1), 1001, "Soy Candle 8 oz", 3, 0), (date(2026, 10, 2), 1002, "Tote Bag", 1, 2.00),
+        (date(2026, 10, 4), 1003, "Lip Balm", 4, 0), (date(2026, 10, 6), 1004, "Enamel Pin", 2, 0),
+        (date(2026, 10, 9), 1005, "Soy Candle 8 oz", 2, 1.50), (date(2026, 10, 11), 1006, "Sticker Pack", 6, 3.00),
+        (date(2026, 10, 14), 1007, "Tote Bag", 2, 0), (date(2026, 10, 16), 1008, "Lip Balm", 3, 0),
+        (date(2026, 10, 19), 1009, "Enamel Pin", 5, 5.00), (date(2026, 10, 21), 1010, "Sticker Pack", 4, 0),
+        (date(2026, 10, 25), 1011, "Soy Candle 8 oz", 1, 0), (date(2026, 10, 28), 1012, "Tote Bag", 1, 0),
+    ]
+    for r in range(2, 62):
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"E{r}"].number_format = USD
+        ws[f"F{r}"] = (f'=IF(COUNTA(A{r}:E{r})=0,"",IF(C{r}="","Check product",IF(COUNTIF(Products!$A$2:$A$21,C{r})=0,"Check product",'
+                       f'IF(NOT(ISNUMBER(D{r})),"Check qty",IF(D{r}<0,"Check qty",IF(NOT(OR(E{r}="",ISNUMBER(E{r}))),"Check discount",'
+                       f'IF(N(E{r})>D{r}*SUMIFS(Products!$B$2:$B$21,Products!$A$2:$A$21,C{r}),"Check discount","OK")))))))')
+        ws[f"F{r}"].fill = FORMULA_FILL
+    for i, row in enumerate(sales):
+        for col, v in zip("ABCDE", row):
+            ws[f"{col}{2 + i}"] = v
+    ws.conditional_formatting.add("F2:F61", FormulaRule(formula=['LEFT($F2,5)="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A2"
+    notes_sheet(wb, [
+        "Tidy Tabs: Profit by Product From a Sales Log",
+        "",
+        "1. Products tab: list each product with its price and unit cost in A to C (yellow, up to 20 products). Sales tab: one row per sale with the date, order, product name exactly as in the price list, quantity and a discount in dollars for the whole line (up to 60 rows). Products and numbers are fictional.",
+        "2. Units, D2: =SUMIFS(Sales!$D$2:$D$61,Sales!$C$2:$C$61,$A2).",
+        "3. Revenue after discounts, E2: =ROUND(D2*B2-SUMIFS(Sales!$E$2:$E$61,Sales!$C$2:$C$61,$A2),2). Cost, F2: =ROUND(D2*C2,2). Profit, G2: =E2-F2. Margin, H2: =IF(E2=0,\"\",G2/E2), profit as a share of revenue, blank when there is no revenue.",
+        "4. Row 22 adds the columns. The overall margin in H22 is total profit divided by total revenue, not an average of the product margins.",
+        "5. Reconciliation: K4 is every unit on the Sales tab, K3 is the units the summary found, K5 is the difference. A misspelled or extra-space product name in Sales makes K5 more than 0 and the Sales row says Check product. Fix the name in Sales and K5 returns to 0.",
+        "6. Sales row check, column F: Check product (name not in the price list), Check qty (text or negative quantity), Check discount (text, or more than the price times the quantity). A quantity typed as text is ignored by SUMIFS, which is why it is flagged.",
+        "7. Product names are matched with SUMIFS, which is not case sensitive and treats * and ? as wildcards. Keep those two characters out of product names.",
+        "8. K7 says OK when K5 is 0, no Sales row says Check and no product row says Check.",
+        "9. This file does arithmetic on the numbers you enter. It does not say what a good margin is.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Sales"].print_title_rows = "1:1"
+    wb["Products"].print_title_rows = "1:1"
+    wb.save(OUT / "tidy-tabs-profit-by-product.xlsx")
+
+
+STATE_CODES = [
+    ("Alabama", "AL"), ("Alaska", "AK"), ("Arizona", "AZ"), ("Arkansas", "AR"), ("California", "CA"), ("Colorado", "CO"),
+    ("Connecticut", "CT"), ("Delaware", "DE"), ("District of Columbia", "DC"), ("Florida", "FL"), ("Georgia", "GA"),
+    ("Hawaii", "HI"), ("Idaho", "ID"), ("Illinois", "IL"), ("Indiana", "IN"), ("Iowa", "IA"), ("Kansas", "KS"),
+    ("Kentucky", "KY"), ("Louisiana", "LA"), ("Maine", "ME"), ("Maryland", "MD"), ("Massachusetts", "MA"),
+    ("Michigan", "MI"), ("Minnesota", "MN"), ("Mississippi", "MS"), ("Missouri", "MO"), ("Montana", "MT"),
+    ("Nebraska", "NE"), ("Nevada", "NV"), ("New Hampshire", "NH"), ("New Jersey", "NJ"), ("New Mexico", "NM"),
+    ("New York", "NY"), ("North Carolina", "NC"), ("North Dakota", "ND"), ("Ohio", "OH"), ("Oklahoma", "OK"),
+    ("Oregon", "OR"), ("Pennsylvania", "PA"), ("Rhode Island", "RI"), ("South Carolina", "SC"), ("South Dakota", "SD"),
+    ("Tennessee", "TN"), ("Texas", "TX"), ("Utah", "UT"), ("Vermont", "VT"), ("Virginia", "VA"), ("Washington", "WA"),
+    ("West Virginia", "WV"), ("Wisconsin", "WI"), ("Wyoming", "WY"),
+]
+
+
+def state_abbreviations():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Customers"
+    st = wb.create_sheet("States")
+    _head_row(st, 1, ["State name", "2-letter code"], [24, 14], height=32)
+    for i, (n, c) in enumerate(STATE_CODES):
+        st[f"A{2 + i}"], st[f"B{2 + i}"] = n, c
+    st["D1"] = "Source for the codes: USPS Publication 28, Postal Addressing Standards (the 50 states and DC). Territories such as Puerto Rico are not in this list on purpose; they show Check."
+    st["D1"].font = Font(italic=True)
+    st.freeze_panes = "A2"
+    _head_row(ws, 1, ["Name", "City", "State as typed", "State, cleaned", "Code", "Status"], [20, 16, 20, 20, 8, 16], height=32)
+    cust = [
+        ("Ava Martin", "Austin", "Texas"), ("Ben Ortiz", "Columbus", " ohio "), ("Cara Lee", "Albany", "NEW YORK"),
+        ("Dan Wu", "Dallas", "tx"), ("Eli Shah", "San Diego", "Calif."), ("Fay Gray", "Boise", ""),
+        ("Gus Hall", "Reno", "nevada"), ("Hana Kim", "Salem", "OR"), ("Ian Cole", "Miami", "Florida"),
+        ("Jo Park", "Denver", "Colorado"), ("Kai Stone", "Portland", "ZZ"), ("Lia Moss", "Macon", "Georgia"),
+    ]
+    S = "States!$A$2:$A$52"
+    C = "States!$B$2:$B$52"
+    for r in range(2, 202):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"C{r}"].number_format = "@"
+        ws[f"D{r}"] = f'=IF(COUNTA(A{r}:C{r})=0,"",TRIM(SUBSTITUTE(C{r},_xlfn.UNICHAR(160)," ")))'
+        esc = f'SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(D{r},"~","~~"),"*","~*"),"?","~?")'
+        ws[f"E{r}"] = (f'=IF(COUNTA(A{r}:C{r})=0,"",IFERROR(INDEX({C},MATCH({esc},{S},0)),'
+                       f'IF(AND(LEN(D{r})=2,SUMPRODUCT(--({C}=D{r}))>0),UPPER(D{r}),"Check")))')
+        ws[f"F{r}"] = f'=IF(E{r}="","",IF(E{r}="Check","Check",IF(UPPER(D{r})=E{r},"Already a code","From name")))'
+        for col in "DEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"E{r}"].alignment = Alignment(horizontal="center")
+    for i, (a, b, c) in enumerate(cust):
+        ws[f"A{2 + i}"], ws[f"B{2 + i}"] = a, b
+        if c != "":
+            ws[f"C{2 + i}"] = c
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 28
+    ws.column_dimensions["I"].width = 10
+    _summary_block(ws, "H", "I", [
+        (1, "Customers listed", '=COUNTIF(F2:F201,"?*")', "0"),
+        (2, "Code found from the name", '=COUNTIF(F2:F201,"From name")', "0"),
+        (3, "Already a valid code", '=COUNTIF(F2:F201,"Already a code")', "0"),
+        (4, "Rows showing Check", '=COUNTIF(F2:F201,"Check")', "0"),
+        (5, "Rows add up", '=IF(I2+I3+I4=I1,"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("F2:F201", FormulaRule(formula=['$F2="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("E2:E201", FormulaRule(formula=['$E2="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A2"
+    notes_sheet(wb, [
+        "Tidy Tabs: State Name to 2-Letter Abbreviation",
+        "",
+        "1. Customers tab: type or paste names, cities and the state exactly as it was typed into column C (yellow, up to 200 rows). The States tab holds the 50 states and DC with their USPS codes. Customers are fictional.",
+        "2. State, cleaned, D2: =TRIM(SUBSTITUTE(C2,UNICHAR(160),\" \")). UNICHAR(160) is used instead of CHAR(160) because LibreOffice can return a different character for CHAR(160) depending on the computer's locale (UNICHAR needs Excel 2013 or later). It turns non-breaking spaces into normal spaces and removes extra spaces.",
+        "3. Code, E2: INDEX/MATCH on the States tab with an exact match (MATCH third argument 0). It is not case sensitive, so texas, TEXAS and Texas all give TX. The ~, * and ? characters are escaped so they are not read as wildcards.",
+        "4. If the name is not found, the formula checks whether the cleaned text is already a 2-letter code on the States tab and returns it in capitals (tx gives TX). Anything else, such as Calif., ZZ, a number, Puerto Rico or an empty state, shows Check.",
+        "5. Status, F2: From name, Already a code or Check. I4 counts the Check rows. Fix those by hand in column C; the Code column keeps saying Check instead of leaving a blank.",
+        "6. Codes are the USPS 2-letter codes from Publication 28 for the 50 states and DC. Add other rows (territories, military addresses) to the States tab if you need them, and widen the ranges in column E.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Customers"].print_title_rows = "1:1"
+    wb.save(OUT / "tidy-tabs-state-abbreviations.xlsx")
+
+
+def items_per_order_one_cell():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Lines"
+    od = wb.create_sheet("Orders")
+    _head_row(ws, 1, ["Order", "Item", "Qty", "Running text", "Last line?", "Sort check"], [9, 28, 6, 52, 10, 12], height=32)
+    lines = [
+        (2001, "Soy candle Lavender", 2), (2001, "Lip balm", 1), (2001, "Gift box", 1),
+        (2002, "Tote bag", 1),
+        (2003, "Enamel pin", 3), (2003, "Sticker pack", 2), (2003, "Soy candle Cedar", 1), (2003, "Lip balm", 4),
+        (2004, "Tote bag", 2), (2004, "Gift box", 1),
+        (2005, "Sticker pack", 5), (2005, "Enamel pin", 1),
+    ]
+    for r in range(2, 102):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"D{r}"] = f'=IF(A{r}="","",IF(A{r}=A{r - 1},D{r - 1}&", "&C{r}&" x "&B{r},C{r}&" x "&B{r}))'
+        ws[f"E{r}"] = f'=IF(A{r}="","",IF(A{r}<>A{r + 1},1,0))'
+        ws[f"F{r}"] = f'=IF(A{r}="","",IF(A{r}=A{r - 1},"",IF(COUNTIF($A$1:A{r - 1},A{r})>0,"Order split","")))'
+        for col in "DEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+    for i, (o, it, q) in enumerate(lines):
+        ws[f"A{2 + i}"], ws[f"B{2 + i}"], ws[f"C{2 + i}"] = o, it, q
+    ws.conditional_formatting.add("F2:F101", FormulaRule(formula=['$F2="Order split"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A2"
+    # Orders
+    _head_row(od, 1, ["Order", "Items in the order", "Lines", "Lookup check"], [9, 70, 7, 14], height=32)
+    for r in range(2, 42):
+        od[f"A{r}"].fill = INPUT_FILL
+        od[f"B{r}"] = (f'=IF(A{r}="","",IFERROR(IF(INDEX(Lines!$A$2:$A$101,MATCH(A{r},Lines!$A$2:$A$101,1))=A{r},'
+                       f'INDEX(Lines!$D$2:$D$101,MATCH(A{r},Lines!$A$2:$A$101,1)),"Not found"),"Not found"))')
+        od[f"C{r}"] = f'=IF(A{r}="","",COUNTIF(Lines!$A$2:$A$101,A{r}))'
+        od[f"D{r}"] = f'=IF(A{r}="","",IF(B{r}="Not found","Check","OK"))'
+        for col in "BCD":
+            od[f"{col}{r}"].fill = FORMULA_FILL
+    for i, o in enumerate([2001, 2002, 2003, 2004, 2005]):
+        od[f"A{2 + i}"] = o
+    od.column_dimensions["E"].width = 3
+    od.column_dimensions["F"].width = 30
+    od.column_dimensions["G"].width = 10
+    _summary_block(od, "F", "G", [
+        (1, "Orders listed", '=COUNTA(A2:A41)', "0"),
+        (2, "Orders not found in Lines", '=COUNTIF(D2:D41,"Check")', "0"),
+        (3, "Lines found for the orders", '=SUM(C2:C41)', "0"),
+        (4, "Lines on the Lines tab", '=COUNTA(Lines!A2:A101)', "0"),
+        (5, "Order numbers split apart", '=COUNTIF(Lines!F2:F101,"Order split")', "0"),
+        (6, "CHECK", '=IF(AND(G2=0,G5=0),"OK","Check")', "General"),
+    ])
+    od.conditional_formatting.add("D2:D41", FormulaRule(formula=['$D2="Check"'], fill=ALERT_FILL))
+    od.conditional_formatting.add("G6", FormulaRule(formula=['$G$6<>"OK"'], fill=ALERT_FILL))
+    od.freeze_panes = "A2"
+    notes_sheet(wb, [
+        "Tidy Tabs: Combine All Items in an Order Into One Cell",
+        "",
+        "1. Lines tab: one row per item, sorted by order number (yellow, up to 100 lines). The sample has orders 2001 to 2005 with 1 to 4 lines each. Items are fictional. Orders tab: type the order numbers, in ascending order, in column A.",
+        "2. Running text, D2: =IF(A2=A1,D1&\", \"&C2&\" x \"&B2,C2&\" x \"&B2). When the order number is the same as the row above, add this item to the text above; otherwise start new text. In row 2 the row above is the header, so it always starts new text.",
+        "3. Last line, E2: =IF(A2<>A3,1,0) is 1 on the final line of each order. The last line of an order holds the full text.",
+        "4. Orders tab, B2: =INDEX(Lines!$D$2:$D$101,MATCH(A2,Lines!$A$2:$A$101,1)). MATCH with 1 on sorted numbers returns the LAST row with that number, which holds the full text. The real formula also checks that the row found has the order number you typed, so an order that is not on the Lines tab shows Not found instead of the neighbouring order's text.",
+        "5. The lines must be sorted by order number, and every order's rows must sit together. Column F says Order split on a row where a number comes back after other orders; sort the Lines tab by Order and it clears. The Orders tab numbers must be ascending too.",
+        "6. Order numbers must be all numbers or all text. A number 2001 and the text \"2001\" are different values to MATCH and to the = comparison.",
+        "7. No array formula, TEXTJOIN or FILTER is used, so this works in every version of Excel and in Google Sheets.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Lines"].print_title_rows = "1:1"
+    wb["Orders"].print_title_rows = "1:1"
+    wb.save(OUT / "tidy-tabs-items-per-order-one-cell.xlsx")
+
+
+def last_business_day():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Months"
+    hd = wb.create_sheet("Holidays")
+    ws["A1"] = "Last business day of each month"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A2"] = "First month (any date in that month)"
+    ws["A3"] = "Settings check"
+    ws["A2"].font = ws["A3"].font = Font(bold=True)
+    ws["B2"] = date(2026, 11, 1)
+    ws["B2"].fill = INPUT_FILL
+    ws["B2"].number_format = US_DATE
+    ws["B3"] = '=IF(AND(ISNUMBER(B2),COUNTIF(Holidays!C2:C21,"Check")=0),IF(AND(B2>=1,B2<=2900000),"OK","Check"),"Check")'
+    ws["B3"].fill = FORMULA_FILL
+    ws["B3"].alignment = Alignment(horizontal="right")
+    ws["C2"] = "Weekends are skipped. The closed days on the Holidays tab are your own list, not a legal list."
+    ws["C2"].font = Font(italic=True)
+    _head_row(ws, 5, ["Month start", "Month end", "Last business day", "Weekday", "Days earlier than month end"],
+              [14, 14, 16, 13, 16], height=46)
+    for r in range(6, 18):
+        if r == 6:
+            ws["A6"] = '=IF($B$3<>"OK","Check",DATE(YEAR($B$2),MONTH($B$2),1))'
+        else:
+            ws[f"A{r}"] = f'=IF(ISNUMBER(A{r - 1}),EDATE(A{r - 1},1),"Check")'
+        ws[f"B{r}"] = f'=IF(ISNUMBER(A{r}),EOMONTH(A{r},0),"Check")'
+        ws[f"C{r}"] = f'=IF(ISNUMBER(B{r}),WORKDAY(B{r}+1,-1,Holidays!$B$2:$B$21),"Check")'
+        ws[f"D{r}"] = f'=IF(ISNUMBER(C{r}),TEXT(C{r},"dddd"),"Check")'
+        ws[f"E{r}"] = f'=IF(ISNUMBER(C{r}),B{r}-C{r},"Check")'
+        for col in "ABC":
+            ws[f"{col}{r}"].number_format = US_DATE
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ws.column_dimensions["F"].width = 3
+    ws.column_dimensions["G"].width = 34
+    ws.column_dimensions["H"].width = 12
+    _summary_block(ws, "G", "H", [
+        (5, "Months listed", '=COUNT(C6:C17)', "0"),
+        (6, "Month end is a business day", '=SUMPRODUCT(--(E6:E17=0))', "0"),
+        (7, "Moved back from month end", '=COUNTIF(E6:E17,">0")', "0"),
+        (8, "Most days earlier", '=IF(COUNT(E6:E17)=0,"",MAX(E6:E17))', "0"),
+        (9, "CHECK", '=IF(AND(B3="OK",COUNT(C6:C17)=12),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("E6:E17", FormulaRule(formula=['AND(ISNUMBER($E6),$E6>0)'], fill=DONE_FILL))
+    ws.conditional_formatting.add("H9", FormulaRule(formula=['$H$9<>"OK"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("B3", FormulaRule(formula=['$B$3<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A6"
+    _head_row(hd, 1, ["Closed day (name, optional)", "Date", "Date check"], [30, 14, 12], height=32)
+    hols = [("Thanksgiving Day", date(2026, 11, 26)), ("Christmas Eve", date(2026, 12, 24)), ("Christmas Day", date(2026, 12, 25)),
+            ("Year-end closing", date(2026, 12, 31)), ("New Year's Day", date(2027, 1, 1)), ("Winter break", date(2027, 1, 18)),
+            ("Memorial Day", date(2027, 5, 31)), ("Independence Day observed", date(2027, 7, 5)),
+            ("Labor Day", date(2027, 9, 6)), ("Thanksgiving Day", date(2027, 11, 25))]
+    for r in range(2, 22):
+        hd[f"A{r}"].fill = hd[f"B{r}"].fill = INPUT_FILL
+        hd[f"B{r}"].number_format = US_DATE
+        hd[f"C{r}"] = f'=IF(B{r}="","",IF(ISNUMBER(B{r}),IF(AND(B{r}>=1,B{r}=INT(B{r})),"OK","Check"),"Check"))'
+        hd[f"C{r}"].fill = FORMULA_FILL
+    for i, (n, d) in enumerate(hols):
+        hd[f"A{2 + i}"], hd[f"B{2 + i}"] = n, d
+    hd.conditional_formatting.add("C2:C21", FormulaRule(formula=['$C2="Check"'], fill=ALERT_FILL))
+    hd.freeze_panes = "A2"
+    notes_sheet(wb, [
+        "Tidy Tabs: Last Business Day of Each Month",
+        "",
+        "1. Months tab: type the first month in B2 (yellow; any date in that month works). The 12 rows below are formulas. The Holidays tab lists the closed days you choose (dates in column B, up to 20). They are fictional examples, not a legal list of holidays.",
+        "2. Month start, A6: =DATE(YEAR($B$2),MONTH($B$2),1). The rows below use =EDATE(A6,1).",
+        "3. Month end, B6: =EOMONTH(A6,0), the last calendar day of the month.",
+        "4. Last business day, C6: =WORKDAY(B6+1,-1,Holidays!$B$2:$B$21). It starts on the day after month end and steps back one working day, so a month end that is a Monday to Friday and not on your list stays as it is. A Saturday, Sunday or listed closed day moves back, and two closed days in a row at month end are both skipped.",
+        "5. Weekday, D6: =TEXT(C6,\"dddd\"). Days earlier, E6: =B6-C6.",
+        "6. WORKDAY counts Saturday and Sunday as non-working days. A date typed as text in the Holidays tab shows Check there and in B3 until you fix it; every month then shows Check.",
+        "7. Empty rows on the Holidays tab are fine. An empty list means only weekends are skipped.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Months"].print_title_rows = "5:5"
+    wb.save(OUT / "tidy-tabs-last-business-day.xlsx")
+
+
+def date_hit_sales_goal():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Daily sales"
+    ws["A1"] = "Sales goal ($)"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = 10000
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = USD
+    ws["C1"] = "Fictional numbers. Type your goal in B1 and one row per day (dates in order, oldest first)."
+    ws["C1"].font = Font(italic=True)
+    ws["A2"] = "Goal check"
+    ws["A2"].font = Font(bold=True)
+    ws["B2"] = '=IF(ISNUMBER(B1),IF(B1>=0,"OK","Check"),"Check")'
+    ws["B2"].fill = FORMULA_FILL
+    ws["B2"].alignment = Alignment(horizontal="right")
+    _head_row(ws, 3, ["Date", "Sales", "Running total", "Goal reached?", "Row check"], [14, 12, 14, 12, 14], height=32)
+    days = [1250, 980, 0, 1430.50, 760, 1105.25, 0, 890, 1320, 640.75, 1510, 725.50, 980, 1175]
+    for r in range(4, 370):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"B{r}"].number_format = USD
+        ws[f"C{r}"] = f'=IF(COUNTA(A{r}:B{r})=0,"",SUM($B$4:B{r}))'
+        ws[f"D{r}"] = f'=IF(C{r}="","",IF($B$2<>"OK","Check",IF(C{r}>=$B$1,"Yes","")))'
+        ws[f"E{r}"] = (f'=IF(COUNTA(A{r}:B{r})=0,"",IF(AND(ISNUMBER(A{r}),OR(B{r}="",ISNUMBER(B{r}))),'
+                       f'IF(AND(ISNUMBER(A{r - 1}),A{r}<A{r - 1}),"Out of order","OK"),"Check"))')
+        ws[f"C{r}"].number_format = USD
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, v in enumerate(days):
+        ws[f"A{4 + i}"] = date(2026, 9, 1 + i)
+        ws[f"B{4 + i}"] = v
+    ws.column_dimensions["F"].width = 3
+    ws.column_dimensions["G"].width = 32
+    ws.column_dimensions["H"].width = 14
+    _summary_block(ws, "G", "H", [
+        (3, "Date you hit the goal", '=IF(B2<>"OK","Check",IFERROR(INDEX($A$4:$A$369,MATCH("Yes",$D$4:$D$369,0)),"Not yet"))', US_DATE),
+        (4, "Days it took (counting the first day)", '=IF(ISNUMBER(H3),H3-$A$4+1,"")', "0"),
+        (5, "Running total on that day", '=IF(ISNUMBER(H3),INDEX($C$4:$C$369,MATCH("Yes",$D$4:$D$369,0)),"")', USD),
+        (6, "Amount over the goal that day", '=IF(ISNUMBER(H3),H5-$B$1,"")', USD),
+        (7, "Total of all rows", "=SUM(B4:B369)", USD),
+        (8, "Still to go", '=IF(B2<>"OK","",IF(ISNUMBER(H3),"",$B$1-H7))', USD),
+        (9, "Rows showing Check or Out of order", '=COUNTIF(E4:E369,"Check")+COUNTIF(E4:E369,"Out of order")', "0"),
+        (10, "CHECK", '=IF(AND(B2="OK",H9=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("D4:D369", FormulaRule(formula=['$D4="Yes"'], fill=DONE_FILL))
+    ws.conditional_formatting.add("E4:E369", FormulaRule(formula=['OR($E4="Check",$E4="Out of order")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("H10", FormulaRule(formula=['$H$10<>"OK"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("B2", FormulaRule(formula=['$B$2<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find the Date You Hit a Sales Goal",
+        "",
+        "1. Daily sales tab: type the goal in B1 and one row per day in A and B (yellow, up to 366 rows, oldest date first). Days with no sales can be left blank or typed as 0. The numbers are fictional.",
+        "2. Running total, C4: =SUM($B$4:B4). Goal reached?, D4: =IF(C4>=$B$1,\"Yes\",\"\").",
+        "3. Date you hit the goal, H3: =IFERROR(INDEX($A$4:$A$369,MATCH(\"Yes\",$D$4:$D$369,0)),\"Not yet\") (the file wraps it in a check of B2 that shows Check when the goal is not a number of 0 or more). MATCH finds the first Yes. A running total that is exactly equal to the goal counts as reached. No array formula is needed.",
+        "4. Days it took, H4: =H3-$A$4+1 (the first row counts as day 1). Over the goal, H6: the running total on that day minus the goal.",
+        "5. Shorter version: =INDEX(A4:A369,COUNTIF(C4:C369,\"<\"&B1)+1). It gives the same date only while the running total never goes down. A refund (a negative amount) can make it fall back under the goal, and then this version points to the wrong day. The Yes version above still returns the FIRST day the total reached the goal. This file uses the Yes version.",
+        "6. Row check, E: Check when the date or the amount is text, Out of order when a date is earlier than the one above it. A text amount is ignored by SUM, which is why it is flagged. H10 says OK when B2 is OK and no row needs attention.",
+        "7. A goal of 0 is reached on the first row. A goal above the total shows Not yet and H8 shows how much is still to go.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Daily sales"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-date-hit-sales-goal.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -14029,4 +14431,9 @@ if __name__ == "__main__":
     lookup_by_part_of_name()
     customers_by_order_count()
     wholesale_from_retail()
+    profit_by_product()
+    state_abbreviations()
+    items_per_order_one_cell()
+    last_business_day()
+    date_hit_sales_goal()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

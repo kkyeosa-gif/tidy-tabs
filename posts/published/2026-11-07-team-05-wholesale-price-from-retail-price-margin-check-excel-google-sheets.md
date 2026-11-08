@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfe1Pbqm3hS
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-set-wholesale-price-from-retail.html
 title: How to Set a Wholesale Price From the Retail Price and Check Your Margin in Excel and Google Sheets
 labels: excel-formulas, pricing, small-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 27 workbooks and 13,176 comparisons with 0 mismatches. Also exported to PDF on US Letter with no error values. Excel and Google Sheets were not used.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DffJCg_oHkC
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-profit-by-product-from.html
 title: How to Calculate Profit by Product From a Sales Log in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 16 workbooks and 432 comparisons with 0 mismatches. Checked: the sample, no sales, a discount larger than the line, a misspelled and a double space product name, a quantity typed as text, a blank row between sales, a lowercase product name, 60 sales rows, a text price, a duplicate product row, half cent prices, and six random sets. Excel and Google Sheets were not used. Not run: wildcard characters inside product names, more than 60 sales rows or 20 products.

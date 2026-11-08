@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DffWxLpGJZp
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-look-up-state-abbreviation-from.html
 title: How to Look Up a State Abbreviation From the Full State Name in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 9 workbooks and 1,800 comparisons with 0 mismatches. Checked: the sample, no customers, all 51 names typed as is, in capitals, in lowercase and padded with spaces, non-breaking spaces, doubled inner spaces, tx/Tx/tX, valid and invalid codes, Calif., CA., blank and spaces-only cells, numbers, Puerto Rico, PR, Guam, the characters T*, *, ??, ? and ~, and random sets of 200 rows. Excel and Google Sheets were not used. Not run: UNICHAR in Excel 2010 or earlier, more than 200 rows.

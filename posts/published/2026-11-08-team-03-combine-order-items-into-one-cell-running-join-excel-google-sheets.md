@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DffrXezICEf
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-combine-all-items-in-order-into.html
 title: How to Combine All Items in an Order Into One Cell in Excel and Google Sheets
 labels: excel-formulas, small-business, orders
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 16 workbooks and 648 comparisons with 0 mismatches. Checked: the sample, no lines, one line, one order of 3 lines, one line per order, orders not on the Lines tab, text order numbers, a number and text mixed, unsorted lines, a 528 character result, 100 lines (32 orders), and 5 random sets. Excel and Google Sheets were not used. Not run: MATCH type 1 with empty trailing cells in Excel or Sheets, more than 100 lines, a non-US language setting.

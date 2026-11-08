@@ -2,7 +2,7 @@
 title: How to Shade Alternating Groups of Rows by Order Number in Excel and Google Sheets
 labels: excel-formulas, small-business, formatting
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The group numbers were recalculated in 10 workbooks (600 rows) and compared with an independent Python model: the sample, empty, one order, one order on 10 lines, 30 single-line orders, blank rows in the middle, unsorted orders, text and number order numbers, capital letters only, and two random sorted sets. The shading was checked by exporting the template to PDF and PNG and looking at the page, and the rule was still in the file after a LibreOffice save and reopen. Excel and Google Sheets were not used. Not run: a row inserted inside the range, 200 rows.
-search_description: Shade all lines of an order the same color and flip the shade at each new order number with a helper column and one rule in Excel and Sheets. Free template.
+search_description: Shade all lines of an order the same color and flip the shade at each new order number with a helper column and one rule in Excel and Sheets. Free file.
 image_prompts: A stack of kraft packing slips fanned out with every other sheet tinted gray, a roll of twine and a small enamel pin on a wooden packing table, soft daylight, realistic photo, no screens, no readable text, no logos
 image_alt: Fanned stack of packing slips beside twine and an enamel pin on a wooden table
 threads: Plain banded rows cut an order with 4 lines in half.\nNumber the groups: =IF(A5=A4,D4,MAX($D$4:D4)+1). Then the rule =MOD($D4,2)=0 shades every other order, not every other row.\nSorted by order number first, or the same order gets two shades. Sample orders are made up.
@@ -11,7 +11,7 @@ Number the groups in a helper column with `=IF(A5="","",IF(A5=A4,D4,MAX($D$4:D4)
 
 > Works in: LibreOffice Calc 24.2.7.2 (Linux) only. There the group numbers were recalculated and compared with a Python model, and the shading was checked by rendering the template to PDF and looking at the page. The formulas use only IF, MAX and MOD, and the rules are ordinary custom formula rules, but Excel and Google Sheets were not opened for this post. Their menu paths below come from Microsoft and Google help pages.
 
-![Order lines table with alternating gray and white blocks following the order numbers, next to a plain banded copy](images/2026-11-09-team-04-alternate-row-colors-by-group-order-number-conditional-formatting-excel-google-sheets/shaded-order-groups-vs-plain-banding-template.png) *caption: PDF export of the template in LibreOffice Calc 24.2.7.2, sample data is fictional*
+![Order lines with gray and white blocks that follow the order numbers and a group number column](images/2026-11-09-team-04-alternate-row-colors-by-group-order-number-conditional-formatting-excel-google-sheets/shaded-order-groups-vs-plain-banding-template.png) *PDF export of the template in LibreOffice Calc 24.2.7.2, sample data is fictional*
 
 ## Steps
 

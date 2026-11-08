@@ -702,7 +702,30 @@ def heroes_2026_11_08():
                 "Daily sales", hide_cols="E", name="goaldate"))
 
 
+def heroes_2026_11_09():
+    t = "templates/"
+    d = "images/2026-11-09-team-0%d-%s/"
+    save(d % (1, "convert-text-hours-minutes-1h-30m-to-minutes-find-mid-excel-google-sheets") + "text-duration-to-minutes-template.png",
+         render(compact_copy(t + "tidy-tabs-text-duration-to-minutes.xlsx", "Entries", 15, "textdur", hide_rows=[1, 2], clear=["C1"]),
+                "Entries", hide_cols="ADEIJKL", name="textdur"))
+    save(d % (2, "fiscal-year-quarter-from-date-custom-start-month-excel-google-sheets") + "fiscal-year-quarter-from-date-template.png",
+         render(compact_copy(t + "tidy-tabs-fiscal-year-quarter.xlsx", "Sales", 21, "fiscalq", clear=["C1"], labels={"A1": "First month"}),
+                "Sales", hide_cols="F", name="fiscalq"))
+    save(d % (3, "running-total-that-restarts-each-month-sumifs-excel-google-sheets") + "monthly-running-total-expenses-template.png",
+         render(compact_copy(t + "tidy-tabs-monthly-running-total.xlsx", "Expenses", 11, "monthrun", clear=["C1"], labels={"A1": "Monthly limit"}),
+                "Expenses", hide_cols="GHIJ", name="monthrun"))
+    save(d % (4, "alternate-row-colors-by-group-order-number-conditional-formatting-excel-google-sheets") + "shaded-order-groups-vs-plain-banding-template.png",
+         render(compact_copy(t + "tidy-tabs-shade-groups.xlsx", "Lines", 27, "shadegrp", hide_rows=[1, 2], clear=["C1"]),
+                "Lines", name="shadegrp"))
+    save(d % (5, "compare-old-and-new-price-lists-change-percent-index-match-excel-google-sheets") + "compare-old-and-new-price-lists-template.png",
+         render(compact_copy(t + "tidy-tabs-compare-price-lists.xlsx", "Compare", 11, "pricecmp"),
+                "Compare", hide_cols="GHIJK", name="pricecmp"))
+
+
 def main():
+    if "--only-2026-11-09" in sys.argv:
+        heroes_2026_11_09()
+        return
     if "--only-2026-11-08" in sys.argv:
         heroes_2026_11_08()
         return

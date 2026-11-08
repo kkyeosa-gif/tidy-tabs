@@ -13,7 +13,7 @@ The year is named for the calendar year it ends in. That is a choice, not a rule
 
 > Works in: LibreOffice Calc 24.2.7.2 (Linux) only, where the template was built and the results below were recalculated and compared with a Python model (146 workbooks, 13,177 date rows). The formulas use only YEAR, MONTH, MOD, INT, IF and AND, which also exist in Excel and Google Sheets, but neither was opened for this post.
 
-![Sales table with fiscal year, quarter and label columns beside a quarter summary](images/2026-11-09-team-02-fiscal-year-quarter-from-date-custom-start-month-excel-google-sheets/fiscal-year-quarter-from-date-template.png) *PDF export of the template in LibreOffice Calc 24.2.7.2, sample data is fictional*
+![Sales dates with fiscal year, fiscal quarter and FY label columns for eighteen sample rows](images/2026-11-09-team-02-fiscal-year-quarter-from-date-custom-start-month-excel-google-sheets/fiscal-year-quarter-from-date-template.png) *PDF export of the template in LibreOffice Calc 24.2.7.2, sample data is fictional*
 
 ## Steps
 

@@ -14259,6 +14259,396 @@ def date_hit_sales_goal():
     wb.save(OUT / "tidy-tabs-date-hit-sales-goal.xlsx")
 
 
+def text_duration_to_minutes():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Entries"
+    ws["A1"] = "Hourly rate ($)"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = 65
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = USD
+    ws["C1"] = "Fictional entries. Type the time as you jot it (2h 30m, 45m, 1h15m) in column B, one entry per row, up to row 103."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Date", "Time as typed", "Cleaned", "Hours", "Minutes", "Total minutes", "Decimal hours", "Amount", "Check"],
+              [13, 16, 13, 9, 9, 12, 12, 12, 10], height=32)
+    typed = ["2h 30m", "45m", "1h", "1h15m", "3H 5M", " 90m ", "2h 0m", "1.5h", None, "30 min", "n/a", "0h 20m"]
+    for r in range(4, 104):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"B{r}"].number_format = "@"
+        ws[f"C{r}"] = f'=LOWER(SUBSTITUTE(TRIM(B{r})," ",""))'
+        ws[f"D{r}"] = f'=IF(ISNUMBER(FIND("h",C{r})),VALUE(LEFT(C{r},FIND("h",C{r})-1)),0)'
+        ws[f"E{r}"] = (f'=IF(ISNUMBER(FIND("m",C{r})),VALUE(MID(C{r},IF(ISNUMBER(FIND("h",C{r})),FIND("h",C{r})+1,1),'
+                       f'FIND("m",C{r})-IF(ISNUMBER(FIND("h",C{r})),FIND("h",C{r})+1,1))),0)')
+        ws[f"F{r}"] = (f'=IF(C{r}="","",IF(ISERROR(D{r}+E{r}),"Check",IF(OR(D{r}<0,E{r}<0,ISNUMBER(VALUE(RIGHT(C{r},1)))),"Check",'
+                       f'ROUND(D{r}*60+E{r},0))))')
+        ws[f"G{r}"] = f'=IF(ISNUMBER(F{r}),F{r}/60,"")'
+        ws[f"H{r}"] = f'=IF(ISNUMBER(F{r}),IF(ISNUMBER($B$1),ROUND(G{r}*$B$1,2),"Check"),"")'
+        ws[f"I{r}"] = f'=IF(C{r}="","",IF(ISNUMBER(F{r}),IF(F{r}<=0,"Check",""),"Check"))'
+        ws[f"F{r}"].number_format = "0"
+        ws[f"G{r}"].number_format = "0.00"
+        ws[f"H{r}"].number_format = USD
+        for col in "CDEFGHI":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, t in enumerate(typed):
+        r = 4 + i
+        ws[f"A{r}"] = date(2026, 11, 2 + i)
+        if t is not None:
+            ws[f"B{r}"] = t
+    ws.column_dimensions["J"].width = 3
+    ws.column_dimensions["K"].width = 30
+    ws.column_dimensions["L"].width = 14
+    _summary_block(ws, "K", "L", [
+        (3, "Entries", '=SUMPRODUCT(--(C4:C103<>""))', "0"),
+        (4, "Total minutes", "=SUM(F4:F103)", "0"),
+        (5, "Total decimal hours", "=SUM(G4:G103)", "0.00"),
+        (6, "Amount at the rate in B1", "=SUM(H4:H103)", USD),
+        (7, "Entries showing Check", '=COUNTIF(I4:I103,"Check")', "0"),
+        (8, "Rate check (B1)", '=IF(ISNUMBER(B1),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("I4:I103", FormulaRule(formula=['$I4="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("D4:E103", FormulaRule(formula=['$C4=""'], font=Font(color="EDEDED")))
+    ws.conditional_formatting.add("L8", FormulaRule(formula=['$L$8<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Convert Text Like 2h 30m Into Minutes",
+        "",
+        "1. Entries tab: type your hourly rate in B1 and each entry as text in column B (yellow, up to row 103). The dates, times and the rate are fictional examples.",
+        "2. Cleaned, C4: =LOWER(SUBSTITUTE(TRIM(B4),\" \",\"\")). It removes the spaces and lowercases the letters, so \" 3H 5M \" becomes 3h5m.",
+        "3. Hours, D4: =IF(ISNUMBER(FIND(\"h\",C4)),VALUE(LEFT(C4,FIND(\"h\",C4)-1)),0). It reads the number before the h, or 0 when there is no h.",
+        "4. Minutes, E4: reads the number between the h (or the start) and the m, or 0 when there is no m. For 45m there is no h, so it starts at character 1.",
+        "5. Total minutes, F4: =ROUND(D4*60+E4,0). Decimal hours, G4: =F4/60. Amount, H4: =ROUND(G4*$B$1,2).",
+        "6. Check, I4: shows Check when the entry could not be read, when it comes to 0 minutes (n/a, 2:30) or when it ends in a digit with no unit (5, 2h 30). Total minutes then shows Check or 0 and the totals skip it. Fix the entry in column B.",
+        "7. Supported: h and m (any case, any spaces), min after a number, decimals such as 1.5h. Not supported: 2:30, words such as hours and minutes, a number alone.",
+        "8. Blank rows stay blank. The totals at the right skip them.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Entries"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-text-duration-to-minutes.xlsx")
+
+
+def fiscal_year_quarter():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    sm = wb.create_sheet("Summary")
+    ws["A1"] = "First month of your year (1 to 12)"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = 7
+    ws["B1"].fill = INPUT_FILL
+    ws["C1"] = "7 = July. Fictional sales. Dates in column A, up to row 103."
+    ws["C1"].font = Font(italic=True)
+    ws["A2"] = "Setting check"
+    ws["A2"].font = Font(bold=True)
+    ws["B2"] = '=IF(ISNUMBER(B1),IF(AND(B1>=1,B1<=12,B1=INT(B1)),"OK","Check"),"Check")'
+    ws["B2"].fill = FORMULA_FILL
+    ws["B2"].alignment = Alignment(horizontal="right")
+    dv = DataValidation(type="whole", operator="between", formula1="1", formula2="12", allow_blank=False,
+                        showErrorMessage=True, errorTitle="Month number", error="Type a whole number from 1 to 12.")
+    ws.add_data_validation(dv)
+    dv.add("B1")
+    _head_row(ws, 3, ["Date", "Amount", "Fiscal year", "Fiscal quarter", "Label", "Row check"], [18, 12, 12, 14, 14, 12], height=32)
+    sales = [(date(2026, 6, 15), 140.00), (date(2026, 7, 8), 85.50), (date(2026, 8, 15), 120.00), (date(2026, 9, 30), 64.25),
+             (date(2026, 10, 1), 210.00), (date(2026, 11, 9), 47.25), (date(2026, 12, 31), 150.00), (date(2027, 1, 1), 38.75),
+             (date(2027, 1, 5), 95.00), (date(2027, 2, 14), 72.00), (date(2027, 3, 31), 180.50), (date(2027, 4, 1), 56.00),
+             (date(2027, 5, 20), 133.00), (date(2027, 6, 30), 99.99), (date(2027, 6, 30), 25.00), (date(2027, 7, 1), 110.00),
+             (date(2027, 7, 15), 41.00), (date(2026, 11, 23), 88.00)]
+    sales.sort(key=lambda t: t[0])
+    for r in range(4, 104):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"B{r}"].number_format = USD
+        ws[f"C{r}"] = (f'=IF(A{r}="","",IF(OR($B$2<>"OK",NOT(ISNUMBER(A{r}))),"Check",'
+                       f'YEAR(A{r})+IF(AND($B$1>1,MONTH(A{r})>=$B$1),1,0)))')
+        ws[f"D{r}"] = f'=IF(ISNUMBER(C{r}),INT(MOD(MONTH(A{r})-$B$1,12)/3)+1,C{r})'
+        ws[f"E{r}"] = f'=IF(ISNUMBER(C{r}),"FY"&C{r}&" Q"&D{r},C{r})'
+        ws[f"F{r}"] = f'=IF(COUNTA(A{r}:B{r})=0,"",IF(AND(ISNUMBER(A{r}),OR(B{r}="",ISNUMBER(B{r}))),"OK","Check"))'
+        for col in "CDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (d, a) in enumerate(sales):
+        ws[f"A{4 + i}"], ws[f"B{4 + i}"] = d, a
+    ws.conditional_formatting.add("F4:F103", FormulaRule(formula=['$F4="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("B2", FormulaRule(formula=['$B$2<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+
+    sm["A1"] = "Totals by fiscal quarter"
+    sm["A1"].font = Font(bold=True, size=13)
+    sm["C1"] = "Type the quarter labels in column A exactly as they appear in Sales column E."
+    sm["C1"].font = Font(italic=True)
+    _head_row(sm, 3, ["Quarter label", "Total", "Sales"], [18, 14, 10], height=24)
+    labels = ["FY2026 Q4", "FY2027 Q1", "FY2027 Q2", "FY2027 Q3", "FY2027 Q4", "FY2028 Q1"]
+    for r in range(4, 16):
+        sm[f"A{r}"].fill = INPUT_FILL
+        sm[f"B{r}"] = f'=IF(A{r}="","",SUMIFS(Sales!$B$4:$B$103,Sales!$E$4:$E$103,A{r}))'
+        sm[f"C{r}"] = f'=IF(A{r}="","",COUNTIFS(Sales!$E$4:$E$103,A{r}))'
+        sm[f"B{r}"].number_format = USD
+        sm[f"B{r}"].fill = sm[f"C{r}"].fill = FORMULA_FILL
+        sm[f"B{r}"].alignment = sm[f"C{r}"].alignment = Alignment(horizontal="right")
+    for i, t in enumerate(labels):
+        sm[f"A{4 + i}"] = t
+    sm.column_dimensions["E"].width = 3
+    sm.column_dimensions["F"].width = 34
+    sm.column_dimensions["G"].width = 14
+    _summary_block(sm, "F", "G", [
+        (3, "Total of all sales", "=SUM(Sales!B4:B103)", USD),
+        (4, "Total of the quarters listed", "=SUM(B4:B15)", USD),
+        (5, "Not in a listed quarter", "=ROUND(G3-G4,2)", USD),
+        (6, "Sales rows showing Check", '=COUNTIF(Sales!F4:F103,"Check")', "0"),
+        (7, "CHECK", '=IF(AND(Sales!B2="OK",G5=0,G6=0),"OK","Check")', "General"),
+    ])
+    sm.conditional_formatting.add("G7", FormulaRule(formula=['$G$7<>"OK"'], fill=ALERT_FILL))
+    notes_sheet(wb, [
+        "Tidy Tabs: Fiscal Year and Quarter From a Date",
+        "",
+        "1. Sales tab: type the first month of your year in B1 (yellow; 7 means July, 1 means January) and one sale per row in A and B. The dates and amounts are fictional.",
+        "2. Fiscal year, C4: =YEAR(A4)+IF(AND($B$1>1,MONTH(A4)>=$B$1),1,0). This file names the year for the calendar year it ENDS in, so a July start makes 11/09/2026 part of FY2027. That is a naming choice, not a rule; some businesses name it for the year it starts in.",
+        "3. Fiscal quarter, D4: =INT(MOD(MONTH(A4)-$B$1,12)/3)+1. Label, E4: =\"FY\"&C4&\" Q\"&D4.",
+        "4. Summary tab: type each label you want in column A (yellow). Total: =SUMIFS(Sales!$B$4:$B$103,Sales!$E$4:$E$103,A4). \"Not in a listed quarter\" must be 0; if it is not, a sale falls in a quarter you did not list.",
+        "5. A start month that is not a whole number from 1 to 12 shows Check in B2 and in every row. A blank date row stays blank; a date typed as text shows Check.",
+        "6. This labels dates. It does not decide anyone's tax year; ask your tax preparer for that.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Sales"].print_title_rows = "3:3"
+    wb["Summary"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-fiscal-year-quarter.xlsx")
+
+
+def monthly_running_total():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Expenses"
+    ws["A1"] = "Monthly spending limit ($)"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = 450
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = USD
+    ws["C1"] = "Fictional expenses. Keep the rows sorted by date, oldest first, up to row 63."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Date", "What", "Amount", "Month to date", "Left this month", "Month total", "Row check"],
+              [13, 18, 12, 14, 14, 14, 14], height=32)
+    rows = [(date(2026, 10, 3), "Supplies", 120.00), (date(2026, 10, 12), "Booth fee", 85.00), (date(2026, 10, 27), "Shipping", 64.50),
+            (date(2026, 11, 2), "Supplies", 210.00), (date(2026, 11, 9), "Packaging", 47.25), (date(2026, 11, 18), "Ads", 150.00),
+            (date(2026, 11, 30), "Shipping", 38.75), (date(2026, 12, 4), "Supplies", 95.00)]
+    for r in range(4, 64):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = ws[f"C{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+        ws[f"D{r}"] = f'=IF(A{r}="","",IF(ISNUMBER(A{r}),SUMIFS($C$4:C{r},$A$4:A{r},">="&DATE(YEAR(A{r}),MONTH(A{r}),1)),"Check"))'
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),IF(ISNUMBER($B$1),$B$1-D{r},"Check"),D{r})'
+        ws[f"F{r}"] = (f'=IF(A{r}="","",IF(ISNUMBER(A{r}),SUMIFS($C$4:$C$63,$A$4:$A$63,">="&DATE(YEAR(A{r}),MONTH(A{r}),1),'
+                       f'$A$4:$A$63,"<"&EDATE(DATE(YEAR(A{r}),MONTH(A{r}),1),1)),"Check"))')
+        ws[f"G{r}"] = (f'=IF(COUNTA(A{r}:C{r})=0,"",IF(AND(ISNUMBER(A{r}),OR(C{r}="",ISNUMBER(C{r}))),'
+                       f'IF(A{r}<MAX($A$3:A{r - 1}),"Out of order","OK"),"Check"))')
+        for col in "DEF":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "DEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (d, w, a) in enumerate(rows):
+        ws[f"A{4 + i}"], ws[f"B{4 + i}"], ws[f"C{4 + i}"] = d, w, a
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 32
+    ws.column_dimensions["J"].width = 14
+    _summary_block(ws, "I", "J", [
+        (3, "Total of all amounts", "=SUM(C4:C63)", USD),
+        (4, "Rows showing Check or Out of order", '=COUNTIF(G4:G63,"Check")+COUNTIF(G4:G63,"Out of order")', "0"),
+        (5, "Rows over the limit", '=SUMPRODUCT(--ISNUMBER(E4:E63),--(E4:E63<0))', "0"),
+        (6, "CHECK", '=IF(AND(ISNUMBER(B1),J4=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("E4:E63", FormulaRule(formula=['AND(ISNUMBER($E4),$E4<0)'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("G4:G63", FormulaRule(formula=['OR($G4="Check",$G4="Out of order")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("J6", FormulaRule(formula=['$J$6<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Running Total That Restarts Each Month",
+        "",
+        "1. Expenses tab: type the monthly limit in B1 and one expense per row in A, B and C (yellow, up to row 63). Keep the rows sorted by date, oldest first. The expenses are fictional.",
+        "2. Month to date, D4: =SUMIFS($C$4:C4,$A$4:A4,\">=\"&DATE(YEAR(A4),MONTH(A4),1)). The first range grows as you fill down, and the date condition keeps only rows from the 1st of this row's month, so the total starts over each month.",
+        "3. Left this month, E4: =$B$1-D4. It turns red when the month is over the limit.",
+        "4. Month total, F4: =SUMIFS($C$4:$C$63,$A$4:$A$63,\">=\"&DATE(YEAR(A4),MONTH(A4),1),$A$4:$A$63,\"<\"&EDATE(DATE(YEAR(A4),MONTH(A4),1),1)). It does not depend on the sort order.",
+        "5. Because column D only adds the rows above and including the current one, rows out of date order give the wrong Month to date. Column G shows Out of order; select A3:C63 and use Data > Sort range by column A, A to Z.",
+        "6. A refund goes in as a negative amount. A text amount is ignored by SUMIFS and shows Check in column G. Blank rows stay blank.",
+        "7. No TODAY and no pivot table.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Expenses"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-monthly-running-total.xlsx")
+
+
+def shade_groups():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Lines"
+    pb = wb.create_sheet("Plain banding")
+    ws["A1"] = "Order lines, sorted by order number"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["C1"] = "Fictional lines. Type in A to C (rows 4 to 63). Column D is a formula; the shading rule reads it."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Order", "Item", "Qty", "Group no."], [12, 28, 8, 12], height=24)
+    lines = [(5001, "Soy candle, lavender", 2), (5001, "Lip balm", 4), (5001, "Gift box", 1),
+             (5002, "Tote bag", 1),
+             (5003, "Enamel pin", 3), (5003, "Sticker pack", 6), (5003, "Soy candle, cedar", 1), (5003, "Gift box", 1),
+             (5004, "Lip balm", 2), (5004, "Tote bag", 1),
+             (5005, "Sticker pack", 10), (5005, "Enamel pin", 2), (5005, "Lip balm", 3),
+             (5006, "Gift box", 2),
+             (5007, "Soy candle, lavender", 1), (5007, "Soy candle, cedar", 1), (5007, "Tote bag", 2), (5007, "Sticker pack", 4),
+             (5008, "Enamel pin", 5), (5008, "Lip balm", 1),
+             (5009, "Tote bag", 1), (5009, "Gift box", 1), (5009, "Lip balm", 6), (5009, "Sticker pack", 2)]
+    for r in range(4, 64):
+        # No static fill here: yellow/gray cells would hide the alternating shade this file demonstrates.
+        ws[f"A{r}"].alignment = Alignment(horizontal="left")
+        ws[f"D{r}"].alignment = Alignment(horizontal="center")
+        ws[f"D{r}"].font = Font(color="595959")
+        if r == 4:
+            ws["D4"] = '=IF(A4="","",1)'
+        else:
+            ws[f"D{r}"] = f'=IF(A{r}="","",IF(A{r}=A{r - 1},D{r - 1},MAX($D$4:D{r - 1})+1))'
+    for i, (o, it, q) in enumerate(lines):
+        ws[f"A{4 + i}"], ws[f"B{4 + i}"], ws[f"C{4 + i}"] = o, it, q
+    GRAY = PatternFill("solid", bgColor="D9D9D9", fgColor="D9D9D9")
+    ws.conditional_formatting.add("A4:D63", FormulaRule(formula=["MOD($D4,2)=0"], fill=GRAY))
+    ws.freeze_panes = "A4"
+
+    pb["A1"] = "Same lines, plain row banding (for contrast)"
+    pb["A1"].font = Font(bold=True, size=13)
+    pb["A2"] = "Rule: =MOD(ROW(),2)=0. It cuts through orders with 3 or 4 lines. These 24 rows copy the Lines tab."
+    pb["A2"].font = Font(italic=True)
+    _head_row(pb, 3, ["Order", "Item", "Qty"], [12, 28, 8], height=24)
+    for r in range(4, 28):
+        for col in "ABC":
+            pb[f"{col}{r}"] = f'=IF(Lines!{col}{r}="","",Lines!{col}{r})'
+            pb[f"{col}{r}"].alignment = Alignment(horizontal="left")
+    pb.conditional_formatting.add("A4:C27", FormulaRule(formula=["MOD(ROW(),2)=0"], fill=GRAY))
+    pb.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Shade Alternating Groups of Rows by Order Number",
+        "",
+        "1. Lines tab: type one line item per row in A, B and C (rows 4 to 63), sorted by order number. The orders and items are fictional. This file leaves the cells without the usual yellow and gray fills so the shading shows; column D is the formula column.",
+        "2. Group no., D4: =IF(A4=\"\",\"\",1). D5: =IF(A5=\"\",\"\",IF(A5=A4,D4,MAX($D$4:D4)+1)), filled down. The number stays the same while the order number stays the same and goes up by 1 when it changes.",
+        "3. Shading rule on A4:D63 (Home > Conditional Formatting > New Rule > Use a formula): =MOD($D4,2)=0. Even-numbered groups get a light gray fill; odd groups stay white.",
+        "4. Without a helper column you can use this rule on A4:D63 instead (it counts the changes in column A above each row): =AND($A4<>\"\",MOD(SUMPRODUCT(--($A$4:$A4<>$A$3:$A3)),2)=0). It shades the same rows as the helper rule on a sorted list with no blank rows. A blank row in the middle counts as two changes, so the groups after it can get a different shade than with column D. It is slower on long lists.",
+        "5. The list must be sorted by order number. If the same order appears in two places, each place is its own group and gets its own shade. A blank row between lines also starts a new group.",
+        "6. Plain banding tab: the usual =MOD(ROW(),2)=0 rule, shown for contrast. It colors every other row and cuts through an order.",
+        "7. Inserting a row inside the list: copy the formula in D down into the new row, then check that the rule still covers it (Conditional Formatting > Manage Rules).",
+        "",
+        "Checked in LibreOffice Calc only (recalculated and rendered to PDF); not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx, then check Format > Conditional formatting.",
+    ])
+    finish_letter(wb)
+    wb["Lines"].print_title_rows = "3:3"
+    wb["Plain banding"].print_title_rows = "3:3"
+    wb["Lines"].page_setup.fitToHeight = wb["Plain banding"].page_setup.fitToHeight = 1
+    wb.save(OUT / "tidy-tabs-shade-groups.xlsx")
+
+
+def compare_price_lists():
+    wb = Workbook()
+    old = wb.active
+    old.title = "Old"
+    new = wb.create_sheet("New")
+    cp = wb.create_sheet("Compare")
+    old_rows = [("CND-8", 18.00), ("LIP-1", 3.50), ("TOT-1", 24.00), ("PIN-1", 8.00),
+                ("STK-4", 4.50), ("BOX-1", 32.00), ("CRD-1", 5.00), ("MUG-1", 16.00)]
+    new_rows = [("CND-8", 19.50), ("LIP-1", 3.50), ("TOT-1", 24.00), ("PIN-1", 7.50),
+                ("STK-4", 4.50), ("BOX-1", 34.00), ("SOAP-1", 9.00), ("MUG-1", 16.00)]
+    for ws, rows, title in ((old, old_rows, "Old price list"), (new, new_rows, "New price list")):
+        _head_row(ws, 1, ["SKU", "Price", "SKU used"], [14, 12, 14], height=24)
+        for r in range(2, 42):
+            ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+            ws[f"B{r}"].number_format = USD
+            ws[f"C{r}"] = f'=IF(TRIM(A{r})="","",TRIM(A{r}))'
+            ws[f"C{r}"].fill = FORMULA_FILL
+        for i, (s, p) in enumerate(rows):
+            ws[f"A{2 + i}"], ws[f"B{2 + i}"] = s, p
+        ws["E1"] = f"{title}. Fictional prices. Paste SKUs in A and prices in B, up to row 41."
+        ws["E1"].font = Font(italic=True)
+        ws.freeze_panes = "A2"
+    for col, t in zip("ABCDEF", ["Raised", "Lowered", "Same", "New", "Removed", "Check"]):
+        cp[f"{col}1"] = t
+        cp[f"{col}1"].font = Font(bold=True)
+        cp[f"{col}1"].alignment = Alignment(horizontal="right")
+    cp["G1"] = "CHECK"
+    cp["G1"].font = Font(bold=True)
+    cp["G1"].alignment = Alignment(horizontal="right")
+    for col, st in zip("ABCD", ["Raised", "Lowered", "Same", "New"]):
+        cp[f"{col}2"] = f'=COUNTIF($F$4:$F$43,"{st}")'
+    cp["E2"] = '=COUNTIF($K$4:$K$43,"Removed")'
+    cp["F2"] = '=COUNTIF($F$4:$F$43,"Check")'
+    cp["G2"] = '=IF(SUM(A2:D2)+F2=COUNTIF($A$4:$A$43,"?*"),"OK","Check")'
+    for col in "ABCDEFG":
+        cp[f"{col}2"].fill = FORMULA_FILL
+        cp[f"{col}2"].alignment = Alignment(horizontal="right")
+    _head_row(cp, 3, ["SKU", "New price", "Old price", "Change", "Percent", "Status", "Row check"],
+              [14, 12, 12, 12, 11, 12, 18], height=24)
+    for c, t, w in (("I", "Old SKU", 14), ("J", "Old price", 12), ("K", "Removed?", 12)):
+        cp[f"{c}3"] = t
+        cp[f"{c}3"].fill, cp[f"{c}3"].font = HEADER_FILL, HEADER_FONT
+        cp[f"{c}3"].alignment = Alignment(vertical="center", wrap_text=True)
+        cp.column_dimensions[c].width = w
+    cp.column_dimensions["H"].width = 3
+    cp.row_dimensions[3].height = 24
+    for r in range(4, 44):
+        n = r - 2
+        cp[f"A{r}"] = f'=IF(New!C{n}="","",New!C{n})'
+        cp[f"B{r}"] = f'=IF(A{r}="","",New!B{n})'
+        cp[f"C{r}"] = f'=IF(A{r}="","",IFERROR(INDEX(Old!$B$2:$B$41,MATCH(A{r},Old!$C$2:$C$41,0)),""))'
+        cp[f"D{r}"] = f'=IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r}))),"",ROUND(B{r}-C{r},2))'
+        cp[f"E{r}"] = f'=IF(D{r}="","",IF(C{r}=0,"",D{r}/C{r}))'
+        cp[f"G{r}"] = (f'=IF(A{r}="","",IF(NOT(ISNUMBER(B{r})),"Check new price",IF(ISNA(MATCH(A{r},Old!$C$2:$C$41,0)),"OK",'
+                       f'IF(SUMPRODUCT(--(Old!$C$2:$C$41=A{r}))>1,"Duplicate in Old",'
+                       f'IF(ISNUMBER(INDEX(Old!$B$2:$B$41,MATCH(A{r},Old!$C$2:$C$41,0))),"OK","Check old price")))))')
+        cp[f"F{r}"] = (f'=IF(A{r}="","",IF(G{r}<>"OK","Check",IF(ISNA(MATCH(A{r},Old!$C$2:$C$41,0)),"New",'
+                       f'IF(D{r}>0,"Raised",IF(D{r}<0,"Lowered","Same")))))')
+        cp[f"I{r}"] = f'=IF(Old!C{n}="","",Old!C{n})'
+        cp[f"J{r}"] = f'=IF(I{r}="","",Old!B{n})'
+        cp[f"K{r}"] = f'=IF(I{r}="","",IF(ISNUMBER(MATCH(I{r},New!$C$2:$C$41,0)),"","Removed"))'
+        for col in "BCD":
+            cp[f"{col}{r}"].number_format = USD
+        cp[f"J{r}"].number_format = USD
+        cp[f"E{r}"].number_format = "0.0%"
+        for col in "ABCDEFGIJK":
+            cp[f"{col}{r}"].fill = FORMULA_FILL
+            cp[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    cp.conditional_formatting.add("F4:F43", FormulaRule(formula=['$F4="Raised"'], fill=ALERT_FILL))
+    cp.conditional_formatting.add("F4:F43", FormulaRule(formula=['OR($F4="Lowered",$F4="New")'], fill=DONE_FILL))
+    cp.conditional_formatting.add("F4:F43", FormulaRule(formula=['$F4="Check"'], fill=PatternFill("solid", bgColor="FFC000", fgColor="FFC000")))
+    cp.conditional_formatting.add("K4:K43", FormulaRule(formula=['$K4="Removed"'], fill=ALERT_FILL))
+    cp.conditional_formatting.add("G2", FormulaRule(formula=['$G$2<>"OK"'], fill=ALERT_FILL))
+    cp.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Compare Two Price Lists",
+        "",
+        "1. Old tab and New tab: paste or type SKUs in column A and prices in column B (yellow, rows 2 to 41). The SKUs and prices are fictional.",
+        "2. SKU used, column C of each tab: =IF(TRIM(A2)=\"\",\"\",TRIM(A2)). Extra spaces around a SKU, and SKUs typed as numbers in one list and text in the other, then still match.",
+        "3. Compare tab, Old price, C4: =IFERROR(INDEX(Old!$B$2:$B$41,MATCH(A4,Old!$C$2:$C$41,0)),\"\"). It is blank when the SKU is not on the old list.",
+        "4. Change, D4: =ROUND(B4-C4,2). Percent, E4: =D4/C4 (blank when the old price is 0).",
+        "5. Status, F4: Raised, Lowered, Same, New (SKU not on the old list) or Check. Removed, K: an old SKU that is not on the new list.",
+        "6. Check shows when the new price is not a number, the old price is blank or text, or the SKU appears twice in the Old tab (MATCH uses the first one). Row check, G, says which.",
+        "7. MATCH ignores capitals (cnd-8 matches CND-8). SKUs that contain * ? or ~ are not supported. Rows 4 to 43 follow the New tab; rows beyond the lists stay blank.",
+        "8. This shows what changed. It does not say what to charge.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    for t in ("Old", "New"):
+        wb[t].print_title_rows = "1:1"
+    wb["Compare"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-compare-price-lists.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -14436,4 +14826,9 @@ if __name__ == "__main__":
     items_per_order_one_cell()
     last_business_day()
     date_hit_sales_goal()
+    text_duration_to_minutes()
+    fiscal_year_quarter()
+    monthly_running_total()
+    shade_groups()
+    compare_price_lists()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

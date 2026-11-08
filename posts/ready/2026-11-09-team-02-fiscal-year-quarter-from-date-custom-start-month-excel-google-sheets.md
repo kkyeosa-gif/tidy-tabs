@@ -62,7 +62,7 @@ The six quarters add up to $1,756.24, the same as all 18 sales. The template sho
 ## Troubleshooting
 
 ### Every row says Check
-The start month in **B1** must be a whole number from 1 to 12. In the test, 0, 13, 7.5, text such as July, and a blank cell all made every row show Check. Type 7, not July. The template also adds a dropdown rule for **B1** in Excel and Google Sheets, but a paste can bypass it.
+The start month in **B1** must be a whole number from 1 to 12. In the test, 0, 13, 7.5, text such as July, and a blank cell all made every row show Check. Type 7, not July. The template also limits **B1** to a whole number from 1 to 12 with data validation, but a paste can bypass it.
 
 ### One row says Check and the others are fine
 A date typed as text, such as one with a leading apostrophe, is not a date. Retype it, or convert it first. A date with a time of day works. A text amount also shows Check in the row check column.

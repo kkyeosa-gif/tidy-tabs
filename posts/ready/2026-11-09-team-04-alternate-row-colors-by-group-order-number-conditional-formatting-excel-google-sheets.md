@@ -2,7 +2,7 @@
 title: How to Shade Alternating Groups of Rows by Order Number in Excel and Google Sheets
 labels: excel-formulas, small-business, formatting
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The group numbers were recalculated in 10 workbooks (600 rows) and compared with an independent Python model: the sample, empty, one order, one order on 10 lines, 30 single-line orders, blank rows in the middle, unsorted orders, text and number order numbers, capital letters only, and two random sorted sets. The shading was checked by exporting the template to PDF and PNG and looking at the page, and the rule was still in the file after a LibreOffice save and reopen. Excel and Google Sheets were not used. Not run: a row inserted inside the range, 200 rows.
-search_description: Shade every line of an order the same color and flip the shade when the order number changes, with a helper column and one conditional formatting rule. Free template.
+search_description: Shade all lines of an order the same color and flip the shade at each new order number with a helper column and one rule in Excel and Sheets. Free template.
 image_prompts: A stack of kraft packing slips fanned out with every other sheet tinted gray, a roll of twine and a small enamel pin on a wooden packing table, soft daylight, realistic photo, no screens, no readable text, no logos
 image_alt: Fanned stack of packing slips beside twine and an enamel pin on a wooden table
 threads: Plain banded rows cut an order with 4 lines in half.\nNumber the groups: =IF(A5=A4,D4,MAX($D$4:D4)+1). Then the rule =MOD($D4,2)=0 shades every other order, not every other row.\nSorted by order number first, or the same order gets two shades. Sample orders are made up.
@@ -78,10 +78,7 @@ The template also has a **Plain banding** tab with the same 24 lines and the rul
 The list is not sorted by order number, so the same order appears in two places and each place counts as its own group. A test with 5003, 5001, 5001, 5003, 5002, 5003 gave groups 1, 2, 2, 3, 4, 5. Sort by column A, then the groups fix themselves.
 
 ### A blank row between lines changes the shading
-In the helper version a blank row starts one new group, so the order after it flips shade. The helper-free rule counts a blank row as two changes, so the shades after it can differ from the helper version. Delete blank rows inside the list.
-
-### The blank row itself turns gray
-That happens when the rule lacks the `$A4<>""` guard. In the helper version, column D is blank on an empty row, so the rule does not shade it. In the helper-free rule, keep the `AND($A4<>"", ...)` part.
+In the helper version a blank row starts one new group, so the order after it flips shade. The helper-free rule counts a blank row as two changes, so the shades after it can differ from the helper version. Delete blank rows inside the list. Keep the `$A4<>""` guard in the helper-free rule, or the blank row itself can turn gray.
 
 ### 5001 and "5001" get different shades
 An order number stored as a number and the same number stored as text count as different values. Make the whole column one type. Capital letters do not matter, so "a-17" and "A-17" are the same group.
@@ -95,6 +92,6 @@ We did not test inserting a row inside the range. After you insert one, copy the
 
 The file has three tabs. **Lines** has 60 slots from row 4 with the 24 fictional sample lines, the **Group no.** formulas in column D and the shading rule on **A4:D63**. **Plain banding** has the same 24 lines with the `MOD(ROW(),2)` rule for contrast. **How to use** lists the formulas and both rules.
 
-The usual yellow input and gray formula fills are left off on purpose, because a fixed fill would hide the shading. Column D is gray text only. The shading comes from the rule, not from cell fills. The sheet prints on 1 page, US Letter.
+The usual yellow and gray cell fills are left off on purpose, because a fixed fill would hide the shading. Column D is gray text only. The sheet prints on 1 page, US Letter.
 
 To open it in Google Sheets, go to **File > Import > Upload** and select the file. Then check **Format > Conditional formatting**, because the rule was only checked in LibreOffice.

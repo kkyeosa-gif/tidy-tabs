@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfhaCSGm8QQ
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-find-date-you-hit-sales-goal-in.html
 title: How to Find the Date You Hit a Sales Goal in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 21 workbooks and 1,232 comparisons with 0 mismatches. Checked: the sample, a goal equal to a running total, a goal of 0, a blank, text and negative goal, a goal above the total, a first day already over the goal, refunds that pull the total back under the goal, blank days, a text amount, unsorted dates, an empty sheet, 366 days with and without reaching the goal, and five random sets with refunds. Excel and Google Sheets were not used. Not run: TODAY(), a non-US language setting, more rows than the 366 slots, date serials below 61.

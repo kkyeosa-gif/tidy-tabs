@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfgG1VJGiu-
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-find-last-business-day-of-each.html
 title: How to Find the Last Business Day of Each Month in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 18 workbooks and 1,920 comparisons with 0 mismatches. Checked: the sample, an empty holiday list, a Saturday month end (11/30/2024), the 02/29/2028 leap day, a mid-month start, a holiday on a month end, two holidays in a row, three holidays over a weekend, a start date with a time, 120 months, four random sets of 36 months with 20 holidays, and a text holiday, a text start and a holiday with a time (all show Check). Excel and Google Sheets were not used. Not run: WORKDAY with a partly empty holiday range in Excel or Sheets, a non-English weekday name, date serials below 61.

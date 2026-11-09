@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfiQKJqGoRx
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-make-running-total-that-restarts.html
 title: How to Make a Running Total That Restarts Each Month in Excel and Google Sheets
 labels: excel-formulas, small-business, expenses
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 17 workbooks and 203 sorted rows. Checked: the sample, an empty sheet, month and year boundaries (10/31, 11/01, 11/30, 12/31, 01/01, 02/29/2028, 03/01), blank rows in the middle, refunds, five rows on one day, times of day, four random sets up to 60 rows, an unsorted list, a limit of 0, a text or blank limit, a text date and a text amount. Excel and Google Sheets were not used. Not run: more than 60 rows.

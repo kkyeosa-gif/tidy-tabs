@@ -14649,6 +14649,409 @@ def compare_price_lists():
     wb.save(OUT / "tidy-tabs-compare-price-lists.xlsx")
 
 
+def last_price_paid():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Purchases"
+    ws["A1"] = "Fictional purchase log. Type one purchase per row (yellow, rows 4 to 203). New purchases go at the bottom."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Date", "Item", "Unit cost", "Item (trimmed)", "Date as number"], [13, 28, 12, 28, 14], height=32)
+    rows = [
+        (date(2026, 9, 8), "Soy wax, 10 lb", 54.00), (date(2026, 9, 15), "Kraft mailer 6x6x4", 0.62),
+        (date(2026, 9, 22), "Tissue paper, 500 sheets", 18.50), (date(2026, 10, 1), "Lavender oil, 4 oz", 14.25),
+        (date(2026, 10, 6), "Soy wax, 10 lb", 57.50), (date(2026, 10, 13), "Kraft mailer 6x6x4", 0.66),
+        (date(2026, 10, 20), "8 oz tin", 1.15), (date(2026, 10, 27), "Tissue paper, 500 sheets", 19.25),
+        (date(2026, 11, 3), "Soy wax, 10 lb", 61.00), (date(2026, 11, 5), "Lavender oil, 4 oz", 15.10),
+        (date(2026, 11, 9), "Kraft mailer 6x6x4", 0.71), (date(2026, 10, 15), "Tissue paper, 500 sheets", 18.90),
+        (date(2026, 11, 7), "8 oz tin", 1.20),
+    ]
+    for r in range(4, 204):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+        ws[f"D{r}"] = f'=IF(TRIM(B{r})="","",TRIM(B{r}))'
+        ws[f"D{r}"].fill = FORMULA_FILL
+        ws[f"E{r}"] = f"=N(A{r})"
+        ws[f"E{r}"].number_format = "mm/dd/yyyy;;;"
+        ws[f"E{r}"].fill = FORMULA_FILL
+    for i, (d, item, cost) in enumerate(rows):
+        ws[f"A{4 + i}"], ws[f"B{4 + i}"], ws[f"C{4 + i}"] = d, item, cost
+    ws.freeze_panes = "A4"
+    lk = wb.create_sheet("Lookup")
+    lk["A1"] = "Type the items you want a price for in column A (yellow, rows 4 to 23). Names match the Purchases tab; capitals and extra spaces are ignored."
+    lk["A1"].font = Font(italic=True)
+    _head_row(lk, 3, ["Item to look up", "Purchases found", "Last price entered", "On Purchases row", "Date on that row",
+                      "Newest date for this item", "Status"], [28, 12, 14, 12, 13, 14, 22], height=46)
+    P = "Purchases!"
+    cond = f"(({P}$D$4:$D$203=TRIM(A{{r}}))*ISNUMBER({P}$C$4:$C$203))"
+    for r in range(4, 24):
+        c = cond.format(r=r)
+        lk[f"A{r}"].fill = INPUT_FILL
+        lk[f"B{r}"] = f'=IF(TRIM(A{r})="","",SUMPRODUCT({c}))'
+        lk[f"C{r}"] = f'=IF(B{r}="","",IF(B{r}=0,"No purchase",LOOKUP(2,1/{c},{P}$C$4:$C$203)))'
+        lk[f"D{r}"] = f'=IF(ISNUMBER(C{r}),LOOKUP(2,1/{c},ROW({P}$C$4:$C$203)),"")'
+        lk[f"E{r}"] = (f'=IF(ISNUMBER(D{r}),IF(ISNUMBER(INDEX({P}$A$4:$A$203,D{r}-3)),INDEX({P}$A$4:$A$203,D{r}-3),"No date"),"")')
+        lk[f"F{r}"] = f'=IF(ISNUMBER(D{r}),SUMPRODUCT(MAX({c}*{P}$E$4:$E$203)),"")'
+        lk[f"G{r}"] = (f'=IF(B{r}="","",IF(B{r}=0,"No purchase",IF(NOT(ISNUMBER(E{r})),"No date on that row",'
+                       f'IF(F{r}>E{r},"Newer date higher up","OK"))))')
+        lk[f"C{r}"].number_format = USD
+        lk[f"E{r}"].number_format = US_DATE
+        lk[f"F{r}"].number_format = "mm/dd/yyyy;;;"
+        for col in "BCDEFG":
+            lk[f"{col}{r}"].fill = FORMULA_FILL
+            lk[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, t in enumerate(["Soy wax, 10 lb", "Kraft mailer 6x6x4", "  tissue paper, 500 sheets ", "Lavender oil, 4 oz", "8 oz tin",
+                           "Wax melt molds"]):
+        lk[f"A{4 + i}"] = t
+    lk.column_dimensions["H"].width = 3
+    lk.column_dimensions["I"].width = 40
+    lk.column_dimensions["J"].width = 12
+    _summary_block(lk, "I", "J", [
+        (3, "Items typed", '=SUMPRODUCT(--(TRIM(A4:A23)<>""))', "0"),
+        (4, "Items with a price", "=COUNT(C4:C23)", "0"),
+        (5, "Items with no purchase", '=COUNTIF(G4:G23,"No purchase")', "0"),
+        (6, "Items where a newer date is higher up", '=COUNTIF(G4:G23,"Newer*")', "0"),
+        (7, "Purchase rows with an item but no number cost", f'=SUMPRODUCT(--({P}$D$4:$D$203<>""),--NOT(ISNUMBER({P}$C$4:$C$203)))', "0"),
+        (8, "Purchase rows with a date that is not a real date", f'=SUMPRODUCT(--({P}$D$4:$D$203<>""),--({P}$A$4:$A$203<>""),--NOT(ISNUMBER({P}$A$4:$A$203)))', "0"),
+        (9, "CHECK", '=IF(AND(J3=J4+J5,J7=0,J8=0),"OK","Check")', "General"),
+    ])
+    lk.conditional_formatting.add("G4:G23", FormulaRule(formula=['OR($G4="Newer date higher up",LEFT($G4,7)="No date")'], fill=ALERT_FILL))
+    lk.conditional_formatting.add("J9", FormulaRule(formula=['$J$9<>"OK"'], fill=ALERT_FILL))
+    lk.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Look Up the Most Recent Price Paid",
+        "",
+        "1. Purchases tab: one purchase per row in A, B and C (yellow, up to row 203). The items, dates and prices are fictional. Column D is the item with extra spaces removed.",
+        "2. Lookup tab: type an item name in column A (yellow, up to row 23).",
+        "3. Last price entered, C4: =LOOKUP(2,1/((Purchases!$D$4:$D$203=TRIM(A4))*ISNUMBER(Purchases!$C$4:$C$203)),Purchases!$C$4:$C$203). The 1/(...) makes a 1 for each row that matches and a #DIV/0! error for every other row. LOOKUP with 2 cannot find 2, so it returns the last 1, which is the last matching row. Rows with no number in the cost column are skipped.",
+        "4. On Purchases row, D4: the same LOOKUP, returning ROW(...) instead of the cost. Date on that row, E4: INDEX of the Date column at that row (No date when it is blank or text).",
+        "5. Newest date for this item, F4: =SUMPRODUCT(MAX((match)*Purchases!$E$4:$E$203)). Column E on the Purchases tab is =N(A4), the date as a number (0 when the date is blank or typed as text), so one text date cannot break the formula. The CHECK block counts dates that are not real dates.",
+        "6. Status, G4: OK when the last row is also the newest date (a tie counts as OK). Newer date higher up means a purchase typed earlier in the list has a later date, so the last row is not the latest purchase. Sort the Purchases tab by date (select A3:C203, Data > Sort range, column A, A to Z) or decide which one you want.",
+        "7. No purchase means the item name was not found with a number cost. Check the spelling; a name that differs by an extra word or a dash is a different item.",
+        "8. This finds a price in your own log. It does not say what the price should be.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Purchases"].print_title_rows = "3:3"
+    wb["Lookup"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-last-price-paid.xlsx")
+
+
+def order_quantity_case_pack():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Order"
+    ws["A1"] = "Fictional supplies. Type what you need, the case size and the supplier's minimum (yellow, rows 4 to 43)."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Item", "Need (units)", "Case size", "Minimum order (units)", "Cases", "Units to order", "Extra units",
+                      "Unit cost", "Order cost", "Row check"], [28, 12, 10, 14, 9, 12, 10, 11, 13, 11], height=46)
+    rows = [
+        ("Kraft mailer 6x6x4", 130, 25, 100, 0.62), ("Tissue paper packs", 3, 2, 0, 18.50), ("8 oz candle tin", 340, 24, 240, 1.15),
+        ("Soy wax 10 lb box", 0, 1, 0, 54.00), ("Lavender oil 4 oz", 5, 6, 12, 14.25), ("Thank-you cards", 40, 50, 0, 0.30),
+        ("Shipping label roll (500)", 900, 500, 1000, 0.03), ("Glass jar 8 oz", 77, 12, 0, 1.40),
+    ]
+    for r in range(4, 44):
+        for col in "ABCDH":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ok_h = f'OR(H{r}="",ISNUMBER(H{r}))'
+        d_part = (f'IF(D{r}="","OK",IF(ISNUMBER(D{r}),IF(AND(D{r}>=0,D{r}=INT(D{r})),"OK","Check"),"Check"))')
+        ws[f"J{r}"] = (f'=IF(COUNTA(A{r}:D{r},H{r})=0,"",IF({ok_h},IF(ISNUMBER(B{r}),IF(ISNUMBER(C{r}),'
+                       f'IF(AND(B{r}>=0,B{r}=INT(B{r}),C{r}>=1,C{r}=INT(C{r})),{d_part},"Check"),"Check"),"Check"),"Check"))')
+        ws[f"E{r}"] = f'=IF(J{r}="OK",IF(B{r}=0,0,ROUNDUP(MAX(B{r},D{r})/C{r},0)),"")'
+        ws[f"F{r}"] = f'=IF(J{r}="OK",E{r}*C{r},"")'
+        ws[f"G{r}"] = f'=IF(J{r}="OK",F{r}-B{r},"")'
+        ws[f"I{r}"] = f'=IF(AND(J{r}="OK",ISNUMBER(H{r})),ROUND(F{r}*H{r},2),"")'
+        ws[f"H{r}"].number_format = USD
+        ws[f"I{r}"].number_format = USD
+        for col in "EFGIJ":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (item, need, case, mn, cost) in enumerate(rows):
+        r = 4 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"], ws[f"H{r}"] = item, need, case, mn, cost
+    ws.column_dimensions["K"].width = 3
+    ws.column_dimensions["L"].width = 30
+    ws.column_dimensions["M"].width = 14
+    _summary_block(ws, "L", "M", [
+        (3, "Rows with an order", '=COUNTIF(J4:J43,"OK")', "0"),
+        (4, "Units needed", '=SUMIF(J4:J43,"OK",B4:B43)', "0"),
+        (5, "Units to order", "=SUM(F4:F43)", "0"),
+        (6, "Extra units", "=SUM(G4:G43)", "0"),
+        (7, "Order cost", "=SUM(I4:I43)", USD),
+        (8, "Rows showing Check", '=COUNTIF(J4:J43,"Check")', "0"),
+        (9, "CHECK", '=IF(AND(M8=0,M5=M4+M6),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("J4:J43", FormulaRule(formula=['$J4="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("M9", FormulaRule(formula=['$M$9<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Round an Order Quantity Up to a Case Size and Minimum Order",
+        "",
+        "1. Order tab: for each item type what you need (B), the case size (C), the supplier's minimum order in units (D, leave blank for none) and the unit cost (H). Yellow cells, up to row 43. The items and prices are fictional.",
+        "2. Cases, E4: =IF(B4=0,0,ROUNDUP(MAX(B4,D4)/C4,0)). MAX picks the larger of what you need and the minimum, ROUNDUP turns the division into whole cases.",
+        "3. Units to order, F4: =E4*C4. Extra units, G4: =F4-B4. Order cost, I4: =ROUND(F4*H4,2).",
+        "4. If you need 0 units, nothing is ordered, even when the supplier has a minimum.",
+        "5. A minimum that is not a multiple of the case size is rounded up to whole cases (a minimum of 100 with a case size of 24 orders 120).",
+        "6. Row check, J: Check when the need or minimum is not a whole number 0 or more, the case size is not a whole number 1 or more, or the unit cost is text. The row is then not ordered and not counted.",
+        "7. The case size and minimum come from your supplier. Type what they quote you.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Order"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-order-quantity-case-size.xlsx")
+
+
+def exact_tag_count():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Fictional orders. Type tags separated by commas (yellow, rows 4 to 203). Tags to count go in F4:F13."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Order", "Tags (comma separated)", "Amount", "Tags cleaned", "", "Tag to count", "Orders with this tag",
+                      "Amount of those orders", "COUNTIF with * (partial match)", "Difference"],
+              [10, 30, 12, 34, 3, 16, 14, 16, 18, 12], height=46)
+    ws["E3"].fill = PatternFill(fill_type=None)
+    orders = [
+        (1001, "gift, rush", 24.00), (1002, "Gift Wrap", 18.00), (1003, "gifted, repeat", 32.50), (1004, "wholesale", 210.00),
+        (1005, "gift , personalized", 45.00), (1006, None, 15.00), (1007, "rush, gift wrap, repeat", 62.00),
+        (1008, "personalized", 28.00), (1009, "  GIFT  ", 19.50), (1010, "repeat, wholesale", 180.00),
+        (1011, "gift, gift", 21.00), (1012, "rush", 36.00),
+    ]
+    for r in range(4, 204):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"C{r}"].number_format = USD
+        ws[f"D{r}"] = (f'=IF(TRIM(B{r})="","",","&SUBSTITUTE(SUBSTITUTE(LOWER(TRIM(B{r})),", ",",")," ,",",")&",")')
+        ws[f"D{r}"].fill = FORMULA_FILL
+    for i, (o, t, a) in enumerate(orders):
+        r = 4 + i
+        ws[f"A{r}"], ws[f"C{r}"] = o, a
+        if t is not None:
+            ws[f"B{r}"] = t
+    tags = ["gift", "gift wrap", "rush", "repeat", "wholesale", "personalized"]
+    for r in range(4, 14):
+        ws[f"F{r}"].fill = INPUT_FILL
+        pat = f'","&LOWER(TRIM(F{r}))&","'
+        ws[f"G{r}"] = f'=IF(TRIM(F{r})="","",IF(ISNUMBER(FIND(",",F{r})),"Check",SUMPRODUCT(--ISNUMBER(FIND({pat},$D$4:$D$203)))))'
+        ws[f"H{r}"] = f'=IF(ISNUMBER(G{r}),SUMPRODUCT(--ISNUMBER(FIND({pat},$D$4:$D$203)),$C$4:$C$203),"")'
+        ws[f"I{r}"] = f'=IF(ISNUMBER(G{r}),COUNTIF($B$4:$B$203,"*"&TRIM(F{r})&"*"),"")'
+        ws[f"J{r}"] = f'=IF(ISNUMBER(G{r}),I{r}-G{r},"")'
+        ws[f"H{r}"].number_format = USD
+        for col in "GHIJ":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, t in enumerate(tags):
+        ws[f"F{4 + i}"] = t
+    ws.column_dimensions["K"].width = 3
+    ws.column_dimensions["L"].width = 32
+    ws.column_dimensions["M"].width = 12
+    _summary_block(ws, "L", "M", [
+        (3, "Orders listed", '=SUMPRODUCT(--(((A4:A203<>"")+(B4:B203<>"")+(C4:C203<>""))>0))', "0"),
+        (4, "Orders with no tags", '=M3-SUMPRODUCT(--(D4:D203<>""))', "0"),
+        (5, "Amounts that are not numbers", '=SUMPRODUCT(--(C4:C203<>""),--NOT(ISNUMBER(C4:C203)))', "0"),
+        (6, "Tags to count that contain a comma", '=COUNTIF(G4:G13,"Check")', "0"),
+        (7, "CHECK", '=IF(AND(M5=0,M6=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("M7", FormulaRule(formula=['$M$7<>"OK"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("G4:G13", FormulaRule(formula=['$G4="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Count Orders With an Exact Tag in a Comma Separated Cell",
+        "",
+        "1. Orders tab: one order per row, with its tags in column B separated by commas (yellow, up to row 203). The orders, tags and amounts are fictional. Type the tags you want to count in F4:F13.",
+        "2. Tags cleaned, D4: =IF(TRIM(B4)=\"\",\"\",\",\"&SUBSTITUTE(SUBSTITUTE(LOWER(TRIM(B4)),\", \",\",\"),\" ,\",\",\")&\",\"). It lowercases the tags, removes spaces next to commas and puts a comma at both ends, so gift wrap, rush becomes ,gift wrap,rush,.",
+        "3. Orders with this tag, G4: =SUMPRODUCT(--ISNUMBER(FIND(\",\"&LOWER(TRIM(F4))&\",\",$D$4:$D$203))). It looks for the tag with a comma on each side, so gift matches ,gift, but not ,gifted, or ,gift wrap,. An order that lists the same tag twice is counted once.",
+        "4. Amount of those orders, H4: the same test, multiplied by the Amount column with SUMPRODUCT.",
+        "5. COUNTIF with * (partial match), I4: =COUNTIF($B$4:$B$203,\"*\"&TRIM(F4)&\"*\"). It counts any cell that contains the letters, so gift also counts gifted and gift wrap. Difference, J4, is how many orders it over-counts.",
+        "6. A tag you type in F cannot contain a comma (it shows Check). Capitals and spaces around commas do not matter. A tag with * ? or ~ in column F is searched as plain characters in G and H but as a wildcard in I.",
+        "7. Amount cells that are text are skipped in H and counted in the CHECK block.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Orders"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-count-exact-tag.xlsx")
+
+
+def cents_to_dollars():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Payments"
+    ws["A1"] = "Payout your processor reported ($)"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = 1160.94
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = USD
+    ws["C1"] = "Fictional payments. Paste amounts in whole cents into C and D (yellow, rows 4 to 203)."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Date", "Order", "Amount (cents)", "Fee (cents)", "Amount ($)", "Fee ($)", "Net ($)", "Row check",
+                      "", "Dollars typed", "Cents"],
+              [13, 12, 15, 12, 13, 11, 13, 11, 3, 14, 12], height=32)
+    ws["I3"].fill = PatternFill(fill_type=None)
+    pay = [
+        (date(2026, 11, 2), 2001, 1850, 84), (date(2026, 11, 2), 2002, 12500, 405), (date(2026, 11, 3), 2003, 5, None),
+        (date(2026, 11, 4), 2004, -2400, None), (date(2026, 11, 5), 2005, 4999, 175), (date(2026, 11, 6), 2006, 100000, 3120),
+        (date(2026, 11, 7), 2007, 2175, 94), (date(2026, 11, 9), 2008, 899, 56),
+    ]
+    for r in range(4, 204):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = "#,##0"
+        ws[f"D{r}"].number_format = "#,##0"
+        ws[f"H{r}"] = (f'=IF(COUNTA(C{r}:D{r})=0,"",IF(ISNUMBER(C{r}),IF(C{r}=INT(C{r}),IF(D{r}="","OK",'
+                       f'IF(ISNUMBER(D{r}),IF(D{r}=INT(D{r}),"OK","Check"),"Check")),"Check"),"Check"))')
+        ws[f"E{r}"] = f'=IF(H{r}="OK",ROUND(C{r}/100,2),"")'
+        ws[f"F{r}"] = f'=IF(H{r}="OK",IF(D{r}="",0,ROUND(D{r}/100,2)),"")'
+        ws[f"G{r}"] = f'=IF(H{r}="OK",ROUND(E{r}-F{r},2),"")'
+        for col in "EFG":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "EFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (d, o, c, f) in enumerate(pay):
+        r = 4 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = d, o, c
+        if f is not None:
+            ws[f"D{r}"] = f
+    for r in range(4, 14):
+        ws[f"J{r}"].fill = INPUT_FILL
+        ws[f"J{r}"].number_format = USD
+        ws[f"K{r}"] = f'=IF(J{r}="","",IF(ISNUMBER(J{r}),ROUND(J{r}*100,0),"Check"))'
+        ws[f"K{r}"].number_format = "#,##0"
+        ws[f"K{r}"].fill = FORMULA_FILL
+    for i, v in enumerate([19.99, 0.07, 1250, 4.35]):
+        ws[f"J{4 + i}"] = v
+    ws.column_dimensions["L"].width = 3
+    ws.column_dimensions["M"].width = 30
+    ws.column_dimensions["N"].width = 14
+    _summary_block(ws, "M", "N", [
+        (3, "Payments converted", '=COUNTIF(H4:H203,"OK")', "0"),
+        (4, "Amount total", "=SUM(E4:E203)", USD),
+        (5, "Fee total", "=SUM(F4:F203)", USD),
+        (6, "Net total", "=SUM(G4:G203)", USD),
+        (7, "Payout in B1", '=IF(ISNUMBER(B1),B1,"")', USD),
+        (8, "Net total minus payout", '=IF(ISNUMBER(B1),ROUND(N6-B1,2),"")', USD),
+        (9, "Rows showing Check", '=COUNTIF(H4:H203,"Check")', "0"),
+        (10, "CHECK", '=IF(N9<>0,"Check",IF(ISNUMBER(B1),IF(N8=0,"OK","Check"),"No payout in B1"))', "General"),
+    ])
+    ws.conditional_formatting.add("H4:H203", FormulaRule(formula=['$H4="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("N10", FormulaRule(formula=['$N$10="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Convert Cents to Dollars in a Payments Export",
+        "",
+        "1. Payments tab: paste the amount and fee columns of your export in whole cents into C and D (yellow, up to row 203). The payments and the payout in B1 are fictional.",
+        "2. Amount ($), E4: =ROUND(C4/100,2). Fee ($), F4: the same on D4, 0 when D4 is blank. Net ($), G4: =ROUND(E4-F4,2). A refund is a negative amount and stays negative.",
+        "3. Row check, H: Check when the amount is not a number, a number with a fraction of a cent (1850.5), or when the fee is text or has a fraction. The row is then not converted and not counted. A number stored as text (left aligned, green triangle) shows Check; convert it to a number first.",
+        "4. Compare: type the payout your processor reported in B1. Net total minus payout, N8, should be 0.00.",
+        "5. Going the other way, K4: =ROUND(J4*100,0). The ROUND matters: in many spreadsheets 19.99*100 is 1998.9999999999998 before rounding.",
+        "6. Dividing by 100 does not change the stored cents, so you can keep the originals in C and D.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Payments"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-cents-to-dollars.xlsx")
+
+
+def billing_periods():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Entries"
+    ws["A1"] = "First period starts"
+    ws["A2"] = "Days in each period"
+    for a in ("A1", "A2"):
+        ws[a].font = Font(bold=True)
+    ws["B1"], ws["B2"] = date(2026, 11, 2), 14
+    ws["B1"].number_format = US_DATE
+    ws["B1"].fill = ws["B2"].fill = INPUT_FILL
+    ws["C1"] = "Fictional entries. Type one per row (yellow, rows 5 to 204)."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Date", "What", "Amount", "Period no.", "Period starts", "Period ends", "", "Period no.", "Starts", "Ends",
+                      "Entries", "Amount"], [13, 26, 12, 12, 13, 13, 3, 26, 13, 13, 9, 13], height=32)
+    ws["G4"].fill = PatternFill(fill_type=None)
+    ent = [
+        (date(2026, 10, 30), "Logo revision", 120.00), (date(2026, 11, 2), "Kickoff call", 75.00), (date(2026, 11, 4), "Homepage mockup", 340.00),
+        (date(2026, 11, 10), "Copy edit", 90.00), (date(2026, 11, 15), "Revisions round 1", 150.00), (date(2026, 11, 16), "Banner design", 210.00),
+        (date(2026, 11, 20), "Photo retouching", 130.00), (date(2026, 11, 29), "Revisions round 2", 95.00), (date(2026, 11, 30), "Launch support", 180.00),
+        (date(2026, 12, 8), "Style guide", 260.00), (date(2026, 12, 13), "Social templates", 145.00), (date(2026, 12, 14), "Email header", 85.00),
+        (date(2026, 12, 20), "Final files", 60.00),
+    ]
+    for r in range(5, 205):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+        ws[f"D{r}"] = (f'=IF(A{r}="","",IF(NOT(ISNUMBER(A{r})),"Check",IF(NOT(ISNUMBER($B$1)),"Check",IF($B$1<>INT($B$1),"Check",'
+                       f'IF(NOT(ISNUMBER($B$2)),"Check",IF(OR($B$2<1,$B$2<>INT($B$2)),"Check",'
+                       f'IF(A{r}<$B$1,"Before start",INT((A{r}-$B$1)/$B$2)+1)))))))')
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),$B$1+(D{r}-1)*$B$2,"")'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(D{r}),E{r}+$B$2-1,"")'
+        ws[f"E{r}"].number_format = ws[f"F{r}"].number_format = US_DATE
+        for col in "DEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (d, w, a) in enumerate(ent):
+        ws[f"A{5 + i}"], ws[f"B{5 + i}"], ws[f"C{5 + i}"] = d, w, a
+    for r in range(5, 17):
+        ws[f"H{r}"] = 1 if r == 5 else f"=H{r - 1}+1"
+        ws[f"I{r}"] = f'=IF(AND(COUNT($B$1,$B$2)=2,$B$2>=1),$B$1+(H{r}-1)*$B$2,"")'
+        ws[f"J{r}"] = f'=IF(ISNUMBER(I{r}),I{r}+$B$2-1,"")'
+        ws[f"K{r}"] = f"=COUNTIF($D$5:$D$204,H{r})"
+        ws[f"L{r}"] = f"=SUMIFS($C$5:$C$204,$D$5:$D$204,H{r})"
+        ws[f"I{r}"].number_format = ws[f"J{r}"].number_format = US_DATE
+        ws[f"L{r}"].number_format = USD
+        for col in "HIJKL":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    extra = [
+        (17, "Periods 1 to 12", "=SUM(K5:K16)", "=SUM(L5:L16)"),
+        (18, "Before the first period", '=COUNTIF(D5:D204,"Before start")', '=SUMIFS(C5:C204,D5:D204,"Before start")'),
+        (19, "After period 12", "=COUNT(D5:D204)-K17", '=SUMIFS(C5:C204,D5:D204,">12")'),
+        (20, "Rows showing Check", '=COUNTIF(D5:D204,"Check")', None),
+        (21, "All amounts", None, "=SUM(C5:C204)"),
+        (22, "CHECK", None, '=IF(AND(ISNUMBER(B1),ISNUMBER(B2),K20=0,ROUND(L17+L18+L19-L21,2)=0),"OK","Check")'),
+    ]
+    for r, label, k, l in extra:
+        ws[f"H{r}"] = label
+        ws[f"H{r}"].font = Font(bold=True)
+        for col, f in (("K", k), ("L", l)):
+            if f:
+                ws[f"{col}{r}"] = f
+                ws[f"{col}{r}"].fill = FORMULA_FILL
+                ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        ws[f"L{r}"].number_format = USD
+    ws["L22"].number_format = "General"
+    ws.conditional_formatting.add("D5:D204", FormulaRule(formula=['OR($D5="Check",$D5="Before start")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("L22", FormulaRule(formula=['$L$22<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Group Dates Into 14-Day Billing Periods",
+        "",
+        "1. Entries tab: type the date the first period starts in B1 and the number of days in each period in B2 (14 for two weeks). Then one entry per row in A, B and C (yellow, up to row 204). The entries are fictional.",
+        "2. Period no., D5: =INT((A5-$B$1)/$B$2)+1. Dates 0 to 13 days after B1 are period 1, 14 to 27 days after are period 2, and so on. A date before B1 shows Before start.",
+        "3. Period starts, E5: =$B$1+(D5-1)*$B$2. Period ends, F5: =E5+$B$2-1.",
+        "4. Table at the right: the first 12 periods with =COUNTIF($D$5:$D$204,H5) and =SUMIFS($C$5:$C$204,$D$5:$D$204,H5). Change B1 or B2 and the table moves with them.",
+        "5. Rows below the table count entries before the first period and after period 12. The CHECK cell is OK when every amount is in one of the three groups and no row shows Check.",
+        "6. Check in column D means the date is text, or B1 is not a whole date, or B2 is not a whole number of days 1 or more.",
+        "7. This groups dates. It does not decide when you must bill anyone.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Entries"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-billing-periods.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -14831,4 +15234,9 @@ if __name__ == "__main__":
     monthly_running_total()
     shade_groups()
     compare_price_lists()
+    last_price_paid()
+    order_quantity_case_pack()
+    exact_tag_count()
+    cents_to_dollars()
+    billing_periods()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

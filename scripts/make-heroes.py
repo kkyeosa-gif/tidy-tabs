@@ -722,7 +722,32 @@ def heroes_2026_11_09():
                 "Compare", hide_cols="GHIJK", name="pricecmp"))
 
 
+def heroes_2026_11_10():
+    t = "templates/"
+    d = "images/2026-11-10-team-0%d-%s/"
+    save(d % (1, "look-up-most-recent-price-paid-last-match-lookup-excel-google-sheets") + "last-price-paid-lookup-template.png",
+         render(compact_copy(t + "tidy-tabs-last-price-paid.xlsx", "Lookup", 9, "lastprice", hide_rows=[1, 2], clear=["A1"]),
+                "Lookup", hide_cols="IJ", name="lastprice"))
+    save(d % (2, "round-order-quantity-up-to-case-size-minimum-order-roundup-excel-google-sheets") + "order-quantity-case-size-template.png",
+         render(compact_copy(t + "tidy-tabs-order-quantity-case-size.xlsx", "Order", 11, "casesize", hide_rows=[1, 2], clear=["A1"]),
+                "Order", hide_cols="KLM", name="casesize"))
+    save(d % (3, "count-orders-with-exact-tag-comma-separated-cell-find-sumproduct-excel-google-sheets") + "count-exact-tag-template.png",
+         render(compact_copy(t + "tidy-tabs-count-exact-tag.xlsx", "Orders", 15, "exacttag", hide_rows=[1, 2], clear=["A1"]),
+                "Orders", hide_cols="KLM", name="exacttag"))
+    save(d % (4, "convert-cents-to-dollars-payments-export-round-divide-100-excel-google-sheets") + "cents-to-dollars-payments-template.png",
+         render(compact_copy(t + "tidy-tabs-cents-to-dollars.xlsx", "Payments", 11, "cents", hide_rows=[2], clear=["C1"],
+                             labels={"A1": "Payout"}),
+                "Payments", hide_cols="IJKLMN", name="cents"))
+    save(d % (5, "group-dates-into-14-day-billing-periods-int-excel-google-sheets") + "billing-periods-14-day-template.png",
+         render(compact_copy(t + "tidy-tabs-billing-periods.xlsx", "Entries", 17, "billperiods", hide_rows=[3], clear=["C1"],
+                             labels={"A1": "Start", "A2": "Days"}),
+                "Entries", hide_cols="GHIJKL", name="billperiods"))
+
+
 def main():
+    if "--only-2026-11-10" in sys.argv:
+        heroes_2026_11_10()
+        return
     if "--only-2026-11-09" in sys.argv:
         heroes_2026_11_09()
         return

@@ -201,3 +201,10 @@
 - How to Combine All Items in an Order Into One Cell in Excel and Google Sheets - `combine-order-items-into-one-cell-running-join-excel-google-sheets`
 - How to Find the Last Business Day of Each Month in Excel and Google Sheets - `last-business-day-of-month-eomonth-workday-excel-google-sheets`
 - How to Find the Date You Hit a Sales Goal in Excel and Google Sheets - `date-you-hit-sales-goal-cumulative-total-match-excel-google-sheets`
+
+## 2026-11-10 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 수식은 LibreOffice 24.2.7.2 에서 실행해 확인함 - Excel/Sheets 는 미확인)
+- How to Look Up the Most Recent Price Paid for an Item in Excel and Google Sheets - `look-up-most-recent-price-paid-last-match-lookup-excel-google-sheets`
+- How to Round an Order Quantity Up to a Case Size and Minimum Order in Excel and Google Sheets - `round-order-quantity-up-to-case-size-minimum-order-roundup-excel-google-sheets`
+- How to Count Orders With an Exact Tag in a Comma Separated Cell in Excel and Google Sheets - `count-orders-with-exact-tag-comma-separated-cell-find-sumproduct-excel-google-sheets`
+- How to Convert Cents to Dollars in a Payments Export in Excel and Google Sheets - `convert-cents-to-dollars-payments-export-round-divide-100-excel-google-sheets`
+- How to Group Dates Into 14-Day Billing Periods in Excel and Google Sheets - `group-dates-into-14-day-billing-periods-int-excel-google-sheets`

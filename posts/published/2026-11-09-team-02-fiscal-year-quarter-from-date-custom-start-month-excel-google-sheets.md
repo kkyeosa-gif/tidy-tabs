@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfh7kS8IyLZ
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-get-fiscal-year-and-quarter-from.html
 title: How to Get the Fiscal Year and Quarter From a Date in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 146 workbooks and 13,177 date rows with 0 mismatches. Checked: every day from 01/01/2026 to 12/31/2028 (including 02/29/2028) for each start month 1 to 12, dates with a time of day, a date typed as text, blank dates, start month 0, 13, 7.5, text and blank, and a text amount. Excel and Google Sheets were not used. Not run: more than 100 sales rows, a non-US language setting.

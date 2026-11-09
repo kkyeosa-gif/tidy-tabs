@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfht0-eIJRg
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-convert-text-like-2h-30m-into.html
 title: How to Convert Text Like 2h 30m Into Minutes in Excel and Google Sheets
 labels: excel-formulas, small-business, time-tracking
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 11 workbooks and 800 rows. Checked: the sample, an empty sheet, 48 typed entries (capital H and M, no spaces, extra spaces, 1.5h, 90m, 30 min, blank, n/a, 2:30, 5, 2h 30, 0m, -30m, h30m, abc and more), two random sets of 100 rows, numbers typed into the cells, a rate of 0, a text rate, a blank rate, tab characters and non-breaking spaces. Excel and Google Sheets were not used. Not run: Excel's handling of a non-breaking space, a non-US language setting, more than 100 entries.

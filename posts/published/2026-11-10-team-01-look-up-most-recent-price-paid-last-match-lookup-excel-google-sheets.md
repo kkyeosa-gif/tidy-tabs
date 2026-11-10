@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfkSp8FG70d
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-look-up-most-recent-price-paid.html
 title: How to Look Up the Most Recent Price Paid for an Item in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 25 workbooks and 960 comparisons (792 lookup cells and 168 summary cells) with 0 mismatches left. Checked: the sample, an empty log, the first, middle and last match, one match, no match, capitals and extra spaces in the log and in the item typed, a blank or text cost on the last row (skipped), a zero cost (counts), a text date on the last row and mid-log, blank dates, the same date twice, an older date on the last row, blank item rows, a full 200-row log, 20 items, and 10 random logs of 5 to 200 rows. Excel and Google Sheets were not used. Not run: more rows than the template holds, a non-US language setting.

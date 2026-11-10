@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfiroV2lCeM
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-shade-alternating-groups-of-rows.html
 title: How to Shade Alternating Groups of Rows by Order Number in Excel and Google Sheets
 labels: excel-formulas, small-business, formatting
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The group numbers were recalculated in 10 workbooks (600 rows) and compared with an independent Python model: the sample, empty, one order, one order on 10 lines, 30 single-line orders, blank rows in the middle, unsorted orders, text and number order numbers, capital letters only, and two random sorted sets. The shading was checked by exporting the template to PDF and PNG and looking at the page, and the rule was still in the file after a LibreOffice save and reopen. Excel and Google Sheets were not used. Not run: a row inserted inside the range, 200 rows.

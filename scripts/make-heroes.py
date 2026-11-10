@@ -744,7 +744,33 @@ def heroes_2026_11_10():
                 "Entries", hide_cols="GHIJKL", name="billperiods"))
 
 
+def heroes_2026_11_11():
+    t = "templates/"
+    d = "images/2026-11-11-team-0%d-%s/"
+    save(d % (1, "shorten-title-to-character-limit-whole-word-left-find-substitute-excel-google-sheets") + "shorten-title-whole-word-template.png",
+         render(compact_copy(t + "tidy-tabs-shorten-title-whole-word.xlsx", "Titles", 15, "shorttitle", clear=["C1"],
+                             labels={"A1": "Limit"}),
+                "Titles", hide_cols="GH", name="shorttitle"))
+    save(d % (2, "check-zip-code-format-5-digit-zip-plus-4-len-isnumber-excel-google-sheets") + "check-zip-code-format-template.png",
+         render(compact_copy(t + "tidy-tabs-check-zip-format.xlsx", "ZIPs", 18, "zipformat", hide_rows=[1], clear=["A1"]),
+                "ZIPs", name="zipformat"))
+    save(d % (3, "split-address-with-line-breaks-into-columns-char-10-mid-excel-google-sheets") + "split-address-line-breaks-template.png",
+         render(compact_copy(t + "tidy-tabs-split-line-breaks.xlsx", "Addresses", 13, "linebreaks", hide_rows=[1, 2], clear=["A1"]),
+                "Addresses", hide_cols="HIJ", widths={"F": 26}, name="linebreaks"))
+    save(d % (4, "month-name-to-month-number-match-left-excel-google-sheets") + "month-name-to-month-number-template.png",
+         render(compact_copy(t + "tidy-tabs-month-name-to-number.xlsx", "Sales", 20, "monthnum", hide_rows=[1, 2], clear=["A1"],
+                             labels={"F18": "All sales", "F19": "Not numbers"}),
+                "Sales", name="monthnum"))
+    save(d % (5, "average-last-n-entries-growing-list-index-count-excel-google-sheets") + "average-last-5-entries-template.png",
+         render(compact_copy(t + "tidy-tabs-average-last-n.xlsx", "Log", 17, "avglastn", hide_rows=[2], clear=["C1"],
+                             labels={"A1": "Last N", "E8": "Numbers in last N", "E9": "Not numbers"}),
+                "Log", name="avglastn"))
+
+
 def main():
+    if "--only-2026-11-11" in sys.argv:
+        heroes_2026_11_11()
+        return
     if "--only-2026-11-10" in sys.argv:
         heroes_2026_11_10()
         return

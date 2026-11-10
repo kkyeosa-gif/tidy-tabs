@@ -208,3 +208,10 @@
 - How to Count Orders With an Exact Tag in a Comma Separated Cell in Excel and Google Sheets - `count-orders-with-exact-tag-comma-separated-cell-find-sumproduct-excel-google-sheets`
 - How to Convert Cents to Dollars in a Payments Export in Excel and Google Sheets - `convert-cents-to-dollars-payments-export-round-divide-100-excel-google-sheets`
 - How to Group Dates Into 14-Day Billing Periods in Excel and Google Sheets - `group-dates-into-14-day-billing-periods-int-excel-google-sheets`
+
+## 2026-11-11 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 템플릿 미제작 - 빌더 단계에서 LibreOffice 로 확인 예정)
+- How to Shorten a Product Title to a Character Limit Without Cutting a Word in Excel and Google Sheets - `2026-11-11-team-01-shorten-title-to-character-limit-whole-word-left-find-substitute-excel-google-sheets`
+- How to Check ZIP Codes for the Right Format (5 Digits or ZIP+4) in Excel and Google Sheets - `2026-11-11-team-02-check-zip-code-format-5-digit-zip-plus-4-len-isnumber-excel-google-sheets`
+- How to Split an Address With Line Breaks Into Separate Columns in Excel and Google Sheets - `2026-11-11-team-03-split-address-with-line-breaks-into-columns-char-10-mid-excel-google-sheets`
+- How to Turn Month Names Into Month Numbers in Excel and Google Sheets - `2026-11-11-team-04-month-name-to-month-number-match-left-excel-google-sheets`
+- How to Average the Last 5 Entries in a Growing List in Excel and Google Sheets - `2026-11-11-team-05-average-last-n-entries-growing-list-index-count-excel-google-sheets`

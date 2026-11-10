@@ -8,7 +8,7 @@ File > Import in Google Sheets. Re-run after editing; the files are
 committed so readers download exactly what was checked.
 """
 import csv
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -15052,6 +15052,381 @@ def billing_periods():
     wb.save(OUT / "tidy-tabs-billing-periods.xlsx")
 
 
+def shorten_title_whole_word():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Titles"
+    ws["A1"] = "Character limit"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = 140
+    ws["B1"].fill = INPUT_FILL
+    ws["C1"] = "Fictional titles. Paste yours in column A (yellow, rows 4 to 203). The limit is a setting: check your marketplace for its real number."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Title", "Length", "Shortened title", "Length after", "Status"], [58, 9, 58, 10, 15], height=32)
+    base = ("Personalized Cutting Board Walnut Wood Engraved Family Name Wedding Gift Anniversary Housewarming "
+            "Present Kitchen Decor Custom Charcuterie")
+    t140 = base.replace("Gift", "Gifts").replace("Present", "Presents")
+    titles = [
+        "Handmade Soy Candle Lavender Vanilla 8 oz Gift Set for Her Birthday Housewarming Mothers Day Self Care Spa Relaxation Aromatherapy Present Wooden Wick",
+        "Oatmeal Goat Milk Soap Bar",
+        t140,
+        t140.replace("Name", "Names"),
+        t140 + " Tray",
+        "Brass Hoop Earrings Small Gold Huggie Minimalist Lightweight Hypoallergenic Everyday Jewelry Gift for Women Bridesmaid Birthday Christmas Stocking Stuffer Set",
+        "Letterpress Birthday Card Set of 6 Assorted Greeting Cards With Envelopes Blank Inside Handprinted Cotton Paper Stationery",
+        "Ceramic Mug 12 oz Speckled Glaze Handmade Pottery Coffee Cup Microwave Dishwasher Safe Gift for Tea Lovers Housewarming Present",
+        "Macrame Plant Hanger Cotton Rope Indoor Boho Home Decor",
+        "Hand  Poured  Soy  Candle  Cedar  Pine  Winter  Holiday  Gift  Set  Of  Three  Scented  Candles  Cozy  Cabin  Fragrance  Christmas  Stocking  Stuffer  Present  For  Mom",
+        "HandmadeSoyCandleLavenderVanillaGiftSetForHerBirthdayHousewarmingMothersDaySelfCareSpaRelaxationAromatherapyPresentWoodenWickCandleJarWithLidAndLabel",
+        "  Leather Key Fob Keychain Personalized Initial  ",
+    ]
+    for r in range(4, 204):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].alignment = Alignment(wrap_text=True, vertical="top")
+        t = f"TRIM(A{r})"
+        cut = f"LEFT({t},$B$1+1)"
+        bad = f'OR(NOT(ISNUMBER($B$1)),ISNUMBER(FIND("~",{t})))'
+        ws[f"B{r}"] = f'=IF({t}="","",LEN({t}))'
+        ws[f"C{r}"] = (f'=IF({t}="","",IF(NOT(ISNUMBER($B$1)),"Check",IF(OR($B$1<1,$B$1<>INT($B$1)),"Check",'
+                       f'IF(ISNUMBER(FIND("~",{t})),"Check",IF(LEN({t})<=$B$1,{t},'
+                       f'IFERROR(LEFT({t},FIND("~",SUBSTITUTE({cut}," ","~",LEN({cut})-LEN(SUBSTITUTE({cut}," ",""))))-1),'
+                       f'LEFT({t},$B$1)))))))')
+        ws[f"D{r}"] = f'=IF(OR(E{r}="",E{r}="Check"),"",LEN(C{r}))'
+        ws[f"E{r}"] = (f'=IF({t}="","",IF(NOT(ISNUMBER($B$1)),"Check",IF(OR($B$1<1,$B$1<>INT($B$1)),"Check",'
+                       f'IF(ISNUMBER(FIND("~",{t})),"Check",IF(LEN({t})<=$B$1,"OK",'
+                       f'IF(ISNUMBER(FIND(" ",{cut})),"Shortened","One long word"))))))')
+        for col in "BCDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"C{r}"].alignment = Alignment(wrap_text=True, vertical="top")
+        ws[f"B{r}"].alignment = ws[f"D{r}"].alignment = Alignment(horizontal="right", vertical="top")
+        ws[f"E{r}"].alignment = Alignment(vertical="top")
+    for i, t in enumerate(titles):
+        ws[f"A{4 + i}"] = t
+        ws.row_dimensions[4 + i].height = 45
+    ws.column_dimensions["F"].width = 3
+    ws.column_dimensions["G"].width = 30
+    ws.column_dimensions["H"].width = 12
+    _summary_block(ws, "G", "H", [
+        (3, "Titles listed", '=SUMPRODUCT(--(E4:E203<>""))', "0"),
+        (4, "Already within the limit", '=COUNTIF(E4:E203,"OK")', "0"),
+        (5, "Shortened at a space", '=COUNTIF(E4:E203,"Shortened")', "0"),
+        (6, "One long word (cut at the limit)", '=COUNTIF(E4:E203,"One long word")', "0"),
+        (7, "Rows showing Check", '=COUNTIF(E4:E203,"Check")', "0"),
+        (8, "Longest length after", '=IF(COUNT(D4:D203)=0,"",MAX(D4:D203))', "0"),
+        (9, "CHECK", '=IF(AND(ISNUMBER(B1),H7=0,H3=H4+H5+H6,COUNTIF(D4:D203,">"&B1)=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("E4:E203", FormulaRule(formula=['OR($E4="Check",$E4="One long word")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("H9", FormulaRule(formula=['$H$9<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Shorten a Title to a Character Limit Without Cutting a Word",
+        "",
+        "1. Titles tab: type the limit in B1 (140 in the sample; your marketplace sets the real number, check it). Paste titles into column A (yellow, up to row 203). The titles are fictional.",
+        "2. Length, B4: =LEN(TRIM(A4)). Extra spaces at the ends and doubled spaces inside are removed first, because TRIM does that.",
+        "3. Shortened title, C4: when the title fits, it is copied. When it is longer, the formula looks at the first $B$1+1 characters, finds the last space in them and keeps everything before it.",
+        "   Core: =LEFT(TRIM(A4),FIND(\"~\",SUBSTITUTE(LEFT(TRIM(A4),$B$1+1),\" \",\"~\",LEN(LEFT(TRIM(A4),$B$1+1))-LEN(SUBSTITUTE(LEFT(TRIM(A4),$B$1+1),\" \",\"\"))))-1)",
+        "   The $B$1+1 matters: a space at position 141 means the word ending at 140 is complete and stays.",
+        "4. Status: OK (already fits), Shortened (cut at a space), One long word (no space to cut at, so the first B1 characters are kept and the word is cut), Check.",
+        "5. Check means B1 is not a whole number of 1 or more, or the title contains a ~ (the formula uses ~ as a marker). Remove the ~ or change the marker.",
+        "6. Length after, D, should never be above B1. The CHECK cell in H9 says OK when that holds.",
+        "7. This only counts characters. It does not know any marketplace's rules for titles.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Titles"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-shorten-title-whole-word.xlsx")
+
+
+def check_zip_format():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "ZIPs"
+    ws["A1"] = "Fictional customers. Paste ZIPs into column B as plain text (yellow, rows 4 to 203). This checks the shape of the ZIP, not that it exists."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Customer", "ZIP (text)", "ZIP cleaned", "Length", "Result", "Fix suggestion"], [26, 14, 14, 9, 22, 14], height=32)
+    rows = [
+        ("Harbor Dental", "02134"), ("Pine & Co. Realty", "2134"), ("Lakeside Yoga", "90210-1234"), ("Main St. Gift Shop", "9021"),
+        ("Oak Street Bakery", "1234567"), ("Birch Hill Farm", "12O45"), ("Cedar Print Shop", " 07030 "), ("Maple Pet Supply", "60614"),
+        ("River Bend Cafe", "10001-0001"), ("Elm Park Florist", "2134-5678"), ("Summit Bike Rental", "8101"), ("Lakeview Books", None),
+        ("Sunrise Candle Co.", "331"), ("Hilltop Tutoring", "30301-12"), ("Corner Deli", "55401"),
+    ]
+    dig = '"0123456789"'
+
+    def digits(pos):
+        return "SUMPRODUCT(--ISNUMBER(FIND(MID(C{r},{" + pos + "},1)," + dig + ")))"
+
+    for r in range(4, 204):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = "@"
+        d5 = digits("1,2,3,4,5").replace("{r}", str(r))
+        d9 = digits("1,2,3,4,5,7,8,9,10").replace("{r}", str(r))
+        d4 = digits("1,2,3,4").replace("{r}", str(r))
+        d8 = digits("1,2,3,4,6,7,8,9").replace("{r}", str(r))
+        ws[f"C{r}"] = f"=TRIM(B{r})"
+        ws[f"D{r}"] = f'=IF(C{r}="","",LEN(C{r}))'
+        ws[f"E{r}"] = (f'=IF(C{r}="",IF(TRIM(A{r})="","","Blank ZIP"),IF(AND(LEN(C{r})=5,{d5}=5),"OK",'
+                       f'IF(AND(LEN(C{r})=10,MID(C{r},6,1)="-",{d9}=9),"OK (ZIP+4)",'
+                       f'IF(AND(LEN(C{r})=4,{d4}=4),"Missing leading zero",'
+                       f'IF(AND(LEN(C{r})=9,MID(C{r},5,1)="-",{d8}=8),"Missing leading zero","Check")))))')
+        ws[f"F{r}"] = f'=IF(E{r}="Missing leading zero","0"&C{r},"")'
+        for col in "CDEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[f"C{r}"].number_format = "@"
+        ws[f"F{r}"].number_format = "@"
+    for i, (c, z) in enumerate(rows):
+        ws[f"A{4 + i}"] = c
+        if z is not None:
+            ws[f"B{4 + i}"] = z
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 26
+    ws.column_dimensions["I"].width = 12
+    _summary_block(ws, "H", "I", [
+        (3, "ZIPs listed", '=SUMPRODUCT(--(E4:E203<>""))', "0"),
+        (4, "OK, 5 digits", '=COUNTIF(E4:E203,"OK")', "0"),
+        (5, "OK, ZIP+4", '=COUNTIF(E4:E203,"OK (ZIP+4)")', "0"),
+        (6, "Missing leading zero", '=COUNTIF(E4:E203,"Missing leading zero")', "0"),
+        (7, "Check", '=COUNTIF(E4:E203,"Check")', "0"),
+        (8, "Blank ZIP", '=COUNTIF(E4:E203,"Blank ZIP")', "0"),
+        (9, "CHECK", '=IF(I3=I4+I5+I6+I7+I8,"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("E4:E203", FormulaRule(formula=['OR($E4="Check",$E4="Blank ZIP",$E4="Missing leading zero")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("I9", FormulaRule(formula=['$I$9<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Check ZIP Codes for the Right Format (5 Digits or ZIP+4)",
+        "",
+        "1. ZIPs tab: paste the customer and the ZIP into A and B (yellow, up to row 203). Format column B as Plain text first so leading zeros are not dropped. The customers are fictional.",
+        "2. ZIP cleaned, C4: =TRIM(B4). A ZIP stored as a number (2134) is turned into text and still checked.",
+        "3. Result, E4: OK for exactly 5 digits, OK (ZIP+4) for 5 digits, a hyphen and 4 digits, Missing leading zero for 4 digits (or 4 + hyphen + 4), Blank ZIP when a customer has no ZIP, Check for anything else.",
+        "   Each character is tested with FIND against \"0123456789\", so a letter O, a comma, a dollar sign or an exponent such as 1E100 is not mistaken for a number.",
+        "4. Fix suggestion, F4: =IF(E4=\"Missing leading zero\",\"0\"&C4,\"\"). It only adds one zero. Check that the ZIP really lost exactly one.",
+        "5. This checks the shape only. 00000 passes. It does not confirm a ZIP exists or belongs to the address; use the USPS ZIP Code lookup for that.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["ZIPs"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-check-zip-format.xlsx")
+
+
+def split_line_breaks():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Addresses"
+    ws["A1"] = "Fictional ship-to blocks. Paste yours into column A (yellow, rows 4 to 203); each line break stays inside its cell."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Pasted address", "Line breaks + 1", "Line 1", "Line 2", "Line 3", "Line 4", "Status"],
+              [34, 11, 24, 26, 22, 16, 18], height=32)
+    nl = "\n"
+    blocks = [
+        ["Maria Lopez", "418 Elm Street", "Austin, TX 78701"],
+        ["Harbor Dental", "Attn: Front Desk", "92 Water Street", "Portland, ME 04101"],
+        ["Dev Patel", "77 Birch Lane Apt 3B", "Boston, MA 02134"],
+        ["Lakeside Yoga", "1200 Shore Drive", "Suite 4", "Chicago, IL 60614"],
+        ["Jordan Reed", "5 Cedar Court", "Denver, CO 80202"],
+        ["  Pine & Co. Realty  ", "300 Main Street  ", "Hartford, CT 06103"],
+        ["Ana Souza", "", "9 Oak Road", "Miami, FL 33101"],
+        ["Sam Whitaker", "Unit 12, Maple Plaza", "88 Market Street", "Attn: Receiving Dock B", "Seattle, WA 98101"],
+        ["Priya Shah", "14 River Bend Drive", "Newark, NJ 07102", ""],
+        ["Cedar Print Shop", "2210 Hilltop Road", "Asheville, NC 28801"],
+    ]
+    for r in range(4, 204):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].alignment = Alignment(wrap_text=True, vertical="top")
+        L = f"LEN($A{r})"
+        sub = f'SUBSTITUTE($A{r},CHAR(10),REPT(" ",{L}))'
+        ws[f"B{r}"] = f'=IF(TRIM(A{r})="","",LEN(A{r})-LEN(SUBSTITUTE(A{r},CHAR(10),""))+1)'
+        for n, col in enumerate("CDEF"):
+            ws[f"{col}{r}"] = f'=IF($B{r}="","",TRIM(CLEAN(MID({sub},{n}*{L}+1,{L}))))'
+        ws[f"G{r}"] = f'=IF($B{r}="","",IF(TRIM(CLEAN(MID({sub},4*{L}+1,{L}*{L})))<>"","More than 4 lines","OK"))'
+        for col in "BCDEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(vertical="top")
+    for i, b in enumerate(blocks):
+        ws[f"A{4 + i}"] = nl.join(b)
+        ws.row_dimensions[4 + i].height = 15 * max(len(b), 1) + 3
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 28
+    ws.column_dimensions["J"].width = 10
+    _summary_block(ws, "I", "J", [
+        (3, "Addresses listed", '=SUMPRODUCT(--(G4:G203<>""))', "0"),
+        (4, "Four lines or fewer", '=COUNTIF(G4:G203,"OK")', "0"),
+        (5, "More than 4 lines", '=COUNTIF(G4:G203,"More than 4 lines")', "0"),
+        (6, "CHECK", '=IF(J3=J4+J5,"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("G4:G203", FormulaRule(formula=['$G4="More than 4 lines"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("J6", FormulaRule(formula=['$J$6<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Split an Address With Line Breaks Into Separate Columns",
+        "",
+        "1. Addresses tab: paste one address block per cell into column A (yellow, up to row 203). Turn on Wrap text so the lines show. The addresses are fictional.",
+        "2. Line breaks + 1, B4: =LEN(A4)-LEN(SUBSTITUTE(A4,CHAR(10),\"\"))+1. A trailing line break counts as one more, so a block that ends in a break shows one extra.",
+        "3. Line 1 to Line 4, C4 to F4: each line break (CHAR(10)) is replaced by that many spaces as the cell has characters, so every line starts in its own window of the same width. MID cuts the window and TRIM CLEAN removes the extra spaces and any CHAR(13).",
+        "   Line 1: =TRIM(CLEAN(MID(SUBSTITUTE(A4,CHAR(10),REPT(\" \",LEN(A4))),0*LEN(A4)+1,LEN(A4)))). Line 2 uses 1*LEN(A4)+1, Line 3 uses 2*LEN(A4)+1, Line 4 uses 3*LEN(A4)+1.",
+        "   An empty line in the middle leaves its column blank; the lines after it stay in their own columns.",
+        "4. Status: OK when nothing is left after line 4, More than 4 lines when there is text after the fourth line break (add columns by copying the pattern with 4*, 5*...).",
+        "5. TRIM also squeezes double spaces inside a line to one space.",
+        "6. In Google Sheets and Excel a line break is typed with Alt+Enter (Windows Excel) or Ctrl+Enter (Sheets); pasted order emails usually carry them already.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Addresses"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-split-line-breaks.xlsx")
+
+
+def month_name_to_number():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    ws["A1"] = "Fictional sales. Type the month as you have it in A and the amount in B (yellow, rows 4 to 203)."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Month (as typed)", "Sales", "Month no.", "Month (clean)", "", "Month no.", "Month", "Entries", "Sales"],
+              [18, 12, 11, 15, 3, 10, 14, 9, 13], height=32)
+    ws["E3"].fill = PatternFill(fill_type=None)
+    names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    sales = [
+        ("Jan", 1250.00), ("february", 980.50), ("MARCH", 1410.00), ("  Apr ", 1175.25), ("May", 1620.00), ("Jun.", 1890.75),
+        ("July", 1735.00), ("Sept.", 1302.40), ("October", 1544.00), ("Nov", 2210.80), ("Dec", 2895.00), ("Marc", 310.00),
+        ("Ju", 150.00), ("Foo", 90.00),
+    ]
+    for r in range(4, 204):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = USD
+        ws[f"C{r}"] = (f'=IF(TRIM(A{r})="","",IF(SUMPRODUCT(--ISNUMBER(FIND({{"*","?","~"}},A{r})))>0,"Check",'
+                       f'IFERROR(MATCH(LOWER(LEFT(TRIM(A{r}),3)),Months!$B$4:$B$15,0),"Check")))')
+        ws[f"D{r}"] = f'=IF(ISNUMBER(C{r}),INDEX(Months!$A$4:$A$15,C{r}),"")'
+        for col in "CD":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (m, s) in enumerate(sales):
+        ws[f"A{4 + i}"], ws[f"B{4 + i}"] = m, s
+    for i in range(12):
+        r = 4 + i
+        ws[f"F{r}"] = i + 1
+        ws[f"G{r}"] = f"=INDEX(Months!$A$4:$A$15,F{r})"
+        ws[f"H{r}"] = f"=COUNTIF($C$4:$C$203,F{r})"
+        ws[f"I{r}"] = f"=SUMIFS($B$4:$B$203,$C$4:$C$203,F{r})"
+        ws[f"I{r}"].number_format = USD
+        for col in "FGHI":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ws.column_dimensions["J"].width = 3
+    extra = [
+        (16, "Rows showing Check", '=COUNTIF(C4:C203,"Check")', '=SUMIFS(B4:B203,C4:C203,"Check")'),
+        (17, "Months 1 to 12", "=SUM(H4:H15)", "=SUM(I4:I15)"),
+        (18, "All sales", None, "=SUM(B4:B203)"),
+        (19, "Amounts that are not numbers", "=COUNTA(B4:B203)-COUNT(B4:B203)", None),
+        (20, "CHECK", None, '=IF(AND(H19=0,ROUND(I17+I16-I18,2)=0),"OK","Check")'),
+    ]
+    for r, label, h, i in extra:
+        ws[f"F{r}"] = label
+        ws[f"F{r}"].font = Font(bold=True)
+        for col, f in (("H", h), ("I", i)):
+            if f:
+                ws[f"{col}{r}"] = f
+                ws[f"{col}{r}"].fill = FORMULA_FILL
+                ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        ws[f"I{r}"].number_format = USD
+    ws["I20"].number_format = "General"
+    ws.conditional_formatting.add("C4:C203", FormulaRule(formula=['$C4="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("I20", FormulaRule(formula=['$I$20<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    mo = wb.create_sheet("Months")
+    mo["A1"] = "The 12 months and the 3-letter keys the Sales tab matches (lower case). Do not reorder."
+    mo["A1"].font = Font(italic=True)
+    _head_row(mo, 3, ["Month", "Key (first 3 letters)", "Month no."], [16, 20, 11], height=32)
+    for i, n in enumerate(names):
+        mo[f"A{4 + i}"] = n
+        mo[f"B{4 + i}"] = n[:3].lower()
+        mo[f"C{4 + i}"] = i + 1
+    notes_sheet(wb, [
+        "Tidy Tabs: Turn Month Names Into Month Numbers",
+        "",
+        "1. Sales tab: type or paste the month as you have it in A (Jan, january, MARCH, Sept.) and the amount in B (yellow, up to row 203). The sales are fictional.",
+        "2. Month no., C4: =MATCH(LOWER(LEFT(TRIM(A4),3)),Months!$B$4:$B$15,0). It reads the first three letters, so Jan, January and JANUARY all give 1, and Sept. and September give 9.",
+        "   The formula in the file also returns Check for anything else, and for a cell that contains * ? or ~ (MATCH would treat them as wildcards).",
+        "3. Month (clean), D4: =INDEX(Months!$A$4:$A$15,C4) gives the full name.",
+        "4. Limit: only the first three letters count. Marc gives 3 and Marketing gives 3 because they start with mar. Ju gives Check because two letters are not enough.",
+        "5. A number typed in the month column (1, 12) or a real date shows Check. This tab reads names only.",
+        "6. Table at the right: sales by month number with =SUMIFS($B$4:$B$203,$C$4:$C$203,F4). Rows showing Check are not in the twelve months; their total is shown beside them.",
+        "7. The Months tab holds the keys. For another language, change the keys in column B (and the names in A).",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Sales"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-month-name-to-number.xlsx")
+
+
+def average_last_n():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Log"
+    ws["A1"] = "How many latest entries"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = 5
+    ws["B1"].fill = INPUT_FILL
+    ws["C1"] = "Fictional weekly sales. Add each new entry on the next empty row (yellow, rows 4 to 203)."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Date", "Amount", "Average of last N", "", "Summary", "Value"], [13, 13, 18, 3, 32, 14], height=32)
+    ws["D3"].fill = PatternFill(fill_type=None)
+    amounts = [1180.00, 1245.50, 1310.25, 1190.00, 1422.75, 1365.00, 1288.40, 1510.00, 1475.60, 1620.00, 1398.25, 1702.50, 1655.00, 1788.90]
+    nvalid = '$B$1>=1,$B$1=INT($B$1)'
+    for r in range(4, 204):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"B{r}"].number_format = USD
+        ws[f"C{r}"] = (f'=IF(ISNUMBER(B{r}),IF(ISNUMBER($B$1),IF(AND({nvalid}),'
+                       f'AVERAGE(INDEX($B$4:$B$203,MAX(1,ROW(B{r})-ROW($B$3)-$B$1+1)):B{r}),"Check"),"Check"),"")')
+        ws[f"C{r}"].number_format = USD
+        ws[f"C{r}"].fill = FORMULA_FILL
+        ws[f"C{r}"].alignment = Alignment(horizontal="right")
+    for i, a in enumerate(amounts):
+        ws[f"A{4 + i}"] = date(2026, 8, 3) + timedelta(days=7 * i)
+        ws[f"B{4 + i}"] = a
+    win = "INDEX(B4:B203,MAX(1,F5-ROW($B$3)-$B$1+1)):INDEX(B4:B203,F5-ROW($B$3))"
+    ok = 'IF(ISNUMBER($B$1),AND($B$1>=1,$B$1=INT($B$1)),FALSE)'
+    ws["F3"].value = "Value"
+    items = [
+        (4, "Entries (numbers in B)", "=COUNT(B4:B203)", "0"),
+        (5, "Row of the latest entry", '=IF(COUNT(B4:B203)=0,"",LOOKUP(2,1/ISNUMBER(B4:B203),ROW(B4:B203)))', "0"),
+        (6, "Average of last N", f'=IF(F5="","",IF(NOT(ISNUMBER($B$1)),"Check",IF(OR($B$1<1,$B$1<>INT($B$1)),"Check",AVERAGE({win}))))', USD),
+        (7, "Average of all entries", '=IF(F4=0,"",AVERAGE(B4:B203))', USD),
+        (8, "Numbers in the last-N rows", f'=IF(F5="","",IF({ok},COUNT({win}),""))', "0"),
+        (9, "Cells in B that are not numbers", "=COUNTA(B4:B203)-COUNT(B4:B203)", "0"),
+        (10, "CHECK", f'=IF(AND({ok},F9=0),"OK","Check")', "General"),
+    ]
+    _summary_block(ws, "E", "F", items)
+    ws.conditional_formatting.add("C4:C203", FormulaRule(formula=['$C4="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("F10", FormulaRule(formula=['$F$10<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Average the Last 5 Entries in a Growing List",
+        "",
+        "1. Log tab: type how many latest entries to average in B1 (a whole number of 1 or more, 5 in the sample). Add entries top to bottom in A and B (yellow, up to row 203). The sales are fictional.",
+        "2. Row of the latest entry, F5: =LOOKUP(2,1/ISNUMBER(B4:B203),ROW(B4:B203)) finds the last row that holds a number, wherever the empty rows start.",
+        "3. Average of last N, F6: =AVERAGE(INDEX(B4:B203,MAX(1,F5-3-$B$1+1)):INDEX(B4:B203,F5-3)). INDEX returns the first and last cell of the range, so no OFFSET (which recalculates all the time) is needed.",
+        "   If N is bigger than the number of entries, MAX(1,...) starts the range at the first row and all entries are averaged.",
+        "4. Column C does the same on every row: =AVERAGE(INDEX($B$4:$B$203,MAX(1,ROW(B4)-ROW($B$3)-$B$1+1)):B4). Early rows average what exists so far.",
+        "5. The range is the last N ROWS ending at the latest number. An empty or text cell inside it is skipped by AVERAGE, so it holds fewer than N numbers; row F8 shows how many.",
+        "6. Check: B1 is blank, text, below 1 or has a decimal, or a cell in B holds text. Fix the cell; nothing is guessed.",
+        "7. This describes numbers you typed. It does not forecast anything.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Log"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-average-last-n.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -15239,4 +15614,9 @@ if __name__ == "__main__":
     exact_tag_count()
     cents_to_dollars()
     billing_periods()
+    shorten_title_whole_word()
+    check_zip_format()
+    split_line_breaks()
+    month_name_to_number()
+    average_last_n()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfkgW8BlKoL
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-round-order-quantity-up-to-case.html
 title: How to Round an Order Quantity Up to a Case Size and Minimum Order in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with independent Python models over 39 workbooks and 7,866 cell comparisons. Checked: the sample, 24 edge workbooks (need 0, need below, equal to and above the minimum, a minimum that is not a multiple of the case, case size 1, decimals, negatives, text, blanks, case size 0 and 1.5, only a name, no name, 1,000,000 units at several unit costs) and 14 random lists of 10 to 40 rows. Order cost matched exact Decimal half-up rounding in every row. Excel and Google Sheets were not used. Not run: a non-US language setting, more than 40 rows.

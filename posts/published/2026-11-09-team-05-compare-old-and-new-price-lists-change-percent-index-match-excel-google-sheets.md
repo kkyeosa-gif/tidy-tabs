@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfj-1-cG7Hc
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-compare-two-price-lists-and-see.html
 title: How to Compare Two Price Lists and See What Changed in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 19 workbooks and 720 Compare rows with 0 mismatches left. Checked: the sample, empty lists, all new, all removed, capitals and extra spaces in SKUs, a SKU typed as a number on one list and text on the other, a SKU twice in Old, old and new price 0, a text price, a blank old price, a blank row between SKUs, a SKU twice in New, and four random sets of 30 to 40 SKUs. Excel and Google Sheets were not used. Not run: SKUs containing wildcard characters, more than 40 products per list, a non-US language setting.

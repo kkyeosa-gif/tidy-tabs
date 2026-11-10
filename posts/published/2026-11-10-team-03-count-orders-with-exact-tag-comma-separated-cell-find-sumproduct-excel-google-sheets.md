@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DflJGNliU3Y
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-count-orders-with-exact-tag-in.html
 title: How to Count Orders With an Exact Tag in a Comma Separated Cell in Excel and Google Sheets
 labels: excel-formulas, small-business, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 26 workbooks and 1,115 comparisons. Checked: the sample, gift against gifted, a gift and gift wrap, a tag with a comma at either end, spaces before and after commas, capitals, the same tag twice in one order, empty tags (,,), blank rows, a tag typed with a comma (shows Check), tags containing * ? and ~ (orders and amounts compared; the COUNTIF column was not), 200 orders, and 14 random sets of up to 200 rows with text and blank amounts. Excel and Google Sheets were not used. Not run: tab characters in a tag cell, non-breaking spaces, wildcard characters in the COUNTIF column, a non-US language setting, more than 200 orders.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DflQbSQmLh0
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-convert-cents-to-dollars-in.html
 title: How to Convert Cents to Dollars in a Payments Export in Excel and Google Sheets
 labels: excel-formulas, small-business, payments
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent exact Decimal model over 27 workbooks and 8,067 cell comparisons. Checked: the sample, an empty sheet, 0, 1 and 5 cents, a refund, 10 digit amounts, a fraction of a cent, text, a number stored as text, a blank fee, a text fee, a negative fee, 200 rows, a payout one cent off, a blank or text payout, 14 random lists up to 200 rows, and dollars typed in the reverse block. Excel and Google Sheets were not used. Not run: a non-US language setting, more rows than the template holds.

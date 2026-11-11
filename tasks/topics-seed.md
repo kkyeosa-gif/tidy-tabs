@@ -215,3 +215,10 @@
 - How to Split an Address With Line Breaks Into Separate Columns in Excel and Google Sheets - `2026-11-11-team-03-split-address-with-line-breaks-into-columns-char-10-mid-excel-google-sheets`
 - How to Turn Month Names Into Month Numbers in Excel and Google Sheets - `2026-11-11-team-04-month-name-to-month-number-match-left-excel-google-sheets`
 - How to Average the Last 5 Entries in a Growing List in Excel and Google Sheets - `2026-11-11-team-05-average-last-n-entries-growing-list-index-count-excel-google-sheets`
+
+## 2026-11-12 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 템플릿은 LibreOffice 24.2.7.2 에서 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-12.md)
+- How to Rank Products Within Each Category in Excel and Google Sheets - `2026-11-12-team-01-rank-products-within-each-category-countifs-excel-google-sheets`
+- How to Apply a Client Payment to the Oldest Invoices First in Excel and Google Sheets - `2026-11-12-team-02-apply-payment-to-oldest-invoices-first-sumifs-min-excel-google-sheets`
+- How to Price a Rental With Weekday and Weekend Day Rates in Excel and Google Sheets - `2026-11-12-team-03-rental-price-weekday-weekend-day-rates-networkdays-excel-google-sheets`
+- How to Convert 24-Hour Times Like 1430 to AM and PM Times in Excel and Google Sheets - `2026-11-12-team-04-convert-24-hour-time-numbers-like-1430-to-am-pm-time-int-mod-excel-google-sheets`
+- How to Check a UPC Barcode Number's Check Digit in Excel and Google Sheets - `2026-11-12-team-05-check-upc-barcode-check-digit-mid-sumproduct-mod-excel-google-sheets`

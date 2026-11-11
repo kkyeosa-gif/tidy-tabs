@@ -15427,6 +15427,383 @@ def average_last_n():
     wb.save(OUT / "tidy-tabs-average-last-n.xlsx")
 
 
+def rank_within_category():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    ws["A1"] = "Mark the top"
+    ws["A1"].font = Font(bold=True)
+    ws["B1"] = 3
+    ws["B1"].fill = INPUT_FILL
+    ws["C1"] = "Fictional sales. Type products, categories and sales in A to C (yellow, rows 4 to 203). No sorting needed."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Product", "Category", "Sales", "Rank in category", "Products in category", "Overall rank", "Top N mark"],
+              [30, 14, 13, 11, 12, 10, 11], height=32)
+    rows = [
+        ("Lavender soy candle 8 oz", "Candles", 1240.00), ("Oatmeal goat milk soap", "Soap", 720.00),
+        ("Brass hoop earrings", "Jewelry", 1890.00), ("Letterpress birthday card", "Cards", 310.00),
+        ("Cedar soy candle 8 oz", "Candles", 980.00), ("Charcoal soap bar", "Soap", 720.00),
+        ("Pearl drop earrings", "Jewelry", 1125.00), ("Thank you card set", "Cards", 492.00),
+        ("Vanilla bean candle 12 oz", "Candles", 1410.50), ("Lemon poppy seed soap", "Soap", 455.25),
+        ("Beaded stack bracelet", "Jewelry", 560.00), ("Holiday card 6 pack", "Cards", 1005.00),
+        ("Pumpkin spice candle tin", "Candles", 615.00), ("Lavender soap bar", "Soap", 802.00),
+    ]
+    for r in range(4, 204):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"C{r}"].number_format = USD
+        blank = f'AND(TRIM(A{r})="",TRIM(B{r})="",C{r}="")'
+        bad = f'OR(TRIM(B{r})="",NOT(ISNUMBER(C{r})),SUMPRODUCT(--ISNUMBER(FIND({{"*","?","~"}},B{r})))>0)'
+        ws[f"D{r}"] = f'=IF({blank},"",IF({bad},"Check",COUNTIFS($B$4:$B$203,B{r},$C$4:$C$203,">"&C{r})+1))'
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),COUNTIFS($B$4:$B$203,B{r},$D$4:$D$203,">0"),"")'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(D{r}),COUNTIFS($C$4:$C$203,">"&C{r},$D$4:$D$203,">0")+1,"")'
+        ws[f"G{r}"] = (f'=IF(ISNUMBER(D{r}),IF(ISNUMBER($B$1),IF(AND($B$1>=1,$B$1=INT($B$1)),'
+                       f'IF(D{r}<=$B$1,"Top "&$B$1,""),"Check"),"Check"),"")')
+        for col in "DEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (p, c, s) in enumerate(rows):
+        ws[f"A{4 + i}"], ws[f"B{4 + i}"], ws[f"C{4 + i}"] = p, c, s
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 26
+    ws.column_dimensions["J"].width = 10
+    _summary_block(ws, "I", "J", [
+        (3, "Rows ranked", "=COUNT(D4:D203)", "0"),
+        (4, "Rows showing Check", '=COUNTIF(D4:D203,"Check")', "0"),
+        (5, "Rows ranked 1 (ties count)", "=COUNTIF(D4:D203,1)", "0"),
+        (6, "Rows marked Top N", '=COUNTIF(G4:G203,"Top *")', "0"),
+        (7, "CHECK", '=IF(AND(J4=0,COUNTIF(G4:G203,"Check")=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("D4:D203", FormulaRule(formula=['$D4="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("D4:D203", FormulaRule(formula=['$D4=1'], fill=DONE_FILL))
+    ws.conditional_formatting.add("J7", FormulaRule(formula=['$J$7<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Rank Products Within Each Category",
+        "",
+        "1. Sales tab: one product per row in A, B and C (yellow, up to row 203). The list does not need to be sorted. The sales are fictional.",
+        "2. Rank in category, D4: =COUNTIFS($B$4:$B$203,B4,$C$4:$C$203,\">\"&C4)+1. It counts the products in the same category that sold more, plus 1. The best seller in each category is 1.",
+        "   Ties get the same rank and the next rank is skipped (in the sample, the two soaps at $720.00 are both 2 and the next soap is 4).",
+        "3. Products in category, E4, counts the ranked rows with the same category. Overall rank, F4, ranks against every ranked row.",
+        "4. Top N mark, G4: shows Top 3 when the rank in category is 3 or better. Change B1 to mark a different number (a whole number of 1 or more).",
+        "5. The category must match exactly apart from upper and lower case: Candles and candles are one group, but \"Candles \" with a trailing space is a separate group.",
+        "6. Check means the category is blank, the sales cell is not a number, or the category contains * ? or ~ (COUNTIFS reads them as wildcards).",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Sales"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-rank-within-category.xlsx")
+
+
+def apply_payment_oldest_first():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Invoices"
+    ws["A1"], ws["A2"] = "Payment received", "Client"
+    ws["A1"].font = ws["A2"].font = Font(bold=True)
+    ws["B1"], ws["B2"] = 2400.00, "Harbor Dental (fictional)"
+    ws["B1"].fill = ws["B2"].fill = INPUT_FILL
+    ws["B1"].number_format = USD
+    ws["C1"] = "Fictional invoices. List this client's open invoices in A to C (yellow, rows 5 to 204), in any order."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Invoice no.", "Invoice date", "Open amount", "Applied from payment", "Balance after", "Status"],
+              [24, 13, 14, 14, 14, 14], height=32)
+    rows = [
+        ("INV-1041", date(2026, 8, 15), 1250.00), ("INV-1047", date(2026, 9, 1), 840.00),
+        ("INV-1052", date(2026, 9, 15), 1250.00), ("INV-1058", date(2026, 10, 1), 612.50),
+        ("INV-1063", date(2026, 10, 15), 1250.00), ("INV-1064", date(2026, 10, 15), 180.00),
+        ("INV-1039", date(2026, 8, 1), 375.00),
+    ]
+    for r in range(5, 205):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = USD
+        blank = f'AND(TRIM(A{r})="",B{r}="",C{r}="")'
+        older = (f'SUMIFS($C$5:$C$204,$B$5:$B$204,"<"&B{r},$C$5:$C$204,">=0")'
+                 f'+SUMIFS($C$4:C{r - 1},$B$4:B{r - 1},B{r},$C$4:C{r - 1},">=0")')
+        ws[f"D{r}"] = (f'=IF({blank},"",IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r}))),"Check",'
+                       f'IF(OR(C{r}<0,ROUND(C{r},2)<>C{r},NOT(ISNUMBER($B$1))),"Check",IF(OR($B$1<0,ROUND($B$1,2)<>$B$1),"Check",'
+                       f'ROUND(MAX(0,MIN(C{r},$B$1-({older}))),2)))))')
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),ROUND(C{r}-D{r},2),"")'
+        ws[f"F{r}"] = (f'=IF(D{r}="","",IF(D{r}="Check","Check",IF(C{r}=0,"Nothing due",'
+                       f'IF(E{r}=0,"Paid in full",IF(D{r}>0,"Partly paid","Unpaid")))))')
+        for col in "DEF":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        ws[f"D{r}"].number_format = ws[f"E{r}"].number_format = USD
+    for i, (n, d, a) in enumerate(rows):
+        ws[f"A{5 + i}"], ws[f"B{5 + i}"], ws[f"C{5 + i}"] = n, d, a
+    ws.column_dimensions["G"].width = 3
+    ws.column_dimensions["H"].width = 28
+    ws.column_dimensions["I"].width = 14
+    _summary_block(ws, "H", "I", [
+        (4, "Payment received", '=IF(ISNUMBER(B1),B1,"")', USD),
+        (5, "Open before the payment", '=SUMIFS(C5:C204,D5:D204,">=0")', USD),
+        (6, "Applied to invoices", "=SUM(D5:D204)", USD),
+        (7, "Left over (not applied)", '=IF(ISNUMBER(B1),ROUND(B1-I6,2),"")', USD),
+        (8, "Still open after", "=ROUND(I5-I6,2)", USD),
+        (9, "Paid in full", '=COUNTIF(F5:F204,"Paid in full")', "0"),
+        (10, "Partly paid", '=COUNTIF(F5:F204,"Partly paid")', "0"),
+        (11, "Unpaid", '=COUNTIF(F5:F204,"Unpaid")', "0"),
+        (12, "Rows showing Check", '=COUNTIF(F5:F204,"Check")', "0"),
+        (13, "CHECK", '=IF(AND(ISNUMBER(B1),I12=0),IF(AND(B1>=0,ROUND(B1,2)=B1,ROUND(I6+I7-B1,2)=0,I7>=0,OR(I7=0,I8=0)),"OK","Check"),"Check")', "General"),
+    ])
+    ws.conditional_formatting.add("F5:F204", FormulaRule(formula=['$F5="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("F5:F204", FormulaRule(formula=['$F5="Paid in full"'], fill=DONE_FILL))
+    ws.conditional_formatting.add("I13", FormulaRule(formula=['$I$13<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Apply a Client Payment to the Oldest Invoices First",
+        "",
+        "1. Invoices tab: type the payment in B1. List the client's open invoices in A, B and C (yellow, up to row 204): number, invoice date, open amount. The order of the rows does not matter. The invoices are fictional.",
+        "2. Applied from payment, D5: the payment minus everything older, but never more than the invoice and never below 0.",
+        "   Core: =ROUND(MAX(0,MIN(C5,$B$1-(SUMIFS($C$5:$C$204,$B$5:$B$204,\"<\"&B5,$C$5:$C$204,\">=0\")+SUMIFS($C$4:C4,$B$4:B4,B5,$C$4:C4,\">=0\")))),2)",
+        "   The first SUMIFS adds the invoices with an earlier date. The second adds invoices with the same date on the rows above, so same-day invoices are paid top to bottom.",
+        "3. Balance after, E5: =ROUND(C5-D5,2). Status: Paid in full, Partly paid, Unpaid, Nothing due (open amount 0) or Check.",
+        "4. Summary at the right: Left over is the part of the payment that no invoice needed (it is more than everything open). CHECK is OK when applied plus left over equals the payment.",
+        "5. Check means the date is not a real date, the amount is not a number, is negative or has fractions of a cent (12.345), or B1 is not a number of 0 or more in whole cents. Fix every Check row first: until then the other rows can be off. Credits and partial refunds are not handled; enter the open amount after them.",
+        "6. Oldest first is one way to apply a payment. If the client says which invoices a payment is for, follow the remittance instead.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Invoices"].print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-apply-payment-oldest-first.xlsx")
+
+
+def rental_weekend_rate():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Rentals"
+    ws["A1"], ws["A2"] = "Weekday day rate", "Weekend or holiday day rate"
+    ws["A1"].font = ws["A2"].font = Font(bold=True)
+    ws["B1"], ws["B2"] = 45.00, 65.00
+    for c in ("B1", "B2"):
+        ws[c].fill = INPUT_FILL
+        ws[c].number_format = USD
+    ws["C1"] = "Fictional rentals. One rental per row in A to D (yellow, rows 5 to 204). Holidays are on the Holidays tab."
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Customer", "Item", "Pickup date", "Return date", "Days billed", "Weekend and holiday days",
+                      "Weekday days", "Price", "Status"], [26, 26, 12, 12, 9, 12, 10, 12, 15], height=46)
+    rows = [
+        ("Lopez family", "10x10 canopy tent", date(2026, 11, 6), date(2026, 11, 9)),
+        ("Harbor Dental", "Folding tables, set of 6", date(2026, 11, 10), date(2026, 11, 12)),
+        ("Jordan Reed", "Photo booth backdrop", date(2026, 11, 14), date(2026, 11, 14)),
+        ("Cedar Print Shop", "String lights, 100 ft", date(2026, 11, 16), date(2026, 11, 23)),
+        ("Lakeside Yoga", "Patio heater", date(2026, 11, 25), date(2026, 11, 30)),
+        ("Maria Lopez", "Folding chairs, set of 20", date(2026, 12, 5), date(2026, 12, 8)),
+        ("Pine & Co. Realty", "10x10 canopy tent", date(2026, 12, 24), date(2026, 12, 28)),
+    ]
+    hol = "Holidays!$A$4:$A$23"
+    for r in range(5, 205):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = US_DATE
+        blank = f'AND(TRIM(A{r})="",TRIM(B{r})="",C{r}="",D{r}="")'
+        ws[f"E{r}"] = (f'=IF({blank},"",IF(OR(NOT(ISNUMBER(C{r})),NOT(ISNUMBER(D{r}))),"Check",'
+                       f'IF(OR(C{r}<>INT(C{r}),D{r}<>INT(D{r}),D{r}<C{r}),"Check",MAX(1,D{r}-C{r}))))')
+        ws[f"F{r}"] = f'=IF(ISNUMBER(E{r}),E{r}-NETWORKDAYS(C{r},C{r}+E{r}-1,{hol}),"")'
+        ws[f"G{r}"] = f'=IF(ISNUMBER(E{r}),E{r}-F{r},"")'
+        ws[f"H{r}"] = (f'=IF(ISNUMBER(E{r}),IF(AND(ISNUMBER($B$1),ISNUMBER($B$2)),IF(AND($B$1>=0,$B$2>=0),'
+                       f'ROUND(G{r}*$B$1+F{r}*$B$2,2),"Check"),"Check"),"")')
+        ws[f"I{r}"] = (f'=IF(E{r}="","",IF(OR(E{r}="Check",H{r}="Check"),"Check",'
+                       f'IF(D{r}=C{r},"Same-day return","OK")))')
+        for col in "EFGHI":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        ws[f"H{r}"].number_format = USD
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCD", row):
+            ws[f"{col}{5 + i}"] = v
+    ws.column_dimensions["J"].width = 3
+    ws.column_dimensions["K"].width = 26
+    ws.column_dimensions["L"].width = 12
+    _summary_block(ws, "K", "L", [
+        (4, "Rentals listed", '=SUMPRODUCT(--(I5:I204<>""))', "0"),
+        (5, "Days billed", "=SUM(E5:E204)", "0"),
+        (6, "Weekend and holiday days", "=SUM(F5:F204)", "0"),
+        (7, "Weekday days", "=SUM(G5:G204)", "0"),
+        (8, "Total price", "=SUM(H5:H204)", USD),
+        (9, "Rows showing Check", '=COUNTIF(I5:I204,"Check")', "0"),
+        (10, "CHECK", '=IF(AND(L9=0,L5=L6+L7,COUNT(B1:B2)=2),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("I5:I204", FormulaRule(formula=['$I5="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("L10", FormulaRule(formula=['$L$10<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    hs = wb.create_sheet("Holidays")
+    hs["A1"] = "Dates billed at the weekend rate even on a weekday. Edit the list (A4 to A23, real dates only)."
+    hs["A1"].font = Font(italic=True)
+    _head_row(hs, 3, ["Date", "Name"], [13, 26], height=32)
+    for i, (d, n) in enumerate([(date(2026, 11, 26), "Thanksgiving Day"), (date(2026, 12, 25), "Christmas Day"),
+                                (date(2027, 1, 1), "New Year's Day")]):
+        hs[f"A{4 + i}"], hs[f"B{4 + i}"] = d, n
+    for r in range(4, 24):
+        hs[f"A{r}"].fill = hs[f"B{r}"].fill = INPUT_FILL
+        hs[f"A{r}"].number_format = US_DATE
+    notes_sheet(wb, [
+        "Tidy Tabs: Price a Rental With Weekday and Weekend Day Rates",
+        "",
+        "1. Rentals tab: type the weekday rate in B1 and the weekend or holiday rate in B2. One rental per row in A to D (yellow, up to row 204). The rentals are fictional.",
+        "2. Days billed, E5: =MAX(1,D5-C5). The pickup day is billed and the return day is not, so Friday to Monday is 3 days (Friday, Saturday, Sunday). A same-day return is 1 day.",
+        "3. Weekend and holiday days, F5: =E5-NETWORKDAYS(C5,C5+E5-1,Holidays!$A$4:$A$23). NETWORKDAYS counts Monday to Friday days that are not on the holiday list; the rest of the billed days are weekend or holiday days.",
+        "4. Weekday days, G5: =E5-F5. Price, H5: =ROUND(G5*$B$1+F5*$B$2,2).",
+        "5. Holidays tab: dates on that list are billed at the weekend rate. A holiday that falls on a Saturday or Sunday is not counted twice. Keep only real dates in A4:A23.",
+        "6. Check means a date is text, has a time in it, or the return date is before the pickup date, or a rate is not a number of 0 or more.",
+        "7. If you bill the return day too, change E5 to =D5-C5+1.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Rentals"].print_title_rows = "4:4"
+    wb["Holidays"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-rental-weekend-rate.xlsx")
+
+
+def time_numbers_24_hour():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Times"
+    ws["A1"] = "Fictional sales tickets. Paste the exported times into column B (yellow, rows 4 to 203), as numbers or text."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Ticket", "Time as exported", "Time", "As text (12-hour)", "Status"], [12, 15, 12, 16, 10], height=32)
+    rows = [
+        ("T-101", "0745"), ("T-102", 905), ("T-103", 1200), ("T-104", 1430), ("T-105", 0), ("T-106", 2359),
+        ("T-107", 1205), ("T-108", " 815 "), ("T-109", 30), ("T-110", 1745), ("T-111", 1460), ("T-112", 2400),
+        ("T-113", "14:30"),
+    ]
+    for r in range(4, 204):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        t = f"TRIM(B{r})"
+        p = f'RIGHT("000"&{t},4)'
+        ws[f"C{r}"] = (f'=IF({t}="","",IF(LEN({t})>4,"Check",'
+                       f'IF(SUMPRODUCT(--ISNUMBER(FIND(MID({p},{{1,2,3,4}},1),"0123456789")))<4,"Check",'
+                       f'IF(OR(--LEFT({p},2)>23,--RIGHT({p},2)>59),"Check",TIME(--LEFT({p},2),--RIGHT({p},2),0)))))')
+        ws[f"D{r}"] = f'=IF(ISNUMBER(C{r}),TEXT(C{r},"h:mm AM/PM"),"")'
+        ws[f"E{r}"] = f'=IF(C{r}="","",IF(ISNUMBER(C{r}),"OK","Check"))'
+        ws[f"C{r}"].number_format = "h:mm AM/PM"
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        ws[f"B{r}"].alignment = Alignment(horizontal="right")
+    for i, (a, b) in enumerate(rows):
+        ws[f"A{4 + i}"], ws[f"B{4 + i}"] = a, b
+    ws.column_dimensions["F"].width = 3
+    ws.column_dimensions["G"].width = 26
+    ws.column_dimensions["H"].width = 12
+    _summary_block(ws, "G", "H", [
+        (3, "Times listed", '=SUMPRODUCT(--(E4:E203<>""))', "0"),
+        (4, "Converted", '=COUNTIF(E4:E203,"OK")', "0"),
+        (5, "Rows showing Check", '=COUNTIF(E4:E203,"Check")', "0"),
+        (6, "Earliest time", '=IF(H4=0,"",MIN(C4:C203))', "h:mm AM/PM"),
+        (7, "Latest time", '=IF(H4=0,"",MAX(C4:C203))', "h:mm AM/PM"),
+    ])
+    ws.conditional_formatting.add("E4:E203", FormulaRule(formula=['$E4="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Convert 24-Hour Times Like 1430 to 2:30 PM",
+        "",
+        "1. Times tab: paste the times from your export into column B (yellow, up to row 203). 1430, 905 and 0 can be numbers or text such as 0745. The tickets are fictional.",
+        "2. Short version for clean numbers: =TIME(INT(B4/100),MOD(B4,100),0). INT(B4/100) is the hour, MOD(B4,100) the minutes. Format the cell as h:mm AM/PM.",
+        "3. Time, C4, in this file: the value is padded to 4 characters with RIGHT(\"000\"&TRIM(B4),4), each character must be a digit, the hour must be 0 to 23 and the minutes 0 to 59, then =TIME(LEFT(...,2),RIGHT(...,2),0).",
+        "   The short version would turn 1460 into 3:00 PM and 2400 into 12:00 AM without a warning (TIME carries 60 minutes into the next hour and wraps 24 hours to 0). The file shows Check instead.",
+        "4. As text, D4: =TEXT(C4,\"h:mm AM/PM\") for labels or messages. Column C is a real time you can sort, subtract and compare.",
+        "5. Check means: more than 4 characters (seconds, a time that is already a real time, a date), a colon such as 14:30, a letter, a minus sign, or an hour or minute out of range.",
+        "6. Times that already are real times do not need this. A pasted 14:30 is usually converted by the app on its own.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb)
+    wb["Times"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-24-hour-time-numbers.xlsx")
+
+
+def upc_check_digit():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Barcodes"
+    ws["A1"] = "Fictional products and codes. Paste UPCs into column B as plain text (yellow, rows 4 to 203). This checks the arithmetic only."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Product", "UPC as typed", "Digits only", "Length", "Check digit from first 11", "Result", "Note"],
+              [26, 18, 15, 8, 11, 17, 46], height=46)
+    rows = [
+        ("Lavender soy candle 8 oz", "084512300179"), ("Cedar soy candle 8 oz", "0 84512 30018 6"),
+        ("Oatmeal goat milk soap", "0-84512-30025-4"), ("Charcoal soap bar", "084512300328"),
+        ("Brass hoop earrings", 84512300407), ("Letterpress card set", "08451230050"),
+        ("Ceramic mug 12 oz", "0845123006120"), ("Macrame plant hanger", "O84512300759"),
+        ("Leather key fob", None), ("Canvas tote bag", "084512300896"),
+        ("Kraft gift box", "0845123009"), ("Beeswax wrap set", "084512 300933"),
+    ]
+    p11 = "{1,2,3,4,5,6,7,8,9,10,11}"
+    w11 = "{3,1,3,1,3,1,3,1,3,1,3}"
+    for r in range(4, 204):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = "@"
+        c = f"C{r}"
+        ws[c] = f'=SUBSTITUTE(SUBSTITUTE(TRIM(B{r})," ",""),"-","")'
+        ws[f"D{r}"] = f'=IF({c}="","",LEN({c}))'
+        d11 = f'SUMPRODUCT(--ISNUMBER(FIND(MID({c},{p11},1),"0123456789")))=11'
+        ws[f"E{r}"] = (f'=IF(OR(D{r}=11,D{r}=12),IF({d11},'
+                       f'MOD(10-MOD(SUMPRODUCT(--MID({c},{p11},1),{w11}),10),10),""),"")')
+        ws[f"F{r}"] = (f'=IF({c}="",IF(TRIM(A{r})="","","Blank UPC"),IF(E{r}="","Check",'
+                       f'IF(D{r}=12,IF(ISNUMBER(FIND(RIGHT({c},1),"0123456789")),'
+                       f'IF(--RIGHT({c},1)=E{r},"OK","Wrong check digit"),"Check"),"11 digits")))')
+        zero_ok = (f'MOD(10-MOD(SUMPRODUCT(--MID({c},{{1,2,3,4,5,6,7,8,9,10}},1),{{1,3,1,3,1,3,1,3,1,3}}),10),10)'
+                   f'=--RIGHT({c},1)')
+        ws[f"G{r}"] = (f'=IF(F{r}="Wrong check digit","Last digit is "&RIGHT({c},1)&", the first 11 give "&E{r},'
+                       f'IF(F{r}="11 digits",IF({zero_ok},"0"&{c}&" passes with a 0 in front; or add "&E{r}&" at the end",'
+                       f'"Add "&E{r}&" at the end: "&{c}&E{r}),""))')
+        for col in "CDEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        ws[c].number_format = "@"
+        ws[f"D{r}"].alignment = Alignment(horizontal="right")
+        ws[f"E{r}"].alignment = Alignment(horizontal="center")
+        ws[f"G{r}"].alignment = Alignment(wrap_text=True, vertical="top")
+    for i, (a, b) in enumerate(rows):
+        ws[f"A{4 + i}"] = a
+        if b is not None:
+            ws[f"B{4 + i}"] = b
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 22
+    ws.column_dimensions["J"].width = 10
+    _summary_block(ws, "I", "J", [
+        (3, "UPCs listed", '=SUMPRODUCT(--(F4:F203<>""))', "0"),
+        (4, "OK", '=COUNTIF(F4:F203,"OK")', "0"),
+        (5, "Wrong check digit", '=COUNTIF(F4:F203,"Wrong check digit")', "0"),
+        (6, "11 digits", '=COUNTIF(F4:F203,"11 digits")', "0"),
+        (7, "Check", '=COUNTIF(F4:F203,"Check")', "0"),
+        (8, "Blank UPC", '=COUNTIF(F4:F203,"Blank UPC")', "0"),
+        (9, "CHECK", '=IF(J3=J4+J5+J6+J7+J8,"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("F4:F203", FormulaRule(formula=['OR($F4="Check",$F4="Wrong check digit",$F4="Blank UPC",$F4="11 digits")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("F4:F203", FormulaRule(formula=['$F4="OK"'], fill=DONE_FILL))
+    ws.conditional_formatting.add("J9", FormulaRule(formula=['$J$9<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Check a UPC Barcode Number's Check Digit",
+        "",
+        "1. Barcodes tab: paste the product and the 12-digit UPC-A into A and B (yellow, up to row 203). Format column B as Plain text first so a leading 0 is kept. The products and codes are fictional.",
+        "2. Digits only, C4: =SUBSTITUTE(SUBSTITUTE(TRIM(B4),\" \",\"\"),\"-\",\"\") removes spaces and hyphens, so 0 84512 30018 6 and 0-84512-30025-4 are read as 12 digits.",
+        "3. Check digit, E4: =MOD(10-MOD(SUMPRODUCT(--MID(C4,{1,2,3,4,5,6,7,8,9,10,11},1),{3,1,3,1,3,1,3,1,3,1,3}),10),10).",
+        "   Digits 1, 3, 5, 7, 9 and 11 count three times, digits 2, 4, 6, 8 and 10 once. The check digit is what brings the total up to the next multiple of 10 (0 if it already is one).",
+        "4. Result: OK when the 12th digit matches, Wrong check digit when it does not, 11 digits when one digit is missing, Blank UPC, or Check (wrong length, a letter such as O for zero, or another character).",
+        "5. 11 digits: either a leading 0 was dropped (the code was stored as a number) or the check digit was never added. The note says which of the two passes; only you know which one is right.",
+        "6. A wrong check digit means at least one digit is wrong somewhere, not always the last one. Compare with the code you were given.",
+        "7. This checks the arithmetic only. It does not say a code is registered or belongs to your company; GS1 US assigns company prefixes.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Barcodes"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-upc-check-digit.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -15619,4 +15996,9 @@ if __name__ == "__main__":
     split_line_breaks()
     month_name_to_number()
     average_last_n()
+    rank_within_category()
+    apply_payment_oldest_first()
+    rental_weekend_rate()
+    time_numbers_24_hour()
+    upc_check_digit()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

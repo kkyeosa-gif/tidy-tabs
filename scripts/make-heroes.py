@@ -767,7 +767,31 @@ def heroes_2026_11_11():
                 "Log", name="avglastn"))
 
 
+def heroes_2026_11_12():
+    t = "templates/"
+    d = "images/2026-11-12-team-0%d-%s/"
+    save(d % (1, "rank-products-within-each-category-countifs-excel-google-sheets") + "rank-within-category-template.png",
+         render(compact_copy(t + "tidy-tabs-rank-within-category.xlsx", "Sales", 17, "rankcat", hide_rows=[2], clear=["C1"]),
+                "Sales", name="rankcat"))
+    save(d % (2, "apply-payment-to-oldest-invoices-first-sumifs-min-excel-google-sheets") + "apply-payment-oldest-invoices-first-template.png",
+         render(compact_copy(t + "tidy-tabs-apply-payment-oldest-first.xlsx", "Invoices", 13, "payoldest", hide_rows=[3], clear=["C1"]),
+                "Invoices", name="payoldest"))
+    save(d % (3, "rental-price-weekday-weekend-day-rates-networkdays-excel-google-sheets") + "rental-weekday-weekend-rate-template.png",
+         render(compact_copy(t + "tidy-tabs-rental-weekend-rate.xlsx", "Rentals", 11, "rentalrate", hide_rows=[3], clear=["C1"],
+                             labels={"A2": "Weekend or holiday rate"}),
+                "Rentals", hide_cols="JKL", name="rentalrate"))
+    save(d % (4, "convert-24-hour-time-numbers-like-1430-to-am-pm-time-int-mod-excel-google-sheets") + "24-hour-time-to-am-pm-template.png",
+         render(compact_copy(t + "tidy-tabs-24-hour-time-numbers.xlsx", "Times", 16, "time24", hide_rows=[1, 2], clear=["A1"]),
+                "Times", name="time24"))
+    save(d % (5, "check-upc-barcode-check-digit-mid-sumproduct-mod-excel-google-sheets") + "upc-check-digit-template.png",
+         render(compact_copy(t + "tidy-tabs-upc-check-digit.xlsx", "Barcodes", 15, "upccheck", hide_rows=[1, 2], clear=["A1"]),
+                "Barcodes", hide_cols="HIJ", widths={"G": 60}, name="upccheck"))
+
+
 def main():
+    if "--only-2026-11-12" in sys.argv:
+        heroes_2026_11_12()
+        return
     if "--only-2026-11-11" in sys.argv:
         heroes_2026_11_11()
         return

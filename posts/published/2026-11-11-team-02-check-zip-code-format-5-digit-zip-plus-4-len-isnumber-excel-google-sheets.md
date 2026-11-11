@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfnFKjjFlK0
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-check-zip-codes-for-right-format.html
 title: How to Check ZIP Codes for the Right Format (5 Digits or ZIP+4) in Excel and Google Sheets
 labels: excel-formulas, small-business, shipping
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with independent Python models over 7 workbooks and 5,069 cell comparisons. Checked: the 15-row sample, 48 fixed strings (leading zeros lost, a letter O for zero, 1,234, $1234, 1E100, +1234, hyphens in the wrong place, spaces, tabs, full width digits, blanks), ZIPs stored as numbers, and 6 random sets of 200 rows. Excel and Google Sheets were not used. Not run: non-breaking spaces, a non-US language setting.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfnZwXtlJJX
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-split-address-with-line-breaks.html
 title: How to Split an Address With Line Breaks Into Separate Columns in Excel and Google Sheets
 labels: excel-formulas, small-business, shipping
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with independent Python models over 7 workbooks and 7,378 comparisons. Checked: 25 fixed cells with 1 to 6 lines, a trailing break, empty lines in the middle, a leading break, CRLF breaks, spaces around lines, a tab, spaces only, a 250 character line, a 500 character fifth line, and 6 random sets of 200 rows. Excel and Google Sheets were not used. Not run: Excel, Google Sheets, a non-US language setting, more than 200 rows, cells longer than about 6,000 characters.

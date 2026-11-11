@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfm3cRMGu2c
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-shorten-product-title-to.html
 title: How to Shorten a Product Title to a Character Limit Without Cutting a Word in Excel and Google Sheets
 labels: excel-formulas, small-business, listings
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 19 workbooks and 6,973 comparisons with 0 mismatches left. Checked: limits 140, 139, 141, 20, 1, 2, 3, 10, 50, 200 and 300, titles just under, at and over each limit, a space at position limit plus 1, doubled spaces, one long word of 3 lengths, leading and trailing spaces, blank rows, a title with a ~, numbers as titles, a limit that is text, blank, 2.5, 0 or -5, and random titles. Excel and Google Sheets were not used. Not run: non-breaking spaces, more rows than the template holds, a non-US language setting.

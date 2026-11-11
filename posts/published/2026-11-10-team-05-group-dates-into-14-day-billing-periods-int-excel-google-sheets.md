@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfmjoDKluD6
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-group-dates-into-14-day-billing.html
 title: How to Group Dates Into 14-Day Billing Periods in Excel and Google Sheets
 labels: excel-formulas, small-business, freelancers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 33 workbooks and 5,712 comparisons. Checked: the sample, an empty sheet, the day before the start, the first and last day of a period, period lengths of 1, 7, 14 and 30, a length of 0, -7, 14.5, text and blank, a start date with a time, dates with a time of day, text dates, blank rows in the middle, a leap day, a year change, 200 consecutive days, and 14 random sets. Excel and Google Sheets were not used. Not run: a non-US language setting, more rows than the slots.

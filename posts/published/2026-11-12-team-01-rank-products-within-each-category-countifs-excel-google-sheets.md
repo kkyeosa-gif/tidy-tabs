@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfpcOK8IF4a
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-rank-products-within-each.html
 title: How to Rank Products Within Each Category in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 21 workbooks and 16,905 comparisons with 0 mismatches. Checked: Top N settings 3, 1, 5, 14 and 200 and the invalid settings 0, -1, 2.5, "abc", "3" typed as text and blank, three-way and two-way ties, Candles / candles / CANDLES, "Candles " and " Candles", a blank category, text sales, blank sales with a name, 0 and negative sales, So*p, Soap? and Soap~, very small and close decimals, a row on row 203, and 8 random lists of 200 rows. Excel and Google Sheets were not used. Not run: decimals with more than 15 significant digits, more rows than the template holds, a non-US language setting.

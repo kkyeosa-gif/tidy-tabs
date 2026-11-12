@@ -222,3 +222,10 @@
 - How to Price a Rental With Weekday and Weekend Day Rates in Excel and Google Sheets - `2026-11-12-team-03-rental-price-weekday-weekend-day-rates-networkdays-excel-google-sheets`
 - How to Convert 24-Hour Times Like 1430 to AM and PM Times in Excel and Google Sheets - `2026-11-12-team-04-convert-24-hour-time-numbers-like-1430-to-am-pm-time-int-mod-excel-google-sheets`
 - How to Check a UPC Barcode Number's Check Digit in Excel and Google Sheets - `2026-11-12-team-05-check-upc-barcode-check-digit-mid-sumproduct-mod-excel-google-sheets`
+
+## 2026-11-13 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 템플릿은 LibreOffice 24.2.7.2 에서 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-13.md)
+- How to Flag Possible Duplicate Orders by Customer, Date and Amount in Excel and Google Sheets - `2026-11-13-team-01-flag-possible-duplicate-orders-same-customer-day-amount-countifs-excel-google-sheets`
+- How to Make a Materials Shopping List From Your Orders in Excel and Google Sheets - `2026-11-13-team-02-materials-shopping-list-from-orders-bill-of-materials-sumifs-roundup-excel-google-sheets`
+- How to Convert a Unix Timestamp to a Date and Time in Excel and Google Sheets - `2026-11-13-team-03-convert-unix-timestamp-to-date-and-time-seconds-milliseconds-excel-google-sheets`
+- How to Write a Check Amount in Words in Excel and Google Sheets - `2026-11-13-team-04-write-check-amount-in-words-dollars-and-cents-index-mod-excel-google-sheets`
+- How to Pull Size and Scent Out of an Order Variations Column in Excel and Google Sheets - `2026-11-13-team-05-pull-size-and-scent-from-variations-column-by-label-find-mid-excel-google-sheets`

@@ -788,7 +788,30 @@ def heroes_2026_11_12():
                 "Barcodes", hide_cols="HIJ", widths={"G": 60}, name="upccheck"))
 
 
+def heroes_2026_11_13():
+    t = "templates/"
+    d = "images/2026-11-13-team-0%d-%s/"
+    save(d % (1, "flag-possible-duplicate-orders-same-customer-day-amount-countifs-excel-google-sheets") + "possible-duplicate-orders-template.png",
+         render(compact_copy(t + "tidy-tabs-possible-duplicate-orders.xlsx", "Orders", 18, "dupord", hide_rows=[1, 2], clear=["A1"]),
+                "Orders", name="dupord"))
+    save(d % (2, "materials-shopping-list-from-orders-bill-of-materials-sumifs-roundup-excel-google-sheets") + "materials-shopping-list-template.png",
+         render(compact_copy(t + "tidy-tabs-materials-from-orders.xlsx", "Materials", 14, "matlist", hide_rows=[1, 2, 3], clear=["A1"]),
+                "Materials", name="matlist"))
+    save(d % (3, "convert-unix-timestamp-to-date-and-time-seconds-milliseconds-excel-google-sheets") + "unix-timestamp-to-date-template.png",
+         render(compact_copy(t + "tidy-tabs-unix-timestamp-to-date.xlsx", "Timestamps", 15, "unixts", hide_rows=[2], clear=["C1"]),
+                "Timestamps", name="unixts"))
+    save(d % (4, "write-check-amount-in-words-dollars-and-cents-index-mod-excel-google-sheets") + "check-amount-in-words-template.png",
+         render(compact_copy(t + "tidy-tabs-check-amount-in-words.xlsx", "Checks", 15, "chkwords", hide_rows=[1, 2], clear=["A1"]),
+                "Checks", hide_cols="BEFIJK", name="chkwords"))
+    save(d % (5, "pull-size-and-scent-from-variations-column-by-label-find-mid-excel-google-sheets") + "variation-values-by-label-template.png",
+         render(compact_copy(t + "tidy-tabs-variation-values-by-label.xlsx", "Orders", 15, "varlabel", hide_rows=[1, 2], clear=["A1"]),
+                "Orders", hide_cols="CHIJ", name="varlabel"))
+
+
 def main():
+    if "--only-2026-11-13" in sys.argv:
+        heroes_2026_11_13()
+        return
     if "--only-2026-11-12" in sys.argv:
         heroes_2026_11_12()
         return

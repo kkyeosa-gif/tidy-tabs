@@ -15804,6 +15804,489 @@ def upc_check_digit():
     wb.save(OUT / "tidy-tabs-upc-check-digit.xlsx")
 
 
+def _crit_text(ref):
+    """COUNTIFS/SUMIFS criterion that matches the text in ref exactly: "=" so a leading <, > or = is
+    not read as an operator, and ~ * ? escaped so they are not wildcards."""
+    return f'"="&SUBSTITUTE(SUBSTITUTE(SUBSTITUTE({ref},"~","~~"),"*","~*"),"?","~?")'
+
+
+def possible_duplicate_orders():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = "Fictional orders. Paste your orders into A to D (yellow, rows 4 to 203). A flag means \"look at this\", not \"delete this\"."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Order no.", "Order date and time", "Customer", "Amount", "Order day", "Same customer, day and amount",
+                      "Copy no.", "Flag", "Times this order no. is listed"], [11, 20, 22, 11, 12, 13, 8, 19, 13], height=46)
+    rows = [
+        ("#1001", datetime(2026, 11, 2, 9, 14), "Harbor Dental", 86.50),
+        ("#1002", datetime(2026, 11, 2, 9, 15), "Harbor Dental", 86.50),
+        ("#1003", datetime(2026, 11, 2, 13, 40), "Lakeside Yoga", 42.00),
+        ("#1004", datetime(2026, 11, 3, 10, 5), "Jordan Reed", 18.00),
+        ("#1005", datetime(2026, 11, 3, 16, 22), "Maria Lopez", 64.25),
+        ("#1006", datetime(2026, 11, 3, 18, 10), "jordan reed", 18.00),
+        ("#1007", datetime(2026, 11, 4, 11, 0), "Cedar Print Shop", 120.00),
+        ("#1007", datetime(2026, 11, 4, 11, 0), "Cedar Print Shop", 120.00),
+        ("#1009", datetime(2026, 11, 5, 14, 15), "Pine & Co. Realty", 250.00),
+        ("#1010", datetime(2026, 11, 5, 14, 50), "Pine & Co. Realty", 25.00),
+        ("#1011", datetime(2026, 11, 6, 9, 0), "Lopez family", 33.75),
+        ("#1012", datetime(2026, 11, 6, 9, 2), "Lopez family", 33.75),
+        ("#1013", datetime(2026, 11, 6, 9, 5), "Lopez family", 33.75),
+        ("#1014", datetime(2026, 11, 7, 12, 30), "Harbor Dental", 86.50),
+        ("#1015", "11/08/2026", "Main St. Gift Shop", 54.00),
+    ]
+    for r in range(4, 204):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATETIME
+        ws[f"D{r}"].number_format = USD
+        cust = _crit_text(f"C{r}")
+        blank = f'AND(TRIM(A{r})="",B{r}="",TRIM(C{r})="",D{r}="")'
+        ws[f"E{r}"] = (f'=IF({blank},"",IF(OR(NOT(ISNUMBER(B{r})),TRIM(C{r})="",NOT(ISNUMBER(D{r}))),"Check",'
+                       f'IF(OR(B{r}<1,ROUND(D{r},2)<>D{r}),"Check",INT(B{r}))))')
+        ws[f"F{r}"] = (f'=IF(ISNUMBER(E{r}),COUNTIFS($C$4:$C$203,{cust},$E$4:$E$203,E{r},$D$4:$D$203,D{r}),"")')
+        ws[f"G{r}"] = (f'=IF(ISNUMBER(E{r}),COUNTIFS($C$4:C{r},{cust},$E$4:E{r},E{r},$D$4:D{r},D{r}),"")')
+        ws[f"H{r}"] = (f'=IF(E{r}="","",IF(E{r}="Check","Check",IF(F{r}=1,"",'
+                       f'IF(G{r}=1,"First of "&F{r},"Possible duplicate"))))')
+        ws[f"I{r}"] = (f'=IF(OR(E{r}="",TRIM(A{r})=""),"",IF(ISNUMBER(A{r}),COUNTIF($A$4:$A$203,A{r}),'
+                       f'COUNTIF($A$4:$A$203,{_crit_text(f"A{r}")})))')
+        ws[f"E{r}"].number_format = US_DATE
+        for col in "EFGHI":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCD", row):
+            ws[f"{col}{4 + i}"] = v
+    ws.column_dimensions["J"].width = 3
+    ws.column_dimensions["K"].width = 30
+    ws.column_dimensions["L"].width = 12
+    _summary_block(ws, "K", "L", [
+        (3, "Orders listed", '=SUMPRODUCT(--(E4:E203<>""))', "0"),
+        (4, "Possible duplicates (2nd copy on)", '=COUNTIF(H4:H203,"Possible duplicate")', "0"),
+        (5, "Groups with more than one order", '=COUNTIF(H4:H203,"First of*")', "0"),
+        (6, "Amount in possible duplicates", '=SUMIFS(D4:D203,H4:H203,"Possible duplicate")', USD),
+        (7, "Rows with a repeated order no.", '=COUNTIF(I4:I203,">1")', "0"),
+        (8, "Rows showing Check", '=COUNTIF(H4:H203,"Check")', "0"),
+        (9, "Orders with no flag", '=L3-L4-L5-L8', "0"),
+    ])
+    ws.conditional_formatting.add("H4:H203", FormulaRule(formula=['OR($H4="Check",$H4="Possible duplicate")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("I4:I203", FormulaRule(formula=['AND(ISNUMBER($I4),$I4>1)'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Flag Possible Duplicate Orders (Same Customer, Day and Amount)",
+        "",
+        "1. Orders tab: paste your orders into A to D (yellow, up to row 203): order number, order date (a time is fine), customer and amount. The orders are fictional.",
+        "2. Order day, E4: =INT(B4) drops the time, so orders placed minutes apart on the same day can match.",
+        "3. Same customer, day and amount, F4: =COUNTIFS($C$4:$C$203,C4,$E$4:$E$203,E4,$D$4:$D$203,D4). 1 means the order is the only one like it.",
+        "4. Copy no., G4: =COUNTIFS($C$4:C4,C4,$E$4:E4,E4,$D$4:D4,D4). The ranges start at row 4 and end on the current row, so the first order of a group is 1, the next is 2, and so on.",
+        "5. Flag: First of 2 (or 3...) on the first order of a group, Possible duplicate on every later copy. In the file the customer criterion is wrapped so * ? ~ and a leading = < > in a name are matched as plain text.",
+        "6. Times this order no. is listed: more than 1 means the same order number was pasted twice (red).",
+        "7. Customer names match whatever the upper and lower case (Jordan Reed and jordan reed are one customer), but an extra space makes a different name. Clean the names first if your export adds spaces.",
+        "8. Check means the date is text or has no date part, the customer is blank, or the amount is text or not in whole cents.",
+        "9. A flag is a reason to look, not proof: a customer can really buy the same thing twice in one day. Compare the order numbers and items before you cancel or refund anything.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Orders"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-possible-duplicate-orders.xlsx")
+
+
+def materials_from_orders():
+    wb = Workbook()
+    ms = wb.active
+    ms.title = "Materials"
+    ords = wb.create_sheet("Orders")
+    rec = wb.create_sheet("Recipe")
+    # Orders: what has to be made.
+    ords["A1"] = "Fictional orders. One line per product per order or event (yellow, rows 4 to 203)."
+    ords["A1"].font = Font(italic=True)
+    _head_row(ords, 3, ["For (order or event)", "Product", "Quantity", "Status"], [28, 28, 10, 13], height=32)
+    order_rows = [
+        ("Main St. Gift Shop wholesale", "Lavender soy candle 8 oz", 24),
+        ("Main St. Gift Shop wholesale", "Cedar soy candle 8 oz", 18),
+        ("Main St. Gift Shop wholesale", "Oatmeal soap bar", 30),
+        ("Main St. Gift Shop wholesale", "Holiday gift set", 10),
+        ("Saturday farmers market", "Lavender soy candle 8 oz", 12),
+        ("Saturday farmers market", "Mini soy candle 4 oz", 30),
+        ("Saturday farmers market", "Oatmeal soap bar", 20),
+        ("Etsy orders this week", "Cedar soy candle 8 oz", 6),
+        ("Etsy orders this week", "Mini soy candle 4 oz", 12),
+        ("Etsy orders this week", "Lavender soy candle 8 oz", 4),
+    ]
+    for r in range(4, 204):
+        for col in "ABC":
+            ords[f"{col}{r}"].fill = INPUT_FILL
+        ords[f"D{r}"] = (f'=IF(AND(TRIM(A{r})="",TRIM(B{r})="",C{r}=""),"",IF(OR(TRIM(B{r})="",NOT(ISNUMBER(C{r}))),"Check",'
+                         f'IF(OR(C{r}<0,C{r}<>INT(C{r})),"Check",IF(COUNTIF(Recipe!$A$4:$A$203,{_crit_text(f"B{r}")})=0,"No recipe","OK"))))')
+        ords[f"D{r}"].fill = FORMULA_FILL
+        ords[f"D{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(order_rows):
+        for col, v in zip("ABC", row):
+            ords[f"{col}{4 + i}"] = v
+    ords.conditional_formatting.add("D4:D203", FormulaRule(formula=['OR($D4="Check",$D4="No recipe")'], fill=ALERT_FILL))
+    ords.freeze_panes = "A4"
+    # Recipe (bill of materials): what goes into one item.
+    rec["A1"] = "One line per material in one item (yellow, rows 4 to 203). Amount per item is in the unit on the Materials tab."
+    rec["A1"].font = Font(italic=True)
+    _head_row(rec, 3, ["Product", "Material", "Amount per item", "Items ordered", "Material needed", "Status"],
+              [28, 26, 11, 10, 11, 22], height=46)
+    recipe_rows = [
+        ("Lavender soy candle 8 oz", "Soy wax", 7), ("Lavender soy candle 8 oz", "Lavender fragrance oil", 0.6),
+        ("Lavender soy candle 8 oz", "Cotton wick", 1), ("Lavender soy candle 8 oz", "8 oz amber jar", 1),
+        ("Lavender soy candle 8 oz", "Jar label", 1),
+        ("Cedar soy candle 8 oz", "Soy wax", 7), ("Cedar soy candle 8 oz", "Cedar fragrance oil", 0.6),
+        ("Cedar soy candle 8 oz", "Cotton wick", 1), ("Cedar soy candle 8 oz", "8 oz amber jar", 1),
+        ("Cedar soy candle 8 oz", "Jar label", 1),
+        ("Mini soy candle 4 oz", "Soy wax", 3.5), ("Mini soy candle 4 oz", "Lavender fragrance oil", 0.3),
+        ("Mini soy candle 4 oz", "Cotton wick", 1), ("Mini soy candle 4 oz", "4 oz tin", 1),
+        ("Mini soy candle 4 oz", "Jar label", 1),
+        ("Oatmeal soap bar", "Soap base", 4.5), ("Oatmeal soap bar", "Colloidal oatmeal", 0.1),
+        ("Oatmeal soap bar", "Soap band", 1),
+    ]
+    for r in range(4, 204):
+        for col in "ABC":
+            rec[f"{col}{r}"].fill = INPUT_FILL
+        blank = f'AND(TRIM(A{r})="",TRIM(B{r})="",C{r}="")'
+        rec[f"D{r}"] = (f'=IF({blank},"",IF(OR(TRIM(A{r})="",TRIM(B{r})="",NOT(ISNUMBER(C{r}))),"Check",IF(C{r}<0,"Check",'
+                        f'SUMIFS(Orders!$C$4:$C$203,Orders!$B$4:$B$203,{_crit_text(f"A{r}")},Orders!$D$4:$D$203,"OK"))))')
+        rec[f"E{r}"] = f'=IF(ISNUMBER(D{r}),C{r}*D{r},"")'
+        rec[f"F{r}"] = (f'=IF(D{r}="","",IF(D{r}="Check","Check",IF(COUNTIF(Materials!$A$5:$A$104,{_crit_text(f"B{r}")})=0,'
+                        f'"Not on Materials tab","OK")))')
+        for col in "DEF":
+            rec[f"{col}{r}"].fill = FORMULA_FILL
+            rec[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        rec[f"C{r}"].number_format = rec[f"E{r}"].number_format = "#,##0.##"
+    for i, row in enumerate(recipe_rows):
+        for col, v in zip("ABC", row):
+            rec[f"{col}{4 + i}"] = v
+    rec.conditional_formatting.add("F4:F203", FormulaRule(formula=['OR($F4="Check",$F4="Not on Materials tab")'], fill=ALERT_FILL))
+    rec.freeze_panes = "A4"
+    # Materials: the shopping list.
+    ms["A1"] = "Fictional supplies. Type each material once with what you have on hand and the pack you buy (yellow, rows 5 to 104)."
+    ms["A1"].font = Font(italic=True)
+    _head_row(ms, 4, ["Material", "Unit", "On hand", "Pack size", "Pack price", "Needed for the orders", "Short",
+                      "Packs to buy", "Cost to buy", "Left after buying", "Status"],
+              [24, 7, 9, 9, 10, 11, 9, 8, 11, 10, 11], height=46)
+    mat_rows = [
+        ("Soy wax", "oz", 400, 160, 32.00), ("Lavender fragrance oil", "oz", 20, 16, 28.50),
+        ("Cedar fragrance oil", "oz", 12, 16, 26.00), ("Cotton wick", "each", 150, 100, 9.00),
+        ("8 oz amber jar", "each", 36, 24, 30.00), ("4 oz tin", "each", 50, 24, 14.40),
+        ("Jar label", "each", 300, 250, 18.00), ("Soap base", "oz", 64, 32, 15.50),
+        ("Colloidal oatmeal", "oz", 8, 16, 9.25), ("Soap band", "each", 40, 100, 7.00),
+    ]
+    for r in range(5, 105):
+        for col in "ABCDE":
+            ms[f"{col}{r}"].fill = INPUT_FILL
+        ms[f"F{r}"] = f'=IF(TRIM(A{r})="","",SUMIFS(Recipe!$E$4:$E$203,Recipe!$B$4:$B$203,{_crit_text(f"A{r}")}))'
+        ms[f"G{r}"] = f'=IF(F{r}="","",IF(NOT(ISNUMBER(C{r})),"Check",IF(C{r}<0,"Check",MAX(0,ROUND(F{r}-C{r},6)))))'
+        ms[f"H{r}"] = (f'=IF(G{r}="","",IF(G{r}="Check","Check",IF(G{r}=0,0,IF(NOT(ISNUMBER(D{r})),"Check",'
+                       f'IF(D{r}<=0,"Check",ROUNDUP(ROUND(G{r}/D{r},9),0))))))')
+        ms[f"I{r}"] = (f'=IF(NOT(ISNUMBER(H{r})),"",IF(H{r}=0,0,IF(E{r}="","",IF(NOT(ISNUMBER(E{r})),"Check",'
+                       f'IF(E{r}<0,"Check",ROUND(H{r}*E{r},2))))))')
+        ms[f"J{r}"] = f'=IF(ISNUMBER(H{r}),ROUND(C{r}+H{r}*IF(H{r}=0,0,D{r})-F{r},6),"")'
+        ms[f"K{r}"] = (f'=IF(F{r}="","",IF(OR(G{r}="Check",H{r}="Check",I{r}="Check"),"Check",'
+                       f'IF(F{r}=0,"Not used",IF(H{r}>0,"Buy","Enough"))))')
+        ms[f"E{r}"].number_format = ms[f"I{r}"].number_format = USD
+        for col in "CDFGJ":
+            ms[f"{col}{r}"].number_format = "#,##0.##"
+        for col in "FGHIJK":
+            ms[f"{col}{r}"].fill = FORMULA_FILL
+            ms[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(mat_rows):
+        for col, v in zip("ABCDE", row):
+            ms[f"{col}{5 + i}"] = v
+    ms.column_dimensions["L"].width = 3
+    ms.column_dimensions["M"].width = 30
+    ms.column_dimensions["N"].width = 12
+    _summary_block(ms, "M", "N", [
+        (4, "Materials to buy", '=COUNTIF(K5:K104,"Buy")', "0"),
+        (5, "Total cost to buy", "=SUM(I5:I104)", USD),
+        (6, "Materials showing Check", '=COUNTIF(K5:K104,"Check")', "0"),
+        (7, "Order lines not counted", '=COUNTIF(Orders!D4:D203,"Check")+COUNTIF(Orders!D4:D203,"No recipe")', "0"),
+        (8, "Recipe lines with a problem", '=COUNTIF(Recipe!F4:F203,"Check")+COUNTIF(Recipe!F4:F203,"Not on Materials tab")', "0"),
+        (9, "CHECK", '=IF(N6+N7+N8=0,"OK","Check")', "General"),
+    ])
+    ms.conditional_formatting.add("K5:K104", FormulaRule(formula=['$K5="Check"'], fill=ALERT_FILL))
+    ms.conditional_formatting.add("K5:K104", FormulaRule(formula=['$K5="Buy"'], fill=PatternFill("solid", fgColor="FCE4C4")))
+    ms.conditional_formatting.add("K5:K104", FormulaRule(formula=['$K5="Enough"'], fill=DONE_FILL))
+    ms.conditional_formatting.add("N9", FormulaRule(formula=['$N$9<>"OK"'], fill=ALERT_FILL))
+    ms.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Make a Materials Shopping List From Your Orders",
+        "",
+        "1. Orders tab: one line per product per order or event (yellow, up to row 203). The same product can appear on many lines. The orders and supplies are fictional.",
+        "2. Recipe tab: one line per material that goes into one item, for example Lavender soy candle 8 oz / Soy wax / 7. Use the unit you type on the Materials tab (oz, each, yd).",
+        "3. Items ordered, Recipe D4: =SUMIFS(Orders!$C$4:$C$203,Orders!$B$4:$B$203,A4,Orders!$D$4:$D$203,\"OK\") adds up every order line for that product. Material needed, E4: =C4*D4.",
+        "4. Materials tab: Needed for the orders, F5: =SUMIFS(Recipe!$E$4:$E$203,Recipe!$B$4:$B$203,A5) adds the material over every product that uses it.",
+        "5. Short, G5: =MAX(0,ROUND(F5-C5,6)). Packs to buy, H5: =ROUNDUP(ROUND(G5/D5,9),0). The inner ROUND stops a tiny decimal leftover (such as 3.0000000001) from adding a whole extra pack.",
+        "6. Cost to buy, I5: =ROUND(H5*E5,2). Left after buying, J5: on hand + packs bought - needed. Leave Pack price blank if you only want the counts.",
+        "7. No recipe (Orders tab) means the product has no lines on the Recipe tab, so it is not counted. Not on Materials tab (Recipe tab) means a material name is spelled differently or missing on the Materials tab. Names must match exactly; upper and lower case do not matter, extra spaces do.",
+        "8. Check means a quantity or amount is text, negative or (for quantities) not a whole number, on hand is blank or text, or a pack size is 0 or blank when you are short.",
+        "9. Waste, spills and test pours are not included. Add a little to Amount per item if you always lose some.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ms.print_title_rows = "4:4"
+    ords.print_title_rows = rec.print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-materials-from-orders.xlsx")
+
+
+def unix_timestamp_to_date():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Timestamps"
+    ws["A1"], ws["B1"] = "Hours from UTC", -5
+    ws["A1"].font = Font(bold=True)
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = "0.##"
+    ws["C1"] = ("-5 is US Eastern standard time (-4 during daylight saving time). Central -6/-5, Mountain -7/-6, Pacific -8/-7. "
+                "Fictional payments; paste timestamps into B (yellow, rows 4 to 203).")
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Payment ID", "Timestamp as exported", "Unit", "Date and time (local)", "Date", "Time", "Status"],
+              [17, 23, 13, 24, 12, 13, 12], height=46)
+    rows = [
+        ("pay_0001", 1793630100), ("pay_0002", 1793650500), ("pay_0003", 1793725200000), ("pay_0004", 1793768399),
+        ("pay_0005", 1793768400), ("pay_0006", 1793901045123), ("pay_0007", 1794087000), ("pay_0008", 1794157200),
+        ("pay_0009", 1794520800), ("pay_0010", "1794575700"), ("pay_0011", "2026-11-13T13:15:00Z"), ("pay_0012", 17945208),
+    ]
+    for r in range(4, 204):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = "0"
+        ws[f"B{r}"].alignment = Alignment(horizontal="right")
+        t = f"TRIM(B{r})"
+        digits = f'SUMPRODUCT(LEN({t})-LEN(SUBSTITUTE({t},{{"0","1","2","3","4","5","6","7","8","9"}},"")))=LEN({t})'
+
+        def unit(n):
+            return (f'IF({n}<0,"Check",IF({n}<100000000000,IF({n}<=4102444800,"Seconds","Check"),'
+                    f'IF({n}<=4102444800000,"Milliseconds","Check")))')
+        # A number, or text made only of digits (a CSV column imported as text); anything else is Check.
+        ws[f"C{r}"] = f'=IF({t}="","",IF(ISNUMBER(B{r}),{unit(f"B{r}")},IF({digits},{unit(f"--{t}")},"Check")))'
+        num = f"IF(ISNUMBER(B{r}),B{r},--{t})"
+        sec = f'IF(C{r}="Seconds",{num},{num}/1000)'
+        ws[f"D{r}"] = (f'=IF(OR(C{r}="Seconds",C{r}="Milliseconds"),IF(ISNUMBER($B$1),IF(AND($B$1>=-12,$B$1<=14),'
+                       f'({sec}+$B$1*3600)/86400+DATE(1970,1,1),"Check"),"Check"),IF(C{r}="","","Check"))')
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),INT(D{r}),"")'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(D{r}),D{r}-INT(D{r}),"")'
+        ws[f"G{r}"] = f'=IF(C{r}="","",IF(ISNUMBER(D{r}),IF(D{r}<DATE(2000,1,1),"Before 2000","OK"),"Check"))'
+        ws[f"D{r}"].number_format = "mm/dd/yyyy h:mm:ss AM/PM"
+        ws[f"E{r}"].number_format = US_DATE
+        ws[f"F{r}"].number_format = "h:mm:ss AM/PM"
+        for col in "CDEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (a, b) in enumerate(rows):
+        ws[f"A{4 + i}"], ws[f"B{4 + i}"] = a, b
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 31
+    ws.column_dimensions["J"].width = 24
+    _summary_block(ws, "I", "J", [
+        (3, "Timestamps listed", '=SUMPRODUCT(--(G4:G203<>""))', "0"),
+        (4, "Converted (OK)", '=COUNTIF(G4:G203,"OK")', "0"),
+        (5, "Before 2000 (digits missing?)", '=COUNTIF(G4:G203,"Before 2000")', "0"),
+        (6, "Rows showing Check", '=COUNTIF(G4:G203,"Check")', "0"),
+        (7, "Earliest OK (local)", '=IF(J4=0,"",SMALL(D4:D203,COUNTIF(D4:D203,"<"&DATE(2000,1,1))+1))', "mm/dd/yyyy h:mm:ss AM/PM"),
+        (8, "Latest OK (local)", '=IF(J4=0,"",MAX(D4:D203))', "mm/dd/yyyy h:mm:ss AM/PM"),
+        (9, "Hours from UTC (B1)", '=IF(ISNUMBER(B1),IF(AND(B1>=-12,B1<=14),"OK","Check"),"Check")', "General"),
+    ])
+    ws.conditional_formatting.add("G4:G203", FormulaRule(formula=['OR($G4="Check",$G4="Before 2000")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("J9", FormulaRule(formula=['$J$9<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Convert Unix Timestamps to Dates and Times",
+        "",
+        "1. Timestamps tab: type your offset from UTC in B1 (-5 for US Eastern standard time) and paste the timestamps into column B (yellow, up to row 203). The payments are fictional.",
+        "2. A Unix timestamp counts seconds since 01/01/1970 12:00 AM UTC. 10-digit values (such as 1793630100) are seconds; 13-digit values (such as 1793725200000) are milliseconds. Unit, C4, tells them apart (below 100,000,000,000 = seconds).",
+        "3. Date and time, D4: =(B4+$B$1*3600)/86400+DATE(1970,1,1) for seconds, with B4/1000 in place of B4 for milliseconds. 86400 is the number of seconds in a day. The cell is formatted mm/dd/yyyy h:mm:ss AM/PM.",
+        "   Short version in UTC: =B4/86400+DATE(1970,1,1). For milliseconds: =B4/86400000+DATE(1970,1,1).",
+        "4. Date, E4: =INT(D4) for grouping by day. Time, F4: =D4-INT(D4).",
+        "5. B1 is one fixed offset. It does not switch for daylight saving time: in 2026, US daylight saving time ends 11/01/2026, so -5 is right for Eastern from then until it starts again in March. For a mixed list, convert in UTC (B1 = 0) or split the rows.",
+        "6. Text made only of digits (a column imported as text) is read as a number. Check means the timestamp has other characters (a minus sign, a decimal point in text, a date written out), is negative, or is too big to be a date before 2100, or B1 is not a number from -12 to 14. Before 2000 usually means digits were cut off (17945208 instead of 1794520800).",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Timestamps"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-unix-timestamp-to-date.xlsx")
+
+
+def check_amount_in_words():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Checks"
+    words = wb.create_sheet("Words")
+    ws["A1"] = "Fictional checks. Type the amount in D (yellow, rows 4 to 203). Works for $0.00 to $999,999.99."
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Check no.", "Date", "Pay to", "Amount", "Dollars", "Cents", "Amount in words", "Status"],
+              [9, 12, 24, 13, 10, 7, 62, 9], height=32)
+    rows = [
+        (1041, date(2026, 11, 2), "Cedar Print Shop", 1250.00), (1042, date(2026, 11, 3), "Harbor Packaging Supply", 86.50),
+        (1043, date(2026, 11, 5), "Lakeside Studio Rentals", 2019.07), (1044, date(2026, 11, 6), "Pine Street Market", 45.00),
+        (1045, date(2026, 11, 9), "Maria Lopez", 312.75), (1046, date(2026, 11, 10), "Jordan Reed", 0.99),
+        (1047, date(2026, 11, 12), "Main St. Gift Shop", 15600.00), (1048, date(2026, 11, 13), "Blue Ridge Wax Supply", 700.10),
+        (1049, date(2026, 11, 16), "Sunrise Sign Co.", 4080.40), (1050, date(2026, 11, 17), "Harbor Dental", 12.345),
+        (1051, date(2026, 11, 18), "Lopez family", -25.00), (1052, date(2026, 11, 19), "Lakeside Yoga", "$45.00"),
+    ]
+    ones, tens = "Words!$B$4:$B$23", "Words!$E$4:$E$13"
+
+    def group(n):
+        h, t = f"INT({n}/100)", f"MOD({n},100)"
+        return (f'TRIM(IF({h}>0,INDEX({ones},{h}+1)&" Hundred","")&" "&IF({t}=0,"",IF({t}<20,INDEX({ones},{t}+1),'
+                f'INDEX({tens},INT({t}/10)+1)&IF(MOD({n},10)>0,"-"&INDEX({ones},MOD({n},10)+1),""))))')
+
+    for r in range(4, 204):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = US_DATE
+        ws[f"D{r}"].number_format = USD
+        cents = f"ROUND(D{r}*100,0)"
+        blank = f'AND(TRIM(A{r})="",B{r}="",TRIM(C{r})="",D{r}="")'
+        ws[f"E{r}"] = (f'=IF({blank},"",IF(NOT(ISNUMBER(D{r})),"Check",IF(OR(D{r}<0,D{r}>=1000000,ROUND(D{r},2)<>D{r}),"Check",'
+                       f'({cents}-MOD({cents},100))/100)))')
+        ws[f"F{r}"] = f'=IF(ISNUMBER(E{r}),MOD({cents},100),"")'
+        th, un = f"INT(E{r}/1000)", f"MOD(E{r},1000)"
+        ws[f"G{r}"] = (f'=IF(NOT(ISNUMBER(E{r})),"",IF(E{r}=0,"Zero",TRIM(IF({th}>0,{group(th)}&" Thousand","")&" "&{group(un)}))'
+                       f'&" and "&TEXT(F{r},"00")&"/100")')
+        ws[f"H{r}"] = f'=IF(E{r}="","",IF(ISNUMBER(E{r}),"OK","Check"))'
+        ws[f"E{r}"].number_format = "#,##0"
+        ws[f"F{r}"].number_format = "00"
+        for col in "EFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        ws[f"G{r}"].alignment = Alignment(horizontal="left")
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCD", row):
+            ws[f"{col}{4 + i}"] = v
+    ws.column_dimensions["I"].width = 3
+    ws.column_dimensions["J"].width = 24
+    ws.column_dimensions["K"].width = 13
+    _summary_block(ws, "J", "K", [
+        (3, "Checks listed", '=SUMPRODUCT(--(H4:H203<>""))', "0"),
+        (4, "Written out", '=COUNTIF(H4:H203,"OK")', "0"),
+        (5, "Rows showing Check", '=COUNTIF(H4:H203,"Check")', "0"),
+        (6, "Total of written-out checks", '=SUMIFS(D4:D203,H4:H203,"OK")', USD),
+    ])
+    ws.conditional_formatting.add("H4:H203", FormulaRule(formula=['$H4="Check"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A4"
+    words["A1"] = "Lookup lists used by the Amount in words formula. Change the spelling here if you like (for example lower case)."
+    words["A1"].font = Font(italic=True)
+    _head_row(words, 3, ["Number", "Word", "", "Tens", "Word"], [9, 14, 3, 9, 14], height=32)
+    ones_w = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve",
+              "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+    tens_w = ["", "Ten", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+    words["C3"].fill = PatternFill(fill_type=None)
+    for i, w in enumerate(ones_w):
+        words[f"A{4 + i}"], words[f"B{4 + i}"] = i, w
+    for i, w in enumerate(tens_w):
+        words[f"D{4 + i}"], words[f"E{4 + i}"] = i * 10, w
+    for r in range(4, 24):
+        words[f"B{r}"].fill = INPUT_FILL
+    for r in range(4, 14):
+        words[f"E{r}"].fill = INPUT_FILL
+    notes_sheet(wb, [
+        "Tidy Tabs: Write a Check Amount in Words",
+        "",
+        "1. Checks tab: type the check number, date, payee and amount (yellow, up to row 203). The checks and payees are fictional.",
+        "2. Dollars, E4, and Cents, F4: the amount is rounded to whole cents with ROUND(D4*100,0); MOD(...,100) is the cents and the rest divided by 100 is the dollars.",
+        "3. Amount in words, G4: the dollars are split into thousands, INT(E4/1000), and the part under 1,000, MOD(E4,1000). Each part is written as hundreds (INDEX of the Words list) plus the last two digits: 1 to 19 come straight from the list, 20 to 99 are a tens word, a hyphen and a ones word (Forty-Five).",
+        "4. The cents are written as a fraction: TEXT(F4,\"00\")&\"/100\", so 86.50 ends in and 50/100 and 1,250.00 ends in and 00/100.",
+        "5. To add the word Dollars, put &\" Dollars\" at the end of the G4 formula and copy it down.",
+        "6. Check means the amount is text (\"$45.00\" pasted as text), negative, $1,000,000.00 or more, or has fractions of a cent (12.345).",
+        "7. Always read the words against the number before you sign. Your bank decides what it accepts on a check; this file only writes the words.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Checks"].print_title_rows = "3:3"
+    wb["Words"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-check-amount-in-words.xlsx")
+
+
+def variation_values_by_label():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws["A1"] = ("Fictional orders. Paste the variations text into B (yellow, rows 4 to 203). "
+                "Type the option names you want in D3 to F3 (yellow); upper and lower case do not matter.")
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 3, ["Order no.", "Variations as exported", "Cleaned (helper)", "Scent", "Size", "Gift wrap", "Options not found"],
+              [10, 50, 44, 16, 9, 10, 14], height=46)
+    for col in "DEF":
+        ws[f"{col}3"].fill = INPUT_FILL
+        ws[f"{col}3"].font = Font(bold=True)
+    rows = [
+        ("#2101", "Scent: Lavender, Size: 8 oz"),
+        ("#2102", "Size: 12 oz, Scent: Cedar & Sage, Gift wrap: Yes"),
+        ("#2103", "scent:Vanilla bean,size:4 oz,gift wrap:No"),
+        ("#2104", "Scent: Pumpkin Spice\nSize: 8 oz\nGift wrap: Yes"),
+        ("#2105", "Wick size: Double, Scent: Lavender"),
+        ("#2106", "Size : 8 oz , Scent : Cedar & Sage"),
+        ("#2107", "Gift wrap: No; Scent: Fresh Linen; Size: 12 oz"),
+        ("#2108", None),
+        ("#2109", "Scent: Lavender, Scent: Cedar & Sage, Size: 4 oz"),
+        ("#2110", "Size: 8 oz, Scent:"),
+        ("#2111", "Scent: Bay Rum, Size: 8 oz, Pickup time: 2:30 PM"),
+        ("#2112", "Color: Gold lid, Size: 8 oz"),
+    ]
+    for r in range(4, 204):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].alignment = Alignment(vertical="top")
+        ws[f"B{r}"].alignment = Alignment(wrap_text=True, vertical="top")
+        b = f"SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(B{r},CHAR(10),\",\"),CHAR(13),\",\"),\";\",\",\")"
+        ws[f"C{r}"] = (f'=IF(TRIM(B{r})="","",","&SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(TRIM({b}),'
+                       f'", ",",")," ,",",")," :",":")&",")')
+        for col in "DEF":
+            lab = f"TRIM({col}$3)"
+            pos = f'FIND(","&LOWER({lab})&":",LOWER($C{r}))'
+            ws[f"{col}{r}"] = (f'=IF(OR($C{r}="",{lab}=""),"",IFERROR(TRIM(MID($C{r},{pos}+LEN({lab})+2,'
+                               f'FIND(",",$C{r},{pos}+1)-{pos}-LEN({lab})-2)),""))')
+        ws[f"G{r}"] = (f'=IF(C{r}="",IF(TRIM(A{r})="","","No variations"),'
+                       f'SUMPRODUCT((TRIM($D$3:$F$3)<>"")*(D{r}:F{r}="")))')
+        for col in "CDEFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(vertical="top")
+        ws[f"G{r}"].alignment = Alignment(horizontal="right", vertical="top")
+        ws[f"C{r}"].alignment = Alignment(wrap_text=True, vertical="top")
+    for i, (a, b) in enumerate(rows):
+        ws[f"A{4 + i}"] = a
+        if b is not None:
+            ws[f"B{4 + i}"] = b
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 26
+    ws.column_dimensions["J"].width = 10
+    _summary_block(ws, "I", "J", [
+        (3, "Orders listed", '=SUMPRODUCT(--(G4:G203<>""))', "0"),
+        (4, "Every option found", '=COUNTIF(G4:G203,0)', "0"),
+        (5, "Some options not found", '=COUNTIF(G4:G203,">0")', "0"),
+        (6, "No variations", '=COUNTIF(G4:G203,"No variations")', "0"),
+    ])
+    ws.conditional_formatting.add("G4:G203", FormulaRule(formula=['OR($G4="No variations",AND(ISNUMBER($G4),$G4>0))'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("G4:G203", FormulaRule(formula=['AND(ISNUMBER($G4),$G4=0)'], fill=DONE_FILL))
+    ws.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Pull Size, Scent or Color Out of a Variations Column",
+        "",
+        "1. Orders tab: paste the order number and the variations text (for example Scent: Lavender, Size: 8 oz) into A and B (yellow, up to row 203). The orders are fictional.",
+        "2. Type the option names you want in D3, E3 and F3 (yellow). They must match the label before the colon; upper and lower case do not matter.",
+        "3. Cleaned, C4: line breaks and semicolons become commas, extra spaces are removed, the spaces next to a comma and before a colon are dropped, and a comma is added at both ends: ,Scent: Lavender,Size: 8 oz,",
+        "4. Value, D4: =IFERROR(TRIM(MID($C4,FIND(\",\"&LOWER(D$3)&\":\",LOWER($C4))+LEN(D$3)+2,FIND(\",\",$C4,FIND(\",\"&LOWER(D$3)&\":\",LOWER($C4))+1)-FIND(\",\"&LOWER(D$3)&\":\",LOWER($C4))-LEN(D$3)-2)),\"\") (the file wraps D$3 in TRIM).",
+        "   It finds ,label: and returns the text up to the next comma. The comma in front means Size does not match Wick size.",
+        "5. Options not found, G4: how many of the option names in D3:F3 came back empty on that row (the option is missing, or has no value). No variations means B is blank.",
+        "6. Limits: a value that contains a comma is cut at the comma (Note: Happy birthday, Mom gives Happy birthday). If a label appears twice, the first one wins. A space just before a colon inside a value is dropped too (Ratio: 1 :2 gives 1:2).",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    wb["Orders"].print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-variation-values-by-label.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -16001,4 +16484,9 @@ if __name__ == "__main__":
     rental_weekend_rate()
     time_numbers_24_hour()
     upc_check_digit()
+    possible_duplicate_orders()
+    materials_from_orders()
+    unix_timestamp_to_date()
+    check_amount_in_words()
+    variation_values_by_label()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

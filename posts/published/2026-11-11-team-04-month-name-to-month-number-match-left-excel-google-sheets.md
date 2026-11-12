@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfn1ODGm1F3
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-turn-month-names-into-month.html
 title: How to Turn Month Names Into Month Numbers in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 7 workbooks and 2,421 cell comparisons. Checked: all 12 month names as full, 3 letter, upper case, lower case, with a period and with spaces, Sept and Sept., Ju, Foo, Marc, Marketing, Mayo, Janitor, May 2026, names with * ? or ~, numbers typed in the month column, blank rows, text and negative sales, a sale on a row with no month, and 5 random sets of 200 rows. Excel and Google Sheets were not used. Not run: a non-US language setting, more rows than the template holds.

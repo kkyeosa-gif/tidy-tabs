@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfpIbN_m89N
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-average-last-5-entries-in.html
 title: How to Average the Last 5 Entries in a Growing List in Excel and Google Sheets
 labels: excel-formulas, small-business, freelancers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 33 workbooks and 6,831 comparisons. Checked: 0, 1, 4, 5, 6, 14 and 200 entries with N = 5, N of 1, 2, 5, 13, 14, 15, 200, 201 and 1000000, invalid settings (0, -1, 2.5, text, "5" typed as text, blank), a text cell and blank cells inside the list, entries that start lower on the sheet, a text cell in the last row, and 8 random lists. Excel and Google Sheets were not used. Not run: a non-US language setting, more rows than the slots.

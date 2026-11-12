@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfp-jQJFHY6
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-price-rental-with-weekday-and.html
 title: How to Price a Rental With Weekday and Weekend Day Rates in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 16 workbooks and 16,112 comparisons with 0 mismatches. Checked: every pickup weekday from 11/01/2026 to 11/14/2026 with 0, 1, 2, 3, 6, 7, 8 and 15 days, holidays on a weekday, on a Saturday (07/04/2026, 11/07/2026) and listed twice, rentals over 12/25/2026 and 01/01/2027, a return before the pickup, a text pickup date, a pickup with a time, no return date, rates 0/0, 45/-1, "abc", blank and 45.50/65.25, no holidays, and random sets of 200 rentals. Probes: a holiday typed as text ("11/27/2026") and the word "Black Friday" in the holiday list were ignored with no error; =D5-C5+1 gives 4 for a Friday to Monday rental. Excel and Google Sheets were not used. Not run: text in the holiday list in Excel or Sheets, other weekend days (NETWORKDAYS.INTL), a non-US language setting, more rows than the template holds.

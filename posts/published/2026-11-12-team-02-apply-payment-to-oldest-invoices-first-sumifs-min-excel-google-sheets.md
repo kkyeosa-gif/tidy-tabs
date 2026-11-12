@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfpp9ILFTG8
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-apply-client-payment-to-oldest.html
 title: How to Apply a Client Payment to the Oldest Invoices First in Excel and Google Sheets
 labels: excel-formulas, small-business, invoicing, freelancers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 30 workbooks and 18,300 comparisons with 0 mismatches. Checked: payments of $0.00, $375.00, $374.99, $375.01, $1,625.00, $5,757.50, $5,757.49, $6,000.00 and $100,000.00, a payment that is blank, text, negative or 2400.005, two invoices on one date, a $0.00 invoice, text dates and amounts, negative amounts, blank cells, a date with a time, amounts of 12.345, and 8 random lists of up to 200 invoices. Excel and Google Sheets were not used. Not run: credits, refunds, more rows than the template holds, a non-US language setting.

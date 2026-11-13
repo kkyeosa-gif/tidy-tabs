@@ -808,7 +808,32 @@ def heroes_2026_11_13():
                 "Orders", hide_cols="CHIJ", name="varlabel"))
 
 
+def heroes_2026_11_14():
+    t = "templates/"
+    d = "images/2026-11-14-team-0%d-%s/"
+    save(d % (1, "find-best-and-worst-month-per-product-column-header-of-max-index-match-excel-google-sheets") + "best-and-worst-month-per-product-template.png",
+         render(compact_copy(t + "tidy-tabs-best-month-per-product.xlsx", "Products", 12, "bestmonth", hide_rows=[1, 2, 3]),
+                "Products", hide_cols="LMNTVWX", name="bestmonth"))
+    save(d % (2, "convert-date-to-julian-date-code-yyddd-batch-lot-number-excel-google-sheets") + "julian-date-lot-codes-template.png",
+         render(compact_copy(t + "tidy-tabs-julian-date-lot-codes.xlsx", "Make codes", 13, "julmake", hide_rows=[1, 2]),
+                "Make codes", hide_cols="CHIJ", name="julmake"),
+         render(compact_copy(t + "tidy-tabs-julian-date-lot-codes.xlsx", "Read codes", 12, "julread", hide_rows=[1, 2]),
+                "Read codes", hide_cols="BGHI", name="julread"))
+    save(d % (3, "match-payouts-to-bank-deposits-repeat-amounts-countif-match-excel-google-sheets") + "match-payouts-to-bank-deposits-template.png",
+         render(compact_copy(t + "tidy-tabs-match-payouts-to-deposits.xlsx", "Payouts", 14, "payoutmatch", hide_rows=[1, 2, 3]),
+                "Payouts", hide_cols="DFG", name="payoutmatch"))
+    save(d % (4, "split-booking-days-and-amount-across-months-eomonth-min-max-excel-google-sheets") + "split-amount-across-months-template.png",
+         render(compact_copy(t + "tidy-tabs-split-dates-across-months.xlsx", "Amounts", 10, "splitmonths", hide_rows=[1, 2, 3]),
+                "Amounts", hide_cols="EMNOPQR", name="splitmonths"))
+    save(d % (5, "find-interest-rate-of-payment-plan-offer-rate-function-excel-google-sheets") + "payment-plan-interest-rate-template.png",
+         render(compact_copy(t + "tidy-tabs-payment-plan-interest-rate.xlsx", "Offers", 12, "planrate", hide_rows=[1, 2, 3]),
+                "Offers", hide_cols="CDHJNOP", widths={"A": 29, "F": 11, "G": 14, "M": 22}, name="planrate"))
+
+
 def main():
+    if "--only-2026-11-14" in sys.argv:
+        heroes_2026_11_14()
+        return
     if "--only-2026-11-13" in sys.argv:
         heroes_2026_11_13()
         return

@@ -315,3 +315,35 @@ Troubleshooting cases actually reproduced in LibreOffice 24.2.7.2
 
 ---
 What was NOT run (all five): Microsoft Excel, Google Sheets, any non-US language setting, more rows than the slots (54, 203, 204, 104), a printer (PDF export only). Nothing is claimed about Excel or Sheets.
+
+---
+Images 2026-11-14 (designer)
+
+Heroes: `heroes_2026_11_14` in scripts/make-heroes.py, run with `python3 -B scripts/make-heroes.py --only-2026-11-14` (no earlier entry run or changed). Each hero line sits directly after the `> Works in` callout in the draft posts (blank line before and after).
+
+Hero files (1600x900 PNG, checked with PIL, real LibreOffice PDF render of the template with its sample data, no error values or ### in any image). Hero alt texts below are 8 to 15 words and differ from the titles:
+1. images/2026-11-14-team-01-find-best-and-worst-month-per-product-column-header-of-max-index-match-excel-google-sheets/best-and-worst-month-per-product-template.png
+   - caption: "Eight products over ten months; Wax melts ties for best in Jun and Jul, and Discontinued soap shows No sales. PDF export from LibreOffice Calc 24.2."
+   - alt: "Monthly product sales grid with best month, worst month and tie count for each row"
+2. images/2026-11-14-team-02-convert-date-to-julian-date-code-yyddd-batch-lot-number-excel-google-sheets/julian-date-lot-codes-template.png
+   - caption: "Left, ten batches get a YYDDD code and lot code (a date typed as text shows Check); right, nine printed codes read back into dates, three of them Check. PDF export from LibreOffice Calc 24.2."
+   - alt: "Batch dates turned into Julian lot codes, and printed codes read back into dates"
+3. images/2026-11-14-team-03-match-payouts-to-bank-deposits-repeat-amounts-countif-match-excel-google-sheets/match-payouts-to-bank-deposits-template.png
+   - caption: "Ten payouts with 3 days allowed: seven Matched, one Check date at 4 days and two Not in bank, with the summary at right. PDF export from LibreOffice Calc 24.2."
+   - alt: "Three $412.50 payouts numbered 1 to 3 and each paired with its own deposit"
+4. images/2026-11-14-team-04-split-booking-days-and-amount-across-months-eomonth-min-max-excel-google-sheets/split-amount-across-months-template.png
+   - caption: "Six jobs split by days into month columns, shown through Mar 2027 (later months are hidden here, not in the file); an end date before the start shows Check. PDF export from LibreOffice Calc 24.2."
+   - alt: "Booking amounts spread over October to March columns by days, with an Adds up check"
+5. images/2026-11-14-team-05-find-interest-rate-of-payment-plan-offer-rate-function-excel-google-sheets/payment-plan-interest-rate-template.png
+   - caption: "Eight payment plan offers side by side (down payment and fee columns are hidden here); two 0% plans show No interest and the vinyl cutter costs less than cash. PDF export from LibreOffice Calc 24.2."
+   - alt: "Eight financing offers with cash price, monthly payment, rate times 12 and effective yearly rate"
+Shown in each hero: 1 Products rows 4-12, Nov, Dec, Total, Months filled in and the summary (L, M, N, T, W:X) hidden; 2 Make codes without Batch of the day (C) and the summary, beside Read codes without the Cleaned helper (B) and the summary; 3 Payouts without the helpers D, F, G, summary L4:M10 kept; 4 Amounts with Days (E) and the months after Mar 2027 (M:R) hidden, so the retainer's visible months do not add up to In the grid (the caption says later months are hidden); 5 Offers without Down payment, Upfront fee, Total paid, Monthly rate (C, D, H, J) and the summary, columns A, F, G, M widened in the hero copy only. All hiding is in the hero copy, not in the template files.
+
+AI photo (`image_prompts`, `image_alt`), one scene each, 2 or 3 specific objects, no screens, no readable text, no logos, no laptop and coffee:
+1. Best month: image_prompts "A small gift shop's seasonal shelf with glass jars of wax melts, a wicker basket of glass holiday ornaments and a stack of folded linen tea towels, price tags blank and unreadable, soft window light, realistic photo, no screens, no readable text, no logos" image_alt "Wax melts, holiday ornaments and stacked linen tea towels on a shop shelf"
+2. Julian: image_prompts "Freshly filled jam jars cooling upside down on a wire rack in a home kitchen, a small handheld roller coder for marking lot codes resting beside them and an open carton of spare jar lids, any marks too small to read, soft window light, realistic photo, no screens, no readable text, no logos" image_alt "Filled jam jars cooling upside down on a wire rack beside a handheld coder"
+3. Payouts: image_prompts "Three matching rubber-banded bundles of paper receipts lined up beside an open bank deposit slip book and a pen on a small shop counter, all print blurred and unreadable, soft daylight, realistic photo, no screens, no readable text, no logos" image_alt "Three matching receipt bundles beside an open deposit slip book on a counter"
+4. Split: image_prompts "An empty rented stall at an indoor makers market between seasons, bare pegboard walls, a hand truck loaded with folded display shelves and a padlock with key hanging on the stall's wire gate, soft overhead light, realistic photo, no screens, no readable text, no logos" image_alt "Empty indoor market stall with bare pegboard, a hand truck and a padlocked gate"
+5. RATE: image_prompts "A new glass display case still on its shipping pallet in a small gift shop, bubble wrap pulled back from one corner, a clipboard with a blank payment plan form and a pen resting on top, soft daylight, realistic photo, no screens, no readable text, no logos" image_alt "New glass display case on a shipping pallet with a clipboard and pen on top"
+
+All ten alt texts (5 hero, 5 photo) were checked against every `![alt]` and `image_alt` in posts/ (ready and published) and the other new drafts: no duplicates. Photo scenes avoid objects already used in earlier prompts (date stamp and ink pad, canopy tent bag, kiln, zippered deposit bag).

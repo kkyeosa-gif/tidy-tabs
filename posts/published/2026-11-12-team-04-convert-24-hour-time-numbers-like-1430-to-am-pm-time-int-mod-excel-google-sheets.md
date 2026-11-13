@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfqaA4zDmi2
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-convert-24-hour-times-like-1430.html
 title: How to Convert 24-Hour Times Like 1430 to AM and PM Times in Excel and Google Sheets
 labels: excel-formulas, small-business, data-cleanup, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 8 workbooks and 4,840 comparisons with 0 mismatches. Checked: 0, 1, 5, 59, 60, 99, 100, 159, 160, 959, 1000, 1159, 1200, 1259, 1300, 2300, 2359, 2360, 2399, 2400, 2401, 1859, 1899, 9999, 10000, 123456, "0" to "00000", "0745", "745", "07 45", " 0745 ", "7:45", "14:30", "12a", "abc", "-5", -5, 905.5, 0.5, a real time, 1E3 as a number and as text, full width digits, "+930", ".930", "9.30", "930.", spaces only, blank, "0060", "1260", and 6 random sets of 200 rows. Probes of the short formula: 1460 gives 3:00 PM, 2400 gives 12:00 AM, "14:30" gives 12:00 AM, "0745" gives 7:45 AM. Excel and Google Sheets were not used. Not run: TEXT with "h:mm AM/PM" in a non-US language setting, more rows than the template holds.

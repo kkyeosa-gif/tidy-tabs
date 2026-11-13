@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfsBC64lLWF
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-flag-possible-duplicate-orders.html
 title: How to Flag Possible Duplicate Orders by Customer, Date and Amount in Excel and Google Sheets
 labels: excel-formulas, small-business, orders
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 12 workbooks and 12,084 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

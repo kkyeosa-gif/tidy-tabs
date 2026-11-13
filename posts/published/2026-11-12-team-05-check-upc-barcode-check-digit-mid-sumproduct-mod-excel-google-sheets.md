@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfrtN0FFEhg
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-check-upc-barcode-numbers-check.html
 title: How to Check a UPC Barcode Number's Check Digit in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux) only. The template was recalculated there and compared with an independent Python model over 8 workbooks and 8,056 cell comparisons with 0 mismatches. Checked: a valid code, its first 11 and last 11 digits, the code stored as a number, 10, 13 and 14 digits, a wrong last digit, X as the last digit, a letter O for zero, a neighbor swap, spaces and hyphens in printed groups, double hyphens, an underscore, a decimal, 000000000000, 999999999993, a full width digit, a leading +, blank rows with and without a product, and 6 random sets of 200 rows. Excel and Google Sheets were not used. Not run: a non-US language setting, more rows than the template holds.

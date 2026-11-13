@@ -229,3 +229,10 @@
 - How to Convert a Unix Timestamp to a Date and Time in Excel and Google Sheets - `2026-11-13-team-03-convert-unix-timestamp-to-date-and-time-seconds-milliseconds-excel-google-sheets`
 - How to Write a Check Amount in Words in Excel and Google Sheets - `2026-11-13-team-04-write-check-amount-in-words-dollars-and-cents-index-mod-excel-google-sheets`
 - How to Pull Size and Scent Out of an Order Variations Column in Excel and Google Sheets - `2026-11-13-team-05-pull-size-and-scent-from-variations-column-by-label-find-mid-excel-google-sheets`
+
+## 2026-11-14 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-14.md)
+- How to Find Each Product's Best and Worst Month in Excel and Google Sheets - `2026-11-14-team-01-find-best-and-worst-month-per-product-column-header-of-max-index-match-excel-google-sheets`
+- How to Convert a Date to a Julian Date Code for Batch Lot Numbers in Excel and Google Sheets - `2026-11-14-team-02-convert-date-to-julian-date-code-yyddd-batch-lot-number-excel-google-sheets`
+- How to Match Payouts to Bank Deposits When the Same Amount Repeats in Excel and Google Sheets - `2026-11-14-team-03-match-payouts-to-bank-deposits-repeat-amounts-countif-match-excel-google-sheets`
+- How to Split a Booking or Contract Across Months by Days in Excel and Google Sheets - `2026-11-14-team-04-split-booking-days-and-amount-across-months-eomonth-min-max-excel-google-sheets`
+- How to Find the Interest Rate of a Monthly Payment Plan With RATE in Excel and Google Sheets - `2026-11-14-team-05-find-interest-rate-of-payment-plan-offer-rate-function-excel-google-sheets`

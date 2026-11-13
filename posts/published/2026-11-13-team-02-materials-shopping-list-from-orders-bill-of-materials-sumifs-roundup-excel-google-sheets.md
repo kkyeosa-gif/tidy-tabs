@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfsOvwVGuIM
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-make-materials-shopping-list.html
 title: How to Make a Materials Shopping List From Your Orders in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 12 workbooks and 16,872 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

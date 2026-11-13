@@ -16287,6 +16287,521 @@ def variation_values_by_label():
     wb.save(OUT / "tidy-tabs-variation-values-by-label.xlsx")
 
 
+def _digits_only(t):
+    """TRUE when the text t is made only of the digits 0 to 9 (SUMPRODUCT with an array constant, no _xlfn)."""
+    return f'SUMPRODUCT(LEN({t})-LEN(SUBSTITUTE({t},{{"0","1","2","3","4","5","6","7","8","9"}},"")))=LEN({t})'
+
+
+def best_month_per_product():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Products"
+    ws["A1"] = "Fictional 2026 sales by product and month. Type sales in B to M (yellow, rows 5 to 54); leave a month blank until it has happened."
+    ws["A1"].font = Font(italic=True)
+    ws["A2"] = "Month names in row 4 are typed text; the best and worst month come from that row. A 0 counts as a month, a blank does not."
+    ws["A2"].font = Font(italic=True)
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    _head_row(ws, 4, ["Product"] + months + ["Total", "Best month", "Best sales", "Months tied for best", "Worst month",
+                                             "Worst sales", "Months filled in", "Status"],
+              [20] + [9] * 12 + [11, 8, 11, 8, 8, 11, 8, 10], height=46)
+    rows = [
+        ("Soy candle 8 oz", [420, 380, 455, 510, 540, 495, 470, 525, 610, 890]),
+        ("Wax melts", [180, 165, 210, 240, 275, 310, 310, 260, 225, 290]),
+        ("Holiday ornament", [0, 0, 0, 0, 0, 0, 0, 0, 215, 640]),
+        ("Gift box", [None] * 6 + [340, 280, 365, 720]),
+        ("Market tote", [95, -25, 60, 120, 145, 160, 150, 130, 110, 175]),
+        ("Lip balm", [140, 150, 160, 175, 190, 205, 235, 200, 185, 180]),
+        ("Linen tea towel", [260, 240, 480, 530, 565, 340, 320, 345, 430, 410]),
+        ("Discontinued soap", [None] * 10),
+    ]
+    for r in range(5, 55):
+        for col in "ABCDEFGHIJKLM":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "BCDEFGHIJKLM":
+            ws[f"{col}{r}"].number_format = USD
+        m = f"B{r}:M{r}"
+        blank = f'AND(TRIM(A{r})="",COUNTA({m})=0)'
+        ws[f"N{r}"] = f'=IF({blank},"",IF(COUNTA({m})<>COUNT({m}),"Check",SUM({m})))'
+        ws[f"O{r}"] = (f'=IF({blank},"",IF(COUNTA({m})<>COUNT({m}),"Check",IF(COUNT({m})=0,"No sales",'
+                       f'INDEX($B$4:$M$4,MATCH(MAX({m}),{m},0)))))')
+        ws[f"P{r}"] = f'=IF(U{r}="OK",MAX({m}),"")'
+        ws[f"Q{r}"] = f'=IF(U{r}="OK",COUNTIF({m},MAX({m})),"")'
+        ws[f"R{r}"] = (f'=IF({blank},"",IF(COUNTA({m})<>COUNT({m}),"Check",IF(COUNT({m})=0,"No sales",'
+                       f'INDEX($B$4:$M$4,MATCH(MIN({m}),{m},0)))))')
+        ws[f"S{r}"] = f'=IF(U{r}="OK",MIN({m}),"")'
+        ws[f"T{r}"] = f'=IF({blank},"",COUNT({m}))'
+        ws[f"U{r}"] = (f'=IF({blank},"",IF(OR(TRIM(A{r})="",COUNTA({m})<>COUNT({m})),"Check",'
+                       f'IF(COUNT({m})=0,"No sales","OK")))')
+        for col in "NPS":
+            ws[f"{col}{r}"].number_format = USD
+        ws[f"O{r}"].number_format = ws[f"R{r}"].number_format = "mmm"
+        for col in "NOPQRSTU":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (name, vals) in enumerate(rows):
+        r = 5 + i
+        ws[f"A{r}"] = name
+        for col, v in zip("BCDEFGHIJK", vals):
+            if v is not None:
+                ws[f"{col}{r}"] = v
+    for r, label in ((56, "Top product"), (57, "Top product sales"), (58, "Month total")):
+        ws[f"A{r}"] = label
+        ws[f"A{r}"].font = Font(bold=True)
+    for col in "BCDEFGHIJKLM":
+        c = f"{col}5:{col}54"
+        ws[f"{col}56"] = (f'=IF(COUNTA({c})<>COUNT({c}),"Check",IF(COUNT({c})=0,"No sales",'
+                          f'INDEX($A$5:$A$54,MATCH(MAX({c}),{c},0))))')
+        ws[f"{col}57"] = f'=IF(ISNUMBER({col}58),MAX({c}),"")'
+        ws[f"{col}58"] = f'=IF(COUNTA({c})<>COUNT({c}),"Check",IF(COUNT({c})=0,"",SUM({c})))'
+        for r in (56, 57, 58):
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right", wrap_text=True, vertical="top")
+        ws[f"{col}57"].number_format = ws[f"{col}58"].number_format = USD
+    ws.row_dimensions[56].height = 46
+    ws.column_dimensions["V"].width = 3
+    ws.column_dimensions["W"].width = 30
+    ws.column_dimensions["X"].width = 13
+    _summary_block(ws, "W", "X", [
+        (4, "Products listed", '=SUMPRODUCT(--(U5:U54<>""))', "0"),
+        (5, "Best month, all products", '=IF(COUNT(B58:M58)=0,"No sales",INDEX(B4:M4,MATCH(MAX(B58:M58),B58:M58,0)))', "mmm"),
+        (6, "Products with a tie for best", '=COUNTIF(Q5:Q54,">1")', "0"),
+        (7, "Rows showing Check", '=COUNTIF(U5:U54,"Check")', "0"),
+        (8, "Grand total", "=SUM(B5:M54)", USD),
+        (9, "CHECK", '=IF(AND(X7=0,ROUND(SUM(N5:N54)-X8,2)=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("U5:U54", FormulaRule(formula=['$U5="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("Q5:Q54", FormulaRule(formula=['AND(ISNUMBER($Q5),$Q5>1)'], fill=PatternFill("solid", fgColor="FCE4C4")))
+    ws.conditional_formatting.add("X9", FormulaRule(formula=['$X$9<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find Each Product's Best and Worst Month",
+        "",
+        "1. Products tab: one row per product (yellow, rows 5 to 54) and its sales for each month in B to M. Leave months that have not happened blank. The products and sales are fictional.",
+        "2. Best month, O5: =INDEX($B$4:$M$4,MATCH(MAX(B5:M5),B5:M5,0)). MAX finds the highest sales in the row, MATCH finds which column it is in, and INDEX returns the month name from the header row 4 above it.",
+        "   The file adds two checks around it: Check when a month holds text (such as \"$120\" typed as text, which MAX would skip without a warning), and No sales when every month is blank (instead of an error value).",
+        "3. Worst month, R5: the same formula with MIN. A month with 0 counts as a month with $0.00 sales; a blank month is skipped. Delete a 0 if the product was not for sale that month.",
+        "4. Months tied for best, Q5: =COUNTIF(B5:M5,MAX(B5:M5)). When it is 2 or more (orange), the best month shown is the first of the tied months from the left. Worst month works the same way for ties.",
+        "5. Top product for each month, row 56: =INDEX($A$5:$A$54,MATCH(MAX(B5:B54),B5:B54,0)), with its sales in row 57 and the month total in row 58.",
+        "6. Best month, all products (X5) uses the month totals in row 58. CHECK says OK when no row shows Check and the row totals add up to the grand total.",
+        "7. Row 4 holds the month names as text. If you replace them with real dates, Best month still shows the month (the cells are formatted mmm).",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-best-month-per-product.xlsx")
+
+
+def julian_date_lot_codes():
+    wb = Workbook()
+    mk = wb.active
+    mk.title = "Make codes"
+    rd = wb.create_sheet("Read codes")
+    mk["A1"] = "Fictional batches. Type the date made, a product prefix and the batch of the day (yellow, rows 4 to 203). Codes work for 2000 to 2099."
+    mk["A1"].font = Font(italic=True)
+    _head_row(mk, 3, ["Made on", "Product prefix", "Batch of the day", "Day of year", "Julian code YYDDD", "Lot code", "Status"],
+              [13, 10, 9, 9, 11, 16, 9], height=46)
+    batches = [
+        (date(2026, 11, 14), "CND", 1), (date(2026, 11, 14), "CND", 2), (date(2026, 1, 1), "SOP", 1),
+        (date(2026, 12, 31), "JAM", 1), (date(2028, 2, 29), "CND", 1), (date(2027, 3, 1), "SOP", 1),
+        (date(2028, 12, 31), "JAM", 1), (date(2005, 2, 1), "SOP", 1), (date(2026, 11, 13), "JAM", 2),
+        ("11/15/2026", "CND", 1),
+    ]
+    for r in range(4, 204):
+        for col in "ABC":
+            mk[f"{col}{r}"].fill = INPUT_FILL
+        mk[f"A{r}"].number_format = US_DATE
+        mk[f"D{r}"] = f'=IF(ISNUMBER(A{r}),IF(A{r}>=1,INT(A{r})-DATE(YEAR(A{r}),1,0),""),"")'
+        mk[f"E{r}"] = (f'=IF(A{r}="","",IF(ISNUMBER(D{r}),IF(AND(YEAR(A{r})>=2000,YEAR(A{r})<=2099),'
+                       f'RIGHT(YEAR(A{r}),2)&TEXT(D{r},"000"),"Check"),"Check"))')
+        mk[f"F{r}"] = (f'=IF(OR(E{r}="",E{r}="Check"),"",IF(TRIM(B{r})="","Check",IF(C{r}="",TRIM(B{r})&"-"&E{r},'
+                       f'IF(NOT(ISNUMBER(C{r})),"Check",IF(OR(C{r}<1,C{r}<>INT(C{r})),"Check",TRIM(B{r})&"-"&E{r}&"-"&C{r})))))')
+        mk[f"G{r}"] = (f'=IF(AND(A{r}="",TRIM(B{r})="",C{r}=""),"",IF(OR(E{r}="",E{r}="Check",F{r}="Check"),"Check","OK"))')
+        mk[f"D{r}"].number_format = "0"
+        for col in "DEFG":
+            mk[f"{col}{r}"].fill = FORMULA_FILL
+            mk[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(batches):
+        for col, v in zip("ABC", row):
+            mk[f"{col}{4 + i}"] = v
+    mk.column_dimensions["H"].width = 3
+    mk.column_dimensions["I"].width = 22
+    mk.column_dimensions["J"].width = 10
+    _summary_block(mk, "I", "J", [
+        (3, "Rows listed", '=SUMPRODUCT(--(G4:G203<>""))', "0"),
+        (4, "Codes made (OK)", '=COUNTIF(G4:G203,"OK")', "0"),
+        (5, "Rows showing Check", '=COUNTIF(G4:G203,"Check")', "0"),
+    ])
+    mk.conditional_formatting.add("G4:G203", FormulaRule(formula=['$G4="Check"'], fill=ALERT_FILL))
+    mk.freeze_panes = "A4"
+
+    rd["A1"] = "Codes as printed on labels or typed in from a supplier list (yellow, rows 4 to 203). 5 digits = YYDDD (20YY), 7 digits = YYYYDDD."
+    rd["A1"].font = Font(italic=True)
+    _head_row(rd, 3, ["Code as printed", "Cleaned", "Year", "Day", "Date", "Status"], [15, 10, 7, 6, 13, 9], height=32)
+    codes = ["26318", " 26318 ", "2026032", 28366, 5032, "05032", "26366", "26000", "26A18"]
+    for r in range(4, 204):
+        rd[f"A{r}"].fill = INPUT_FILL
+        rd[f"A{r}"].alignment = Alignment(horizontal="right")
+        rd[f"B{r}"] = (f'=IF(ISNUMBER(A{r}),IF(AND(A{r}>=0,A{r}=INT(A{r}),A{r}<10000000),'
+                       f'TEXT(A{r},IF(A{r}<100000,"00000","0000000")),"Check"),TRIM(A{r}))')
+        rd[f"C{r}"] = (f'=IF(B{r}="","",IF(AND(OR(LEN(B{r})=5,LEN(B{r})=7),{_digits_only(f"B{r}")}),'
+                       f'IF(LEN(B{r})=5,2000+LEFT(B{r},2),--LEFT(B{r},4)),"Check"))')
+        rd[f"D{r}"] = f'=IF(ISNUMBER(C{r}),--RIGHT(B{r},3),"")'
+        rd[f"E{r}"] = (f'=IF(ISNUMBER(D{r}),IF(C{r}<1900,"Check",IF(AND(D{r}>=1,D{r}<=DATE(C{r},12,31)-DATE(C{r},1,0)),'
+                       f'DATE(C{r},1,D{r}),"Check")),IF(B{r}="","","Check"))')
+        rd[f"F{r}"] = f'=IF(B{r}="","",IF(ISNUMBER(E{r}),"OK","Check"))'
+        rd[f"E{r}"].number_format = US_DATE
+        for col in "BCDEF":
+            rd[f"{col}{r}"].fill = FORMULA_FILL
+            rd[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, v in enumerate(codes):
+        rd[f"A{4 + i}"] = v
+    rd.column_dimensions["G"].width = 3
+    rd.column_dimensions["H"].width = 22
+    rd.column_dimensions["I"].width = 10
+    _summary_block(rd, "H", "I", [
+        (3, "Codes listed", '=SUMPRODUCT(--(F4:F203<>""))', "0"),
+        (4, "Codes read (OK)", '=COUNTIF(F4:F203,"OK")', "0"),
+        (5, "Rows showing Check", '=COUNTIF(F4:F203,"Check")', "0"),
+    ])
+    rd.conditional_formatting.add("F4:F203", FormulaRule(formula=['$F4="Check"'], fill=ALERT_FILL))
+    rd.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Julian Date Codes (YYDDD) for Batch Lot Numbers",
+        "",
+        "1. A Julian date code here is the year and the day of the year: 26318 is 2026, day 318 (11/14/2026). Day 001 is January 1; December 31 is 365, or 366 in a leap year. The batches and codes are fictional.",
+        "   It is not the astronomical Julian Day number (such as 2461358). This file does not cover any lot code rule (FDA or other); check what your own rules require.",
+        "2. Make codes tab: type the date made, a product prefix (CND, SOP, JAM) and the batch number of that day (yellow, up to row 203).",
+        "3. Day of year, D4: =INT(A4)-DATE(YEAR(A4),1,0). DATE(YEAR(A4),1,0) is the day before January 1, so January 1 gives 1. INT drops a time typed with the date.",
+        "4. Julian code, E4: =RIGHT(YEAR(A4),2)&TEXT(D4,\"000\"). TEXT with \"000\" keeps the leading zeros (day 32 becomes 032). Short version in one cell: =RIGHT(YEAR(A4),2)&TEXT(A4-DATE(YEAR(A4),1,0),\"000\").",
+        "5. Lot code, F4: prefix-code-batch, such as CND-26318-1. Leave Batch of the day blank for CND-26318.",
+        "6. Read codes tab: paste codes into A. Cleaned, B4, trims spaces and puts back a leading zero lost when 05032 was typed as the number 5032.",
+        "   Year, C4: 2000+LEFT(B4,2) for 5 digits, LEFT(B4,4) for 7 digits. Day, D4: RIGHT(B4,3). Date, E4: =DATE(C4,1,D4).",
+        "7. Check on Read codes means the code is not 5 or 7 digits, has a letter or a space inside, or the day is 000 or past the last day of that year (26366: 2026 has 365 days). DATE alone would roll 26366 into 01/01/2027 and 26000 into 12/31/2025 without a warning.",
+        "8. Check on Make codes means the date is text or blank, the year is before 2000 or after 2099 (YY cannot tell 1926 from 2026), the prefix is blank, or the batch is not a whole number of 1 or more.",
+        "9. Leap years: 2028 is one, so 02/29/2028 is 28060 and 03/01/2028 is 28061, while 03/01/2027 is 27060.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    mk.print_title_rows = rd.print_title_rows = "3:3"
+    wb.save(OUT / "tidy-tabs-julian-date-lot-codes.xlsx")
+
+
+def match_payouts_to_deposits():
+    wb = Workbook()
+    po = wb.active
+    po.title = "Payouts"
+    bk = wb.create_sheet("Bank")
+    po["A1"], po["B1"] = "Days allowed", 3
+    po["A1"].font = Font(bold=True)
+    po["B1"].fill = INPUT_FILL
+    po["C1"] = ("Most days a payout may take to reach the bank. Fictional payouts; type yours in A to C (yellow, rows 5 to 204) "
+                "and the bank deposits on the Bank tab.")
+    po["C1"].font = Font(italic=True)
+    _head_row(po, 4, ["Payout date", "Source", "Amount", "Cents", "Copy no.", "Match key", "Bank row", "Bank date",
+                      "Days to bank", "Status"], [12, 16, 12, 9, 7, 11, 7, 12, 8, 12], height=46)
+    payouts = [
+        (date(2026, 11, 2), "Square", 412.50), (date(2026, 11, 2), "Etsy", 286.40), (date(2026, 11, 3), "Stripe", 318.60),
+        (date(2026, 11, 4), "Square", 412.50), (date(2026, 11, 5), "Stripe", 1150.00), (date(2026, 11, 6), "Square", 98.75),
+        (date(2026, 11, 9), "Etsy", 199.99), (date(2026, 11, 10), "Stripe", 75.00), (date(2026, 11, 10), "Square", 498.00),
+        (date(2026, 11, 11), "Square", 412.50),
+    ]
+    deposits = [
+        (date(2026, 11, 3), "Square transfer", 412.50), (date(2026, 11, 4), "Etsy deposit", 286.40),
+        (date(2026, 11, 5), "Square transfer", 412.50), (date(2026, 11, 5), "Stripe transfer", 318.60),
+        (date(2026, 11, 6), "Cash deposit, market", 640.00), (date(2026, 11, 9), "Stripe transfer", 1150.00),
+        (date(2026, 11, 9), "Square transfer", 98.75), (date(2026, 11, 10), "Etsy deposit", 199.90),
+        (date(2026, 11, 11), "Square transfer", 498.00), (date(2026, 11, 12), "Square transfer", 412.50),
+    ]
+
+    def key_cols(ws, r):
+        blank = f'AND(A{r}="",TRIM(B{r})="",C{r}="")'
+        ws[f"D{r}"] = (f'=IF({blank},"",IF(ISNUMBER(C{r}),IF(ABS(C{r}*100-ROUND(C{r}*100,0))>0.0001,"Check",'
+                       f'ROUND(C{r}*100,0)),"Check"))')
+        ws[f"E{r}"] = f'=IF(ISNUMBER(D{r}),COUNTIF($D$5:D{r},D{r}),"")'
+        ws[f"F{r}"] = f'=IF(ISNUMBER(D{r}),D{r}&"-"&E{r},"")'
+
+    for r in range(5, 205):
+        for ws in (po, bk):
+            for col in "ABC":
+                ws[f"{col}{r}"].fill = INPUT_FILL
+            ws[f"A{r}"].number_format = US_DATE
+            ws[f"C{r}"].number_format = USD
+            key_cols(ws, r)
+        po[f"G{r}"] = f'=IF(F{r}="","",IFERROR(MATCH(F{r},Bank!$F$5:$F$204,0),""))'
+        po[f"H{r}"] = (f'=IF(ISNUMBER(G{r}),IF(ISNUMBER(INDEX(Bank!$A$5:$A$204,G{r})),INDEX(Bank!$A$5:$A$204,G{r}),"Check"),"")')
+        po[f"I{r}"] = f'=IF(AND(ISNUMBER(H{r}),ISNUMBER(A{r})),INT(H{r})-INT(A{r}),"")'
+        po[f"J{r}"] = (f'=IF(D{r}="","",IF(OR(D{r}="Check",NOT(ISNUMBER(A{r})),NOT(ISNUMBER($B$1))),"Check",'
+                       f'IF($B$1<0,"Check",IF(G{r}="","Not in bank",IF(NOT(ISNUMBER(I{r})),"Check date",'
+                       f'IF(OR(I{r}<0,I{r}>$B$1),"Check date","Matched"))))))')
+        po[f"H{r}"].number_format = US_DATE
+        po[f"I{r}"].number_format = "0"
+        for col in "DEFGHIJ":
+            po[f"{col}{r}"].fill = FORMULA_FILL
+            po[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        bk[f"G{r}"] = (f'=IF(D{r}="","",IF(OR(D{r}="Check",NOT(ISNUMBER(A{r}))),"Check",'
+                       f'IF(ISNA(MATCH(F{r},Payouts!$F$5:$F$204,0)),"Not a payout","Matched")))')
+        for col in "DEFG":
+            bk[f"{col}{r}"].fill = FORMULA_FILL
+            bk[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for ws, data in ((po, payouts), (bk, deposits)):
+        for i, row in enumerate(data):
+            for col, v in zip("ABC", row):
+                ws[f"{col}{5 + i}"] = v
+    bk["A1"] = "Fictional bank deposits as listed on the statement (yellow, rows 5 to 204). Keep the bank's order; the first copy of an amount pairs with the first payout of that amount."
+    bk["A1"].font = Font(italic=True)
+    _head_row(bk, 4, ["Date", "Description", "Amount", "Cents", "Copy no.", "Match key", "Status"], [12, 24, 12, 9, 7, 11, 13], height=46)
+    po.column_dimensions["K"].width = 3
+    po.column_dimensions["L"].width = 32
+    po.column_dimensions["M"].width = 12
+    _summary_block(po, "L", "M", [
+        (4, "Payouts matched", '=COUNTIF(J5:J204,"Matched")', "0"),
+        (5, "Payouts to check (date)", '=COUNTIF(J5:J204,"Check date")', "0"),
+        (6, "Payouts not in bank", '=COUNTIF(J5:J204,"Not in bank")', "0"),
+        (7, "Found in the bank ($)", '=SUMIFS(C5:C204,J5:J204,"Matched")+SUMIFS(C5:C204,J5:J204,"Check date")', USD),
+        (8, "Not in bank ($)", '=SUMIFS(C5:C204,J5:J204,"Not in bank")', USD),
+        (9, "Deposits that are not payouts ($)", '=SUMIFS(Bank!C5:C204,Bank!G5:G204,"Not a payout")', USD),
+        (10, "CHECK", '=IF(COUNTIF(J5:J204,"Check")+COUNTIF(Bank!G5:G204,"Check")=0,"OK","Check")', "General"),
+    ])
+    po.conditional_formatting.add("J5:J204", FormulaRule(formula=['OR($J5="Check",$J5="Not in bank")'], fill=ALERT_FILL))
+    po.conditional_formatting.add("J5:J204", FormulaRule(formula=['$J5="Check date"'], fill=PatternFill("solid", fgColor="FCE4C4")))
+    po.conditional_formatting.add("J5:J204", FormulaRule(formula=['$J5="Matched"'], fill=DONE_FILL))
+    po.conditional_formatting.add("M10", FormulaRule(formula=['$M$10<>"OK"'], fill=ALERT_FILL))
+    bk.conditional_formatting.add("G5:G204", FormulaRule(formula=['OR($G5="Check",$G5="Not a payout")'], fill=ALERT_FILL))
+    bk.conditional_formatting.add("G5:G204", FormulaRule(formula=['$G5="Matched"'], fill=DONE_FILL))
+    po.freeze_panes = bk.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Match Payouts to Bank Deposits When the Same Amount Repeats",
+        "",
+        "1. Payouts tab: one row per payout from Square, Etsy, Stripe or any other source (yellow, up to row 204). Bank tab: the deposits from your bank statement. The payouts and deposits are fictional.",
+        "2. Days allowed, B1: the most days a payout may take to land (3 covers a Friday payout that lands on Monday).",
+        "3. Cents, D5: =ROUND(C5*100,0) turns $412.50 into 41250, so two amounts that look the same really match.",
+        "4. Copy no., E5: =COUNTIF($D$5:D5,D5). The range grows as it is copied down, so the first $412.50 is 1, the second is 2, the third is 3. The Bank tab does the same.",
+        "5. Match key, F5: =D5&\"-\"&E5 gives 41250-1, 41250-2... Bank row, G5: =IFERROR(MATCH(F5,Bank!$F$5:$F$204,0),\"\") finds the deposit with the same key, so the 2nd payout of $412.50 pairs with the 2nd deposit of $412.50.",
+        "   Short version without the helper columns: =ROUND(C5*100,0)&\"-\"&COUNTIF($C$5:C5,C5) for the key, then MATCH it against the same key on the other list.",
+        "6. Bank date and Days to bank: INDEX picks the deposit date; days = bank date - payout date. Status: Matched (0 to B1 days), Check date (negative or more than B1 days), Not in bank (no deposit with that key).",
+        "7. Bank Status: Not a payout means a deposit with no payout of that amount (a cash deposit, or an amount that differs by a few cents).",
+        "8. Copies pair in the order they are listed. Keep both lists in date order; if they are not, a swapped pair shows Check date.",
+        "9. Check means an amount is text or has fractions of a cent, a date is text or blank, or Days allowed is blank, text or negative.",
+        "10. The file only says which rows to look at. It does not decide how anything is booked.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    po.print_title_rows = bk.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-match-payouts-to-deposits.xlsx")
+
+
+def split_dates_across_months():
+    wb = Workbook()
+    dy = wb.active
+    dy.title = "Days"
+    am = wb.create_sheet("Amounts")
+    dy["A1"], dy["B1"] = "First month of the grid", date(2026, 10, 1)
+    dy["A1"].font = Font(bold=True)
+    dy["B1"].fill = INPUT_FILL
+    dy["B1"].number_format = US_DATE
+    dy["C1"] = "Any date in the first month works; the grid starts on the 1st of that month and runs 12 months. Fictional jobs; type yours in A to D (yellow, rows 5 to 104)."
+    dy["C1"].font = Font(italic=True)
+    cols = "GHIJKLMNOPQR"
+    heads = ["Job", "Start", "End", "Amount", "Days", "Days outside the grid"]
+    _head_row(dy, 4, heads + [""] * 12 + ["Status"], [20, 11, 11, 11, 7, 9] + [9] * 12 + [16], height=46)
+    _head_row(am, 4, heads[:4] + ["Days", "Outside the grid ($)"] + [""] * 12 + ["In the grid ($)", "Adds up"],
+              [20, 11, 11, 11, 7, 11] + [10] * 12 + [12, 8], height=46)
+    dy["G4"] = '=IF(ISNUMBER($B$1),DATE(YEAR($B$1),MONTH($B$1),1),"Check")'
+    for prev, col in zip(cols, cols[1:]):
+        dy[f"{col}4"] = f'=IF(ISNUMBER({prev}4),EDATE({prev}4,1),"")'
+    for col in cols:
+        am[f"{col}4"] = f"=Days!{col}4"
+        for ws in (dy, am):
+            ws[f"{col}4"].number_format = "mmm yyyy"
+            ws[f"{col}4"].alignment = Alignment(horizontal="right", vertical="center")
+    jobs = [
+        ("Booth season", date(2026, 10, 15), date(2027, 1, 14), 1200.00),
+        ("Studio sublet", date(2026, 12, 20), date(2027, 2, 19), 750.00),
+        ("Tent rental", date(2026, 11, 14), date(2026, 11, 14), 85.00),
+        ("Site care retainer", date(2027, 1, 1), date(2027, 12, 31), 1800.00),
+        ("Window display", date(2026, 12, 5), date(2026, 12, 1), 300.00),
+        ("Pop-up shop", date(2027, 2, 1), date(2027, 3, 31), 590.00),
+    ]
+    for r in range(5, 105):
+        for col in "ABCD":
+            dy[f"{col}{r}"].fill = INPUT_FILL
+        dy[f"B{r}"].number_format = dy[f"C{r}"].number_format = US_DATE
+        dy[f"D{r}"].number_format = USD
+        dy[f"E{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",C{r}="",D{r}=""),"",IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r})),'
+                       f'INT(C{r})-INT(B{r})+1,"Check"))')
+        for col in cols:
+            dy[f"{col}{r}"] = (f'=IF(AND(ISNUMBER($E{r}),ISNUMBER({col}$4)),IF($E{r}>0,'
+                               f'MAX(0,MIN(INT($C{r}),EOMONTH({col}$4,0))-MAX(INT($B{r}),{col}$4)+1),""),"")')
+        dy[f"F{r}"] = f'=IF(ISNUMBER(E{r}),IF(E{r}>0,E{r}-SUM(G{r}:R{r}),""),"")'
+        dy[f"S{r}"] = (f'=IF(E{r}="","",IF(OR(E{r}="Check",NOT(ISNUMBER($G$4))),"Check",IF(E{r}<1,"Check",'
+                       f'IF(NOT(ISNUMBER(D{r})),"Check",IF(OR(D{r}<0,ABS(D{r}*100-ROUND(D{r}*100,0))>0.0001),"Check",'
+                       f'IF(F{r}>0,F{r}&" days outside","OK"))))))')
+        for col in "EF" + cols + "S":
+            if col != "S":
+                dy[f"{col}{r}"].number_format = "0"
+            dy[f"{col}{r}"].fill = FORMULA_FILL
+            dy[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        # Amounts: same jobs, dollars per month by days, rounded on the running share so the months add to the cent.
+        for col in "ABCD":
+            am[f"{col}{r}"] = f'=IF(Days!{col}{r}="","",Days!{col}{r})'
+        am[f"E{r}"] = f'=IF(ISNUMBER(Days!E{r}),Days!E{r},"")'
+        gate = f'AND(ISNUMBER(Days!{{c}}{r}),OR(Days!$S{r}="OK",RIGHT(Days!$S{r},7)="outside"))'
+        for i, col in enumerate(cols):
+            g = gate.format(c=col)
+            if i == 0:
+                am[f"{col}{r}"] = f'=IF({g},ROUND($D{r}*Days!G{r}/$E{r},2),"")'
+            else:
+                prev = cols[i - 1]
+                am[f"{col}{r}"] = f'=IF({g},ROUND(ROUND($D{r}*SUM(Days!$G{r}:{col}{r})/$E{r},2)-SUM($G{r}:{prev}{r}),2),"")'
+        am[f"S{r}"] = f'=IF(COUNT(G{r}:R{r})=0,"",SUM(G{r}:R{r}))'
+        am[f"F{r}"] = f'=IF(ISNUMBER(S{r}),ROUND(D{r}-S{r},2),"")'
+        am[f"T{r}"] = f'=IF(Days!S{r}="OK",IF(ROUND(S{r}-D{r},2)=0,"OK","Check"),IF(Days!S{r}="Check","Check",""))'
+        am[f"B{r}"].number_format = am[f"C{r}"].number_format = US_DATE
+        am[f"E{r}"].number_format = "0"
+        for col in "DF" + cols + "S":
+            am[f"{col}{r}"].number_format = USD
+        for col in "ABCDEF" + cols + "ST":
+            am[f"{col}{r}"].fill = FORMULA_FILL
+            if col != "A":
+                am[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(jobs):
+        for col, v in zip("ABCD", row):
+            dy[f"{col}{5 + i}"] = v
+    for ws, totals in ((dy, "F" + cols), (am, "DF" + cols + "S")):
+        ws["A105"] = "Total"
+        ws["A105"].font = Font(bold=True)
+        for col in totals:
+            ws[f"{col}105"] = f"=SUM({col}5:{col}104)"
+            ws[f"{col}105"].fill = FORMULA_FILL
+            ws[f"{col}105"].font = Font(bold=True)
+            ws[f"{col}105"].number_format = USD if ws is am else "0"
+    dy.column_dimensions["T"].width = 3
+    dy.column_dimensions["U"].width = 30
+    dy.column_dimensions["V"].width = 12
+    _summary_block(dy, "U", "V", [
+        (4, "Jobs listed", '=SUMPRODUCT(--(S5:S104<>""))', "0"),
+        (5, "Rows showing Check", '=COUNTIF(S5:S104,"Check")', "0"),
+        (6, "Jobs with days outside the grid", '=COUNTIF(S5:S104,"*outside")', "0"),
+        (7, "Dollars in the grid", "=SUM(Amounts!S5:S104)", USD),
+        (8, "Dollars outside the grid", "=SUM(Amounts!F5:F104)", USD),
+        (9, "CHECK", '=IF(AND(V5=0,COUNTIF(Amounts!T5:T104,"Check")=0),"OK","Check")', "General"),
+    ])
+    dy.conditional_formatting.add("S5:S104", FormulaRule(formula=['$S5="Check"'], fill=ALERT_FILL))
+    dy.conditional_formatting.add("S5:S104", FormulaRule(formula=['RIGHT($S5,7)="outside"'], fill=PatternFill("solid", fgColor="FCE4C4")))
+    dy.conditional_formatting.add("V9", FormulaRule(formula=['$V$9<>"OK"'], fill=ALERT_FILL))
+    am.conditional_formatting.add("T5:T104", FormulaRule(formula=['$T5="Check"'], fill=ALERT_FILL))
+    am["A1"] = "Filled from the Days tab (type jobs there). Dollars per month = amount x days so far / all days, rounded, minus what earlier months got."
+    am["A1"].font = Font(italic=True)
+    dy.freeze_panes = am.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Split a Booking or Contract Across Months by Days",
+        "",
+        "1. Days tab: type the first month of the grid in B1, then one row per job with its start date, end date and amount (yellow, up to row 104). Both end dates count. The jobs are fictional.",
+        "2. Days, E5: =C5-B5+1 (the file uses INT so a time typed with a date does not count).",
+        "3. Days in each month, G5: =MAX(0,MIN($C5,EOMONTH(G$4,0))-MAX($B5,G$4)+1). G$4 is the 1st of the month and EOMONTH(G$4,0) its last day: the overlap is the earlier end minus the later start plus 1, and MAX(0,...) turns a job that misses the month into 0. Copy it across and down.",
+        "4. Row 4: G4 is the 1st of the month in B1 and H4 is =EDATE(G4,1) copied across, shown as mmm yyyy.",
+        "5. Days outside the grid, F5: days that fall before or after the 12 months shown. Status shows how many, so a long job is not cut off without a warning.",
+        "6. Amounts tab: G5 =ROUND($D5*Days!G5/$E5,2), and H5 onward =ROUND($D5*SUM(Days!$G5:H5)/$E5,2)-SUM($G5:G5) (the file wraps it in one more ROUND to clear tiny decimal leftovers). Rounding the running share (not each month) makes the months add up to the amount to the cent.",
+        "7. Adds up: OK when a job's months add to its amount (jobs that run past the grid show their in-grid share and the rest in Outside the grid).",
+        "8. Check means a date is text or blank, the end is before the start, the amount is blank, text, negative or has fractions of a cent, or B1 is not a date.",
+        "9. This is a planning view of days and dollars per month. It does not say how to book income or expenses.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    dy.print_title_rows = am.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-split-dates-across-months.xlsx")
+
+
+def payment_plan_interest_rate():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Offers"
+    ws["A1"] = "Fictional payment plan offers. Type each offer in A to G (yellow, rows 5 to 54). Leave Down payment and Upfront fee blank when there are none."
+    ws["A1"].font = Font(italic=True)
+    ws["A2"] = "The rate is what the payments imply. It is not the lender's disclosed APR and says nothing about whether to finance."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Offer", "Cash price", "Down payment", "Upfront fee", "Monthly payment", "Number of payments",
+                      "First payment at signing (Yes/No)", "Total paid", "Extra vs cash", "Monthly rate", "Rate x 12",
+                      "Effective yearly rate", "Status"], [24, 11, 10, 9, 10, 9, 10, 11, 10, 10, 9, 10, 15], height=46)
+    offers = [
+        ("Kiln, 24 months", 2400.00, None, None, 109.00, 24, "No"),
+        ("Kiln, 24 months, 1st at signing", 2400.00, None, None, 109.00, 24, "Yes"),
+        ("Booth tent", 899.00, 99.00, None, 72.00, 12, "No"),
+        ("Laptop", 1500.00, 300.00, None, 75.00, 18, "No"),
+        ("Display case", 1800.00, None, 49.00, 158.00, 12, "No"),
+        ("Sewing machine, 0%", 1200.00, None, None, 100.00, 12, "No"),
+        ("Card reader, pay in 4", 299.00, None, None, 74.75, 4, "Yes"),
+        ("Vinyl cutter", 600.00, None, None, 95.00, 6, "No"),
+    ]
+    for r in range(5, 55):
+        for col in "ABCDEFG":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "BCDEHI":
+            ws[f"{col}{r}"].number_format = USD
+        blank = f'AND(TRIM(A{r})="",B{r}="",C{r}="",D{r}="",E{r}="",F{r}="",TRIM(G{r})="")'
+        types_ok = (f'AND(ISNUMBER(B{r}),ISNUMBER(E{r}),ISNUMBER(F{r}),OR(C{r}="",ISNUMBER(C{r})),OR(D{r}="",ISNUMBER(D{r})),'
+                    f'OR(TRIM(G{r})="",TRIM(G{r})="Yes",TRIM(G{r})="No"))')
+        values_ok = f'AND(B{r}>0,E{r}>0,F{r}>=1,F{r}=INT(F{r}),C{r}>=0,D{r}>=0,B{r}-C{r}-D{r}>0)'
+        ws[f"H{r}"] = f'=IF({blank},"",IF({types_ok},IF({values_ok},C{r}+D{r}+E{r}*F{r},"Check"),"Check"))'
+        ws[f"I{r}"] = f'=IF(ISNUMBER(H{r}),H{r}-B{r},"")'
+        ws[f"J{r}"] = (f'=IF(ISNUMBER(H{r}),IF(ROUND(H{r}-B{r},2)=0,0,'
+                       f'IF(AND(F{r}=1,TRIM(G{r})="Yes"),"Check",'
+                       f'IFERROR(RATE(F{r},-E{r},B{r}-C{r}-D{r},0,IF(TRIM(G{r})="Yes",1,0)),"Check"))),IF(H{r}="","","Check"))')
+        ws[f"K{r}"] = f'=IF(ISNUMBER(J{r}),J{r}*12,"")'
+        ws[f"L{r}"] = f'=IF(ISNUMBER(J{r}),(1+J{r})^12-1,"")'
+        ws[f"M{r}"] = (f'=IF(H{r}="","",IF(NOT(ISNUMBER(J{r})),"Check",IF(J{r}=0,"No interest",'
+                       f'IF(J{r}<0,"Costs less than cash","OK"))))')
+        ws[f"J{r}"].number_format = "0.0000%"
+        ws[f"K{r}"].number_format = ws[f"L{r}"].number_format = "0.00%"
+        ws[f"G{r}"].alignment = Alignment(horizontal="center")
+        for col in "HIJKLM":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(offers):
+        for col, v in zip("ABCDEFG", row):
+            if v is not None:
+                ws[f"{col}{5 + i}"] = v
+    ws.column_dimensions["N"].width = 3
+    ws.column_dimensions["O"].width = 32
+    ws.column_dimensions["P"].width = 26
+    _summary_block(ws, "O", "P", [
+        (4, "Offers listed", '=SUMPRODUCT(--(M5:M54<>""))', "0"),
+        (5, "Lowest yearly rate with interest", '=IF(COUNTIF(M5:M54,"OK")=0,"",INDEX(A5:A54,MATCH(P6,L5:L54,0)))', "General"),
+        (6, "Its effective yearly rate", '=IF(COUNTIF(M5:M54,"OK")=0,"",SMALL(L5:L54,COUNTIF(L5:L54,"<=0")+1))', "0.00%"),
+        (7, "No-interest offers", '=COUNTIF(M5:M54,"No interest")', "0"),
+        (8, "Rows showing Check", '=COUNTIF(M5:M54,"Check")', "0"),
+    ])
+    ws.conditional_formatting.add("M5:M54", FormulaRule(formula=['$M5="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("M5:M54", FormulaRule(formula=['$M5="No interest"'], fill=DONE_FILL))
+    ws.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find the Interest Rate of a Monthly Payment Plan (RATE)",
+        "",
+        "1. Offers tab: one row per offer (yellow, up to row 54): cash price, down payment, any upfront fee, the monthly payment, how many payments, and Yes if the first payment is due at signing. The offers are fictional.",
+        "2. Monthly rate, J5: =RATE(F5,-E5,B5-C5-D5,0,IF(G5=\"Yes\",1,0)). The amount financed is the cash price minus what you pay at the start (down payment and fee). The payment is negative because it goes out. The last argument 1 means each payment is due at the start of the month.",
+        "   Short version with no fee and payments at the end of each month: =RATE(F5,-E5,B5-C5).",
+        "3. Rate x 12, K5: =J5*12. Effective yearly rate, L5: =(1+J5)^12-1, which counts interest on interest, so it is a little higher.",
+        "4. Total paid, H5: =C5+D5+E5*F5. Extra vs cash, I5: total paid minus the cash price.",
+        "5. No interest: the payments add up to the cash price exactly (the file returns 0 without calling RATE). Costs less than cash: the payments add up to less than the price, so the rate is negative.",
+        "6. Check means a price, payment or number of payments is blank, text, 0 or negative, the number of payments is not a whole number, the down payment and fee reach the cash price, G is not Yes, No or blank, there is only one payment and it is due at signing (nothing is financed), or RATE could not find a rate (very high rates, such as 1,000% a month).",
+        "7. This is the rate the payments imply. It is not the APR a lender must disclose, which can count fees differently, and it is not advice on whether to finance.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-payment-plan-interest-rate.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -16489,4 +17004,9 @@ if __name__ == "__main__":
     unix_timestamp_to_date()
     check_amount_in_words()
     variation_values_by_label()
+    best_month_per_product()
+    julian_date_lot_codes()
+    match_payouts_to_deposits()
+    split_dates_across_months()
+    payment_plan_interest_rate()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfvIJhPI0Np
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-match-payouts-to-bank-deposits.html
 title: How to Match Payouts to Bank Deposits When the Same Amount Repeats in Excel and Google Sheets
 labels: excel-formulas, small-business, small-business-bookkeeping
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 19 workbooks and 41,933 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

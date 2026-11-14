@@ -236,3 +236,10 @@
 - How to Match Payouts to Bank Deposits When the Same Amount Repeats in Excel and Google Sheets - `2026-11-14-team-03-match-payouts-to-bank-deposits-repeat-amounts-countif-match-excel-google-sheets`
 - How to Split a Booking or Contract Across Months by Days in Excel and Google Sheets - `2026-11-14-team-04-split-booking-days-and-amount-across-months-eomonth-min-max-excel-google-sheets`
 - How to Find the Interest Rate of a Monthly Payment Plan With RATE in Excel and Google Sheets - `2026-11-14-team-05-find-interest-rate-of-payment-plan-offer-rate-function-excel-google-sheets`
+
+## 2026-11-15 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-15.md)
+- How to Reverse a List So the Oldest Row Comes First in Excel and Google Sheets - `2026-11-15-team-01-reverse-list-order-newest-to-oldest-first-index-rows-excel-google-sheets`
+- How to List Every Size and Color Combination in Excel and Google Sheets - `2026-11-15-team-02-list-all-size-and-color-variant-combinations-index-int-mod-excel-google-sheets`
+- How to Find the Next Date on a Schedule in Excel and Google Sheets - `2026-11-15-team-03-find-next-scheduled-date-after-a-date-small-countif-excel-google-sheets`
+- How to Plan Backward From an Event Date With WORKDAY in Excel and Google Sheets - `2026-11-15-team-04-plan-backward-from-event-date-task-start-dates-workday-excel-google-sheets`
+- How to Calculate How Many 5-Star Reviews You Need for a Target Rating in Excel and Google Sheets - `2026-11-15-team-05-five-star-reviews-needed-to-reach-target-rating-roundup-excel-google-sheets`

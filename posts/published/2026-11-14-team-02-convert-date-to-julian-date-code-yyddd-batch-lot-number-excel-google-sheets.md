@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfuzi4TGx4T
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-convert-date-to-julian-date-code.html
 title: How to Convert a Date to a Julian Date Code for Lot Numbers in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 16 workbooks and 28,896 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

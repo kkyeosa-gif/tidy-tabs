@@ -16802,6 +16802,460 @@ def payment_plan_interest_rate():
     wb.save(OUT / "tidy-tabs-payment-plan-interest-rate.xlsx")
 
 
+CHECK_ORANGE = PatternFill("solid", fgColor="FCE4C4")
+
+
+def reverse_list_order():
+    wb = Workbook()
+    ex = wb.active
+    ex.title = "Export"
+    fl = wb.create_sheet("Flipped")
+    ex["A1"] = ("Paste your export here, newest row first, as it came from the bank or the shop (yellow, rows 5 to 204). "
+                "Fictional sample rows. The Flipped tab lists them oldest first; this tab is never changed.")
+    ex["A1"].font = Font(italic=True)
+    _head_row(ex, 4, ["Date", "Description", "Amount"], [12, 28, 12])
+    rows = [
+        (date(2026, 11, 12), "Etsy payout", 412.50),
+        (date(2026, 11, 10), "Supplies", -86.40),
+        (date(2026, 11, 10), "Square payout", 98.75),
+        (date(2026, 11, 6), "Shipping labels", -42.18),
+        (date(2026, 11, 5), "Stripe payout", 1150.00),
+        (date(2026, 11, 3), "Booth fee", -75.00),
+        (date(2026, 11, 2), "Etsy payout", 199.99),
+        (date(2026, 11, 1), "Opening deposit", 500.00),
+    ]
+    for r in range(5, 205):
+        for col in "ABC":
+            ex[f"{col}{r}"].fill = INPUT_FILL
+        ex[f"A{r}"].number_format = US_DATE
+        ex[f"C{r}"].number_format = USD
+    for i, row in enumerate(rows):
+        for col, v in zip("ABC", row):
+            ex[f"{col}{5 + i}"] = v
+    ex.freeze_panes = "A5"
+
+    fl["G1"], fl["H1"] = "Rows found (last row with a date)", '=IFERROR(MATCH(9.99E+307,Export!$A$5:$A$204),0)'
+    fl["G2"], fl["H2"] = "Filled Date cells (COUNTA, for comparison)", '=COUNTA(Export!$A$5:$A$204)'
+    fl["A1"] = "All formulas. Oldest row first; rows that share a date come out in the reverse of their export order. Do not type here."
+    fl["A1"].font = Font(italic=True)
+    for c in ("G1", "G2"):
+        fl[c].font = Font(bold=True)
+    for c in ("H1", "H2"):
+        fl[c].fill = FORMULA_FILL
+        fl[c].number_format = "0"
+        fl[c].alignment = Alignment(horizontal="right")
+    _head_row(fl, 4, ["Date", "Description", "Amount", "Running balance", "Status"], [12, 28, 12, 14, 11])
+    for r in range(5, 205):
+        n = f"ROWS($A$5:A{r})"
+        for col in "ABC":
+            src = f"INDEX(Export!{col}$5:{col}$204,$H$1-{n}+1)"
+            fl[f"{col}{r}"] = f'=IF({n}>$H$1,"",IF({src}="","",{src}))'
+        fl[f"E{r}"] = (f'=IF({n}>$H$1,"",IF(AND(A{r}="",B{r}="",C{r}=""),"Blank row",'
+                       f'IF(OR(NOT(ISNUMBER(A{r})),NOT(ISNUMBER(C{r}))),"Check","OK")))')
+        fl[f"D{r}"] = f'=IF(OR(E{r}="",E{r}="Blank row"),"",SUM($C$5:C{r}))'
+        fl[f"A{r}"].number_format = US_DATE
+        fl[f"C{r}"].number_format = fl[f"D{r}"].number_format = USD
+        for col in "ABCDE":
+            fl[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "CDE":
+            fl[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    fl.column_dimensions["F"].width = 3
+    fl.column_dimensions["G"].width = 40
+    fl.column_dimensions["H"].width = 13
+    _summary_block(fl, "G", "H", [
+        (4, "Rows in Export (any cell filled)",
+         '=SUMPRODUCT(--((Export!A5:A204<>"")+(Export!B5:B204<>"")+(Export!C5:C204<>"")>0))', "0"),
+        (5, "Rows flipped", '=COUNTIF(E5:E204,"OK")+COUNTIF(E5:E204,"Check")', "0"),
+        (6, "Blank rows inside", '=COUNTIF(E5:E204,"Blank row")', "0"),
+        (7, "Text dates in Export", '=SUMPRODUCT(--ISTEXT(Export!A5:A204))', "0"),
+        (8, "Rows showing Check", '=COUNTIF(E5:E204,"Check")', "0"),
+        (9, "Rows below row 204 (not read)", '=COUNTA(Export!A205:C1000)', "0"),
+        (10, "Total in Export", '=SUM(Export!C5:C204)', USD),
+        (11, "Total flipped", '=SUM(C5:C204)', USD),
+        (12, "CHECK", '=IF(AND(H5=H4,H8=0,H9=0,ROUND(H10-H11,2)=0),"OK","Check")', "General"),
+    ])
+    fl.conditional_formatting.add("E5:E204", FormulaRule(formula=['$E5="Check"'], fill=ALERT_FILL))
+    fl.conditional_formatting.add("E5:E204", FormulaRule(formula=['$E5="Blank row"'], fill=CHECK_ORANGE))
+    fl.conditional_formatting.add("H12", FormulaRule(formula=['$H$12<>"OK"'], fill=ALERT_FILL))
+    fl.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Reverse a List So the Oldest Row Comes First",
+        "",
+        "1. Export tab: paste the export as it came, newest row first (yellow, rows 5 to 204): Date, Description, Amount. The sample rows are fictional.",
+        "2. Rows found, Flipped!H1: =IFERROR(MATCH(9.99E+307,Export!$A$5:$A$204),0). 9.99E+307 is bigger than any date, so MATCH returns the position of the last date in the column, even when a blank row sits in the middle. H2 shows COUNTA for comparison: with a blank row inside, COUNTA counts one row less and a COUNTA version would drop the newest row.",
+        "3. Flipped!A5: =INDEX(Export!A$5:A$204,$H$1-ROWS($A$5:A5)+1). ROWS($A$5:A5) is 1 on the first row, 2 on the next, so the first row reads the last export row, the second row the one before it, and so on. Copied right to B and C and down to row 204.",
+        "   Full version in the file: =IF(ROWS($A$5:A5)>$H$1,\"\",IF(INDEX(...)=\"\",\"\",INDEX(...))) so rows past the list stay blank and a blank export row stays blank instead of showing 0 (12/30/1899 as a date).",
+        "4. Running balance, D5: =SUM($C$5:C5) on the flipped list, oldest first.",
+        "5. Status: OK, Blank row (a blank row inside the export), or Check (the date or the amount is text, for example \"$412.50\" typed with the dollar sign).",
+        "6. A date typed as text in the newest export row is not a number, so MATCH stops one row earlier and that row is not flipped. Rows in Export and Rows flipped then differ and CHECK shows Check.",
+        "7. CHECK is OK when every filled export row was flipped, no row shows Check, nothing sits below row 204, and the two totals agree.",
+        "8. Why not Data > Sort: sorting by date changes the export itself and can swap rows that share a date. These formulas keep the export as it is and list every row in exactly the reverse of the export order, same-day rows included.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ex.print_title_rows = fl.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-reverse-list-order.xlsx")
+
+
+def size_color_combinations():
+    wb = Workbook()
+    op = wb.active
+    op.title = "Options"
+    va = wb.create_sheet("Variants")
+    op["A1"] = ("Type the sizes with their prices in A and B (rows 5 to 14) and the colors in D (rows 5 to 24), yellow cells, "
+                "no blank cells between. Fictional candle shop sample.")
+    op["A1"].font = Font(italic=True)
+    _head_row(op, 4, ["Size", "Price for this size", "", "Color"], [14, 12, 3, 16])
+    op["C4"].fill = PatternFill(fill_type=None)
+    sizes = [("8 oz", 14.00), ("12 oz", 18.00), ("16 oz", 24.00)]
+    colors = ["Natural", "Black", "Amber", "Sage"]
+    for r in range(5, 15):
+        op[f"A{r}"].fill = op[f"B{r}"].fill = INPUT_FILL
+        op[f"B{r}"].number_format = USD
+    for r in range(5, 25):
+        op[f"D{r}"].fill = INPUT_FILL
+    for i, (s, p) in enumerate(sizes):
+        op[f"A{5 + i}"], op[f"B{5 + i}"] = s, p
+    for i, c in enumerate(colors):
+        op[f"D{5 + i}"] = c
+    op.freeze_panes = "A5"
+
+    for r, label, f in ((1, "Sizes", "=COUNTA(Options!$A$5:$A$14)"), (2, "Colors", "=COUNTA(Options!$D$5:$D$24)"),
+                        (3, "Rows (sizes x colors)", "=B1*B2")):
+        va[f"A{r}"], va[f"B{r}"] = label, f
+        va[f"A{r}"].font = Font(bold=True)
+        va[f"B{r}"].fill = FORMULA_FILL
+        va[f"B{r}"].number_format = "0"
+    _head_row(va, 5, ["No.", "Size", "Color", "Variant name", "Price", "On hand", "Status"], [22, 12, 14, 24, 11, 9, 12])
+    for r in range(6, 206):
+        n = f"ROWS($B$6:B{r})"
+        size = f"INDEX(Options!$A$5:$A$14,INT(({n}-1)/$B$2)+1)"
+        color = f"INDEX(Options!$D$5:$D$24,MOD({n}-1,$B$2)+1)"
+        price = f"INDEX(Options!$B$5:$B$14,INT(({n}-1)/$B$2)+1)"
+        va[f"A{r}"] = f'=IF({n}>$B$3,"",{n})'
+        va[f"B{r}"] = f'=IF(A{r}="","",IF({size}="","",{size}))'
+        va[f"C{r}"] = f'=IF(A{r}="","",IF({color}="","",{color}))'
+        va[f"D{r}"] = f'=IF(A{r}="","",B{r}&" / "&C{r})'
+        va[f"E{r}"] = f'=IF(A{r}="","",IF({price}="","",{price}))'
+        va[f"G{r}"] = (f'=IF(A{r}="","",IF(OR(B{r}="",C{r}=""),"Blank option",'
+                       f'IF(OR(TRIM(B{r}&"")<>B{r}&"",TRIM(C{r}&"")<>C{r}&""),"Extra space",'
+                       f'IF(SUMPRODUCT(--($D$6:$D$205=D{r}))>1,"Duplicate",IF(NOT(ISNUMBER(E{r})),"No price","OK")))))')
+        va[f"A{r}"].number_format = "0"
+        va[f"E{r}"].number_format = USD
+        va[f"F{r}"].fill = INPUT_FILL
+        for col in "ABCDEG":
+            va[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "EG":
+            va[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        va[f"A{r}"].alignment = Alignment(horizontal="center")
+    va.column_dimensions["H"].width = 3
+    va.column_dimensions["I"].width = 36
+    va.column_dimensions["J"].width = 10
+    _summary_block(va, "I", "J", [
+        (5, "Combinations (sizes x colors)", "=B3", "0"),
+        (6, "Rows listed", "=COUNT(A6:A205)", "0"),
+        (7, "Rows not OK", '=COUNT(A6:A205)-COUNTIF(G6:G205,"OK")', "0"),
+        (8, "Options typed past the yellow rows", "=COUNTA(Options!A15:B40)+COUNTA(Options!D25:D60)", "0"),
+        (9, "CHECK", '=IF(AND(J6=J5,J7=0,J8=0),"OK","Check")', "General"),
+    ])
+    va.conditional_formatting.add("G6:G205", FormulaRule(formula=['AND($G6<>"",$G6<>"OK")'], fill=ALERT_FILL))
+    va.conditional_formatting.add("J9", FormulaRule(formula=['$J$9<>"OK"'], fill=ALERT_FILL))
+    va.freeze_panes = "A6"
+    notes_sheet(wb, [
+        "Tidy Tabs: List Every Size and Color Combination",
+        "",
+        "1. Options tab: sizes in A5:A14 with the price for each size in B, colors in D5:D24 (yellow). Keep each list together with no blank cell in between, and add new sizes or colors at the bottom. The sample is fictional.",
+        "2. Variants!B1 counts the sizes (=COUNTA(Options!$A$5:$A$14)), B2 the colors, B3 = B1*B2 rows. The list below grows or shrinks by itself.",
+        "3. Row number n: =ROWS($B$6:B6) is 1, 2, 3 ... as the formula goes down.",
+        "4. Size, B6: =INDEX(Options!$A$5:$A$14,INT((n-1)/$B$2)+1). With 4 colors, rows 1 to 4 get size 1, rows 5 to 8 size 2, and so on.",
+        "5. Color, C6: =INDEX(Options!$D$5:$D$24,MOD(n-1,$B$2)+1). MOD counts 1, 2, 3, 4, 1, 2, 3, 4 ... so every size gets every color.",
+        "   In the file n is written out as ROWS($B$6:B6), and each formula starts with IF(ROWS($B$6:B6)>$B$3,\"\",...) so rows past the last combination stay blank.",
+        "6. Variant name, D6: =B6&\" / \"&C6. Price, E6: the price on the same row as the size, with the same INDEX and INT.",
+        "7. On hand (F, yellow) is for a count. It is typed, not a formula, so it does not move if the list changes: add new colors at the bottom, or copy the list and paste values before counting.",
+        "8. Status: Blank option (a blank cell inside a list: COUNTA counts one less and the last option drops off), Extra space (a space before or after a size or color), Duplicate (the same variant name twice), No price, or OK.",
+        "9. Room for 10 sizes x 20 colors = 200 rows. Options typed below row 14 or row 24 are not read; the summary counts them and CHECK shows Check.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    op.print_title_rows = "4:4"
+    va.print_title_rows = "5:5"
+    wb.save(OUT / "tidy-tabs-size-color-combinations.xlsx")
+
+
+def next_date_on_schedule():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Schedule"
+    ws["A1"], ws["B1"] = "As of date", date(2026, 11, 14)
+    ws["A1"].font = Font(bold=True)
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = US_DATE
+    ws["C1"] = ("Type the date to count from. The file never uses TODAY so the results stay put; see How to use. "
+                "Fictional events; type yours in A to C (yellow, rows 5 to 104), in any order.")
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Date", "Event", "Location (ZIP)", "Sort key", "Status", "", "No.", "Key", "Date", "Event", "Days until"],
+              [12, 22, 10, 11, 10, 3, 4, 11, 13, 22, 7], height=32)
+    ws["F4"].fill = PatternFill(fill_type=None)
+    events = [
+        (date(2026, 11, 28), "Small Biz Saturday", "02108"),
+        (date(2026, 11, 7), "Fall craft show", "07030"),
+        (date(2026, 12, 5), "Craft fair", "01060"),
+        (date(2026, 11, 14), "Farmers market", "02108"),
+        (date(2026, 10, 24), "Harvest market", "06510"),
+        (date(2026, 11, 28), "Pop-up", "07030"),
+        (date(2026, 11, 21), "Holiday market", "02139"),
+    ]
+    for r in range(5, 105):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"C{r}"].number_format = "@"
+        ws[f"D{r}"] = f'=IF(ISNUMBER(A{r}),INT(A{r})+ROW()/100000,"")'
+        ws[f"E{r}"] = (f'=IF(AND(A{r}="",TRIM(B{r})="",C{r}=""),"",IF(OR(NOT(ISNUMBER(A{r})),NOT(ISNUMBER($B$1))),"Check",'
+                       f'IF(INT(A{r})<INT($B$1),"Past","Upcoming")))')
+        ws[f"D{r}"].number_format = "0.00000"
+        for col in "DE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(events):
+        for col, v in zip("ABC", row):
+            ws[f"{col}{5 + i}"] = v
+    for k in range(1, 6):
+        r = 4 + k
+        ws[f"G{r}"] = k
+        ws[f"H{r}"] = f'=IF(ISNUMBER($B$1),IFERROR(SMALL($D$5:$D$104,COUNTIF($D$5:$D$104,"<"&INT($B$1))+G{r}),""),"")'
+        ws[f"I{r}"] = f'=IF(H{r}="","None scheduled",INT(H{r}))'
+        name = f"INDEX($B$5:$B$104,MATCH(H{r},$D$5:$D$104,0))"
+        ws[f"J{r}"] = f'=IF(H{r}="","",IF({name}="","",{name}))'
+        ws[f"K{r}"] = f'=IF(H{r}="","",I{r}-INT($B$1))'
+        ws[f"H{r}"].number_format = "0.00000"
+        ws[f"I{r}"].number_format = US_DATE
+        ws[f"K{r}"].number_format = "0"
+        for col in "HIJK":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "HIK":
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    ws.column_dimensions["L"].width = 3
+    ws.column_dimensions["M"].width = 34
+    ws.column_dimensions["N"].width = 13
+    _summary_block(ws, "M", "N", [
+        (4, "Last one before", '=IF(ISNUMBER($B$1),IFERROR(LARGE($A$5:$A$104,COUNTIF($A$5:$A$104,">="&INT($B$1))+1),"None"),"")', US_DATE),
+        (5, "Its event", '=IF(ISNUMBER($B$1),IFERROR(INDEX($B$5:$B$104,MATCH(LARGE($D$5:$D$104,COUNTIF($D$5:$D$104,">="&INT($B$1))+1),$D$5:$D$104,0))&"",""),"")', "General"),
+        (6, "Events this month", '=IF(ISNUMBER($B$1),COUNTIF($A$5:$A$104,">="&DATE(YEAR($B$1),MONTH($B$1),1))-COUNTIF($A$5:$A$104,">="&(EOMONTH($B$1,0)+1)),"")', "0"),
+        (7, "Events on or after the as-of date", '=IF(ISNUMBER($B$1),COUNTIF($D$5:$D$104,">="&INT($B$1)),"")', "0"),
+        (8, "Text dates (not counted)", '=SUMPRODUCT(--ISTEXT($A$5:$A$104))', "0"),
+        (9, "Rows showing Check", '=COUNTIF($E$5:$E$104,"Check")', "0"),
+    ])
+    ws.conditional_formatting.add("E5:E104", FormulaRule(formula=['$E5="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("E5:E104", FormulaRule(formula=['$E5="Upcoming"'], fill=DONE_FILL))
+    ws.conditional_formatting.add("I5:I9", FormulaRule(formula=['$K5=0'], fill=DONE_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find the Next Date on a Schedule",
+        "",
+        "1. Schedule tab: type each market, pop-up or deadline in A to C (yellow, rows 5 to 104), in any order. The events and ZIP codes are fictional.",
+        "2. As of date, B1: the day to count from. It is a typed date so the results stay fixed. In your own copy you can type =TODAY() in B1 instead; the results then change every day.",
+        "3. The short formula for the next date: =SMALL(A5:A104,COUNTIF(A5:A104,\"<\"&B1)+1). COUNTIF counts the dates before B1, and SMALL takes the one right after them. Change +1 to +2 for the one after that.",
+        "4. Sort key, D5: =IF(ISNUMBER(A5),INT(A5)+ROW()/100000,\"\"). It adds a tiny row number to each date so two events on the same day have different keys and both names show. INT drops any time typed with the date, so an evening event stays on its own day. Works up to 99,999 rows (the file has 100).",
+        "5. Key, H5: =IFERROR(SMALL($D$5:$D$104,COUNTIF($D$5:$D$104,\"<\"&INT($B$1))+G5),\"\"). Date, I5: =INT(H5). Event, J5: =INDEX($B$5:$B$104,MATCH(H5,$D$5:$D$104,0)). Days until, K5: I5-INT($B$1).",
+        "6. INT($B$1) matters: if B1 holds a time (11/14/2026 9:00 AM), a market on 11/14 counts as before it and is skipped. INT keeps the whole as-of day.",
+        "7. \"<\" includes events on the as-of date (0 days until). Use \"<=\" to list only events after it.",
+        "8. Last one before: =LARGE(A5:A104,COUNTIF(A5:A104,\">=\"&INT(B1))+1). None means no event before the as-of date.",
+        "9. Status: Past, Upcoming, or Check (a date typed as text, which SMALL and COUNTIF skip, or a blank or text as-of date). With a blank or text as-of date the next dates show None scheduled.",
+        "10. For a next date per market name, make a separate list for each market; this file finds the next dates across the whole list.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-next-date-on-schedule.xlsx")
+
+
+def plan_backward_from_event():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plan"
+    ho = wb.create_sheet("Holidays")
+    ws["A1"], ws["B1"] = "Event date", date(2026, 12, 5)
+    ws["A2"], ws["B2"] = "Buffer work days before the event", 0
+    for r in (1, 2):
+        ws[f"A{r}"].font = Font(bold=True)
+        ws[f"B{r}"].fill = INPUT_FILL
+    ws["B1"].number_format = US_DATE
+    ws["C1"] = ("List the tasks in the order you will do them (yellow, rows 5 to 34, no blank row between). "
+                "Weekends and the days off on the Holidays tab are skipped. Fictional plan.")
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Task (in the order you will do them)", "Work days needed", "Start", "Finish", "Status"],
+              [36, 10, 12, 12, 14], height=46)
+    tasks = [("Order supplies", 2), ("Pour candles", 5), ("Cure and label", 3), ("Photograph and price", 2),
+             ("Pack the booth", 1)]
+    hol = "Holidays!$A$2:$A$20"
+    last_ok = 'AND(ISNUMBER($B$1),OR($B$2="",AND(ISNUMBER($B$2),$B$2>=0)))'
+    for r in range(5, 35):
+        ws[f"A{r}"].fill = ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"D{r}"] = (f'=IF(A{r}="","",IF(A{r + 1}="",IF({last_ok},IF($B$2=INT($B$2),IFERROR(WORKDAY($B$1,-1-$B$2,{hol}),"Check"),"Check"),"Check"),'
+                       f'IF(ISNUMBER(C{r + 1}),IFERROR(WORKDAY(C{r + 1},-1,{hol}),"Check"),"Check")))')
+        ws[f"C{r}"] = f'=IF(A{r}="","",IF(AND(ISNUMBER(B{r}),ISNUMBER(D{r})),IFERROR(WORKDAY(D{r},-(B{r}-1),{hol}),"Check"),"Check"))'
+        ws[f"E{r}"] = (f'=IF(A{r}="","",IF(NOT(ISNUMBER(B{r})),"Check",IF(OR(B{r}<1,B{r}<>INT(B{r})),"Check",'
+                       f'IF(AND(A{r + 1}="",COUNTA(A{r + 1}:$A$35)>0),"Check: blank row",'
+                       f'IF(OR(NOT(ISNUMBER(C{r})),NOT(ISNUMBER(D{r}))),"Check",IF(C{r}>D{r},"Check","OK"))))))')
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = US_DATE
+        for col in "CDE":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        ws[f"B{r}"].number_format = "General"
+    for i, (t, d) in enumerate(tasks):
+        ws[f"A{5 + i}"], ws[f"B{5 + i}"] = t, d
+    ws.column_dimensions["F"].width = 3
+    ws.column_dimensions["G"].width = 34
+    ws.column_dimensions["H"].width = 13
+    _summary_block(ws, "G", "H", [
+        (4, "Start by (first task's start)", '=IF(ISNUMBER(C5),C5,"")', US_DATE),
+        (5, "Work days in the plan", "=SUM(B5:B34)", "0"),
+        (6, "Tasks listed", '=SUMPRODUCT(--(E5:E34<>""))', "0"),
+        (7, "Rows showing Check", '=H6-COUNTIF(E5:E34,"OK")', "0"),
+        (8, "Last finish", '=IF(COUNT(D5:D34)=0,"",MAX(D5:D34))', US_DATE),
+        (9, "Day off typed as text (Holidays)", '=SUMPRODUCT(--ISTEXT(Holidays!A2:A20))', "0"),
+        (10, "CHECK", '=IF(AND(H6>0,H7=0,H9=0,ISNUMBER(H8)),IF(H8<$B$1,"OK","Check"),"Check")', "General"),
+    ])
+    ws.conditional_formatting.add("E5:E34", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("H10", FormulaRule(formula=['$H$10<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    _head_row(ho, 1, ["Day off (your own)", "Note"], [18, 30])
+    days_off = [(date(2026, 11, 26), "Shop closed"), (date(2026, 11, 27), "Shop closed"), (date(2026, 12, 25), "Shop closed")]
+    for r in range(2, 21):
+        ho[f"A{r}"].fill = ho[f"B{r}"].fill = INPUT_FILL
+        ho[f"A{r}"].number_format = US_DATE
+    for i, (d, n) in enumerate(days_off):
+        ho[f"A{2 + i}"], ho[f"B{2 + i}"] = d, n
+    ho["D1"] = "Type your own days off in A2:A20 as real dates. Fictional sample; these are not a list of official holidays."
+    ho["D1"].font = Font(italic=True)
+    notes_sheet(wb, [
+        "Tidy Tabs: Plan Backward From an Event Date With WORKDAY",
+        "",
+        "1. Plan tab: type the event date in B1 and any buffer work days in B2 (0 means the last task finishes the work day before the event). The plan is fictional.",
+        "2. List the tasks in A5 down in the order you will do them, with the work days each one needs in B (whole numbers, 1 or more). Do not leave a blank row between tasks.",
+        "3. Holidays tab: type your own days off in A2:A20. They are skipped like weekends. The sample dates are not a list of official holidays.",
+        "4. Finish of the last task: =WORKDAY($B$1,-1-$B$2,Holidays!$A$2:$A$20). A negative day count goes back in time, skipping Saturdays, Sundays and the days off.",
+        "5. Start of a task: =WORKDAY(D5,-(B5-1),Holidays!$A$2:$A$20). A 3-day task that finishes on a Tuesday starts on the Friday before it (with no day off in between).",
+        "6. Finish of the task before: =WORKDAY(C6,-1,Holidays!$A$2:$A$20), the work day before the next task starts. In the file D5 is =IF(A6=\"\",<last task>,<task before>) so the same formula copies down.",
+        "7. Start by, H4: the first task's start date.",
+        "8. Status: Check when the work days are blank, text, 0, negative or not whole (WORKDAY drops the decimal: 2.5 days counts as 2), when the start lands after the finish, or Check: blank row when a blank row splits the list (the task above it is then treated as the last task).",
+        "9. WORKDAY counts work days. A step that runs over weekends, such as curing time, needs calendar days; count those days as work days in B or plan them yourself.",
+        "10. CHECK is OK when every row is OK, no day off is typed as text and the last finish is before the event. A day off typed as text that is not a date makes WORKDAY fail, so every row shows Check. This is a date calculator, not project advice.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "4:4"
+    ho.print_title_rows = "1:1"
+    wb.save(OUT / "tidy-tabs-plan-backward-from-event.xlsx")
+
+
+def reviews_needed_for_rating():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Calculator"
+    st = wb.create_sheet("From star counts")
+    ws["A1"] = ("Fictional shops and products. Type the current average, the number of reviews and the target average "
+                "(yellow, rows 5 to 24). Row 11 reads the From star counts tab.")
+    ws["A1"].font = Font(italic=True)
+    ws["A2"] = "The math assumes the shown rating is a plain average of every review."
+    ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Shop or product", "Current average", "Number of reviews", "Target average",
+                      "5-star reviews needed", "Average after those", "1-star reviews before it drops below target",
+                      "Status"], [36, 10, 10, 10, 12, 11, 14, 16], height=60)
+    rows = [
+        ("Candle shop", 4.72, 183, 4.80),
+        ("Soap listing", 4.70, 30, 4.90),
+        ("Tote bag listing", 4.60, 100, 4.80),
+        ("Mug listing", 4.85, 40, 4.80),
+        ("Print shop", 4.95, 240, 4.90),
+        ("Jewelry shop", 4.90, 50, 5.00),
+    ]
+    for r in range(5, 25):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = ws[f"D{r}"].number_format = "0.00"
+        ws[f"C{r}"].number_format = "#,##0"
+        blank = f'AND(TRIM(A{r})="",B{r}="",C{r}="",D{r}="")'
+        ws[f"H{r}"] = (f'=IF({blank},"",IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r}),ISNUMBER(D{r})),'
+                       f'IF(AND(B{r}>=1,B{r}<=5,C{r}>=1,C{r}=INT(C{r}),D{r}>1,D{r}<=5),'
+                       f'IF(B{r}>=D{r},"At or above target",IF(D{r}>=5,"Not possible","Below target")),"Check"),"Check"))')
+        ws[f"E{r}"] = (f'=IF(OR(H{r}="",H{r}="Check"),"",IF(B{r}>=D{r},0,IF(D{r}>=5,"Not possible",'
+                       f'ROUNDUP(ROUND(C{r}*(D{r}-B{r})/(5-D{r}),6),0))))')
+        ws[f"F{r}"] = f'=IF(ISNUMBER(E{r}),(B{r}*C{r}+5*E{r})/(C{r}+E{r}),"")'
+        ws[f"G{r}"] = (f'=IF(OR(H{r}="",H{r}="Check"),"",IF(B{r}<D{r},"Already below",'
+                       f'ROUNDDOWN(ROUND(C{r}*(B{r}-D{r})/(D{r}-1),6),0)))')
+        ws[f"E{r}"].number_format = ws[f"G{r}"].number_format = "#,##0"
+        ws[f"F{r}"].number_format = "0.0000"
+        for col in "EFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCD", row):
+            ws[f"{col}{5 + i}"] = v
+    ws["A11"] = "Whole candle shop (from star counts)"
+    ws["B11"] = "='From star counts'!B13"
+    ws["C11"] = "='From star counts'!B12"
+    ws["D11"] = 4.80
+    ws["B11"].fill = ws["C11"].fill = FORMULA_FILL
+    ws["B11"].number_format = "0.0000"
+    ws.column_dimensions["I"].width = 3
+    ws.column_dimensions["J"].width = 30
+    ws.column_dimensions["K"].width = 9
+    _summary_block(ws, "J", "K", [
+        (5, "Rows listed", '=SUMPRODUCT(--(H5:H24<>""))', "0"),
+        (6, "Below target", '=COUNTIF(H5:H24,"Below target")', "0"),
+        (7, "At or above target", '=COUNTIF(H5:H24,"At or above target")', "0"),
+        (8, "Not possible (target 5.00)", '=COUNTIF(H5:H24,"Not possible")', "0"),
+        (9, "Rows showing Check", '=COUNTIF(H5:H24,"Check")', "0"),
+    ])
+    ws.conditional_formatting.add("H5:H24", FormulaRule(formula=['OR($H5="Check",$H5="Not possible")'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("H5:H24", FormulaRule(formula=['$H5="At or above target"'], fill=DONE_FILL))
+    ws.freeze_panes = "B5"
+
+    st["A1"] = "Type how many reviews have each star count (yellow). Fictional counts. The average feeds row 11 of the Calculator tab."
+    st["A1"].font = Font(italic=True)
+    _head_row(st, 4, ["Stars", "Number of reviews"], [16, 14])
+    for i, (s, c) in enumerate(zip([5, 4, 3, 2, 1], [152, 21, 6, 1, 3])):
+        r = 5 + i
+        st[f"A{r}"], st[f"B{r}"] = s, c
+        st[f"A{r}"].alignment = Alignment(horizontal="center")
+        st[f"B{r}"].fill = INPUT_FILL
+        st[f"B{r}"].number_format = "#,##0"
+    _summary_block(st, "A", "B", [
+        (11, "Status", '=IF(COUNT(B5:B9)<>COUNTA(B5:B9),"Check",IF(SUMPRODUCT(--(B5:B9<0))+SUMPRODUCT(--(B5:B9<>INT(B5:B9)))>0,"Check",IF(SUM(B5:B9)=0,"No reviews","OK")))', "General"),
+        (12, "Total reviews", '=IF(B11="OK",SUM(B5:B9),"")', "#,##0"),
+        (13, "Average", '=IF(B11="OK",SUMPRODUCT(A5:A9,B5:B9)/SUM(B5:B9),"")', "0.0000"),
+    ])
+    st.column_dimensions["A"].width = 16
+    notes_sheet(wb, [
+        "Tidy Tabs: How Many 5-Star Reviews You Need for a Target Rating",
+        "",
+        "1. Calculator tab: one row per shop or product (yellow, rows 5 to 24): the current average, the number of reviews, and the target average. The shops are fictional.",
+        "2. 5-star reviews needed, E5: =ROUNDUP(C5*(D5-B5)/(5-D5),0). Each new 5-star review adds (5 - target) above the target, and the current reviews are C5*(D5-B5) short of it. ROUNDUP because you cannot get part of a review.",
+        "   Full version in the file: =IF(D5>=5,\"Not possible\",...ROUNDUP(ROUND(C5*(D5-B5)/(5-D5),6),0)). Not possible: no number of 5-star reviews makes an average of exactly 5.00 unless every review is 5 stars. The inner ROUND(...,6) is a safety step so a result that should be a whole number (60) but is stored as 60.0000000000003 does not round up to 61.",
+        "3. Average after those, F5: =(B5*C5+5*E5)/(C5+E5), so you can see the target is reached.",
+        "4. 1-star reviews before it drops below the target, G5: =ROUNDDOWN(C5*(B5-D5)/(D5-1),0). That many 1-star reviews keep the average at or above the target; one more drops it below. Already below means the current average is under the target.",
+        "5. From star counts tab: type how many 5, 4, 3, 2 and 1-star reviews you have. Average: =SUMPRODUCT(A5:A9,B5:B9)/SUM(B5:B9). Row 11 of the Calculator reads it. Use star counts when you have them: a rating shown rounded (4.7 when it is really 4.74) changes the answer.",
+        "6. Status: Below target, At or above target, Not possible (target 5.00), or Check (blank or text inputs, an average outside 1 to 5, a target of 1 or less, or a review count that is 0, negative or not whole).",
+        "7. The math assumes the rating is a plain average of all reviews. Your platform may calculate or round its shown rating differently. Follow your platform's review policy.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = st.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-reviews-needed-for-rating.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -17009,4 +17463,9 @@ if __name__ == "__main__":
     match_payouts_to_deposits()
     split_dates_across_months()
     payment_plan_interest_rate()
+    reverse_list_order()
+    size_color_combinations()
+    next_date_on_schedule()
+    plan_backward_from_event()
+    reviews_needed_for_rating()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

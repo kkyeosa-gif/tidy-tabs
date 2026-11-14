@@ -16973,7 +16973,7 @@ def size_color_combinations():
         "5. Color, C6: =INDEX(Options!$D$5:$D$24,MOD(n-1,$B$2)+1). MOD counts 1, 2, 3, 4, 1, 2, 3, 4 ... so every size gets every color.",
         "   In the file n is written out as ROWS($B$6:B6), and each formula starts with IF(ROWS($B$6:B6)>$B$3,\"\",...) so rows past the last combination stay blank.",
         "6. Variant name, D6: =B6&\" / \"&C6. Price, E6: the price on the same row as the size, with the same INDEX and INT.",
-        "7. On hand (F, yellow) is for a count. It is typed, not a formula, so it does not move if the list changes: add new colors at the bottom, or copy the list and paste values before counting.",
+        "7. On hand (F, yellow) is for a count. It is typed, not a formula, so it does not move if the list changes. A new size added at the bottom keeps the rows above in place, but any new color shifts every row after the first size, so copy the list and paste values before counting.",
         "8. Status: Blank option (a blank cell inside a list: COUNTA counts one less and the last option drops off), Extra space (a space before or after a size or color), Duplicate (the same variant name twice), No price, or OK.",
         "9. Room for 10 sizes x 20 colors = 200 rows. Options typed below row 14 or row 24 are not read; the summary counts them and CHECK shows Check.",
         "",

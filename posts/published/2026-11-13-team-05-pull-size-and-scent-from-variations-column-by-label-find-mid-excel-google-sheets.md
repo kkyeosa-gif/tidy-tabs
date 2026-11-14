@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfuSA5PIBhy
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-pull-size-and-scent-out-of-order.html
 title: How to Pull Size and Scent Out of an Order Variations Column in Excel and Google Sheets
 labels: excel-formulas, text-functions, small-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 14 workbooks and 11,256 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

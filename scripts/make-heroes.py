@@ -830,7 +830,32 @@ def heroes_2026_11_14():
                 "Offers", hide_cols="CDHJNOP", widths={"A": 29, "F": 11, "G": 14, "M": 22}, name="planrate"))
 
 
+def heroes_2026_11_15():
+    t = "templates/"
+    d = "images/2026-11-15-team-0%d-%s/"
+    save(d % (1, "reverse-list-order-newest-to-oldest-first-index-rows-excel-google-sheets") + "reverse-list-newest-to-oldest-template.png",
+         render(compact_copy(t + "tidy-tabs-reverse-list-order.xlsx", "Export", 12, "revexport", hide_rows=[1, 2, 3]),
+                "Export", name="revexport"),
+         render(compact_copy(t + "tidy-tabs-reverse-list-order.xlsx", "Flipped", 12, "revflip", hide_rows=[1, 2, 3]),
+                "Flipped", hide_cols="FGH", name="revflip"))
+    save(d % (2, "list-all-size-and-color-variant-combinations-index-int-mod-excel-google-sheets") + "size-color-variant-combinations-template.png",
+         render(compact_copy(t + "tidy-tabs-size-color-combinations.xlsx", "Variants", 17, "sizecolor", hide_rows=[4]),
+                "Variants", hide_cols="FHIJ", name="sizecolor"))
+    save(d % (3, "find-next-scheduled-date-after-a-date-small-countif-excel-google-sheets") + "next-date-on-schedule-template.png",
+         render(compact_copy(t + "tidy-tabs-next-date-on-schedule.xlsx", "Schedule", 11, "nextdate", hide_rows=[2, 3], clear=["C1"]),
+                "Schedule", hide_cols="CDHLMN", name="nextdate"))
+    save(d % (4, "plan-backward-from-event-date-task-start-dates-workday-excel-google-sheets") + "plan-backward-from-event-date-template.png",
+         render(compact_copy(t + "tidy-tabs-plan-backward-from-event.xlsx", "Plan", 10, "planback", hide_rows=[3], clear=["C1"]),
+                "Plan", name="planback"))
+    save(d % (5, "five-star-reviews-needed-to-reach-target-rating-roundup-excel-google-sheets") + "five-star-reviews-needed-template.png",
+         render(compact_copy(t + "tidy-tabs-reviews-needed-for-rating.xlsx", "Calculator", 11, "reviewsneeded", hide_rows=[1, 2, 3]),
+                "Calculator", hide_cols="FIJK", name="reviewsneeded"))
+
+
 def main():
+    if "--only-2026-11-15" in sys.argv:
+        heroes_2026_11_15()
+        return
     if "--only-2026-11-14" in sys.argv:
         heroes_2026_11_14()
         return

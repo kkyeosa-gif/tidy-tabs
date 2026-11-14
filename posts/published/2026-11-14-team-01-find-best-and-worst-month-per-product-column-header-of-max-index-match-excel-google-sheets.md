@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfulzx8ESlP
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-find-each-products-best-and.html
 title: How to Find Each Product's Best and Worst Month in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 13 workbooks and 5,746 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

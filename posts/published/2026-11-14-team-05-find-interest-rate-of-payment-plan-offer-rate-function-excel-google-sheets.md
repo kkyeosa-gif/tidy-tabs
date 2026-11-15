@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfw2z3tmyhT
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-interest-rate-from.html
 title: How to Calculate the Interest Rate From a Monthly Payment in Excel and Google Sheets
 labels: excel-formulas, small-business, loans
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 10 workbooks and 3,050 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

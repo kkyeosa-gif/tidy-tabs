@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Dfvjnj3Dchd
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-split-date-range-across-months.html
 title: How to Split a Date Range Across Months by Days in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 15 workbooks and 52,965 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

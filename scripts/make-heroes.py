@@ -852,7 +852,52 @@ def heroes_2026_11_15():
                 "Calculator", hide_cols="FIJK", name="reviewsneeded"))
 
 
+def heroes_2026_11_16_01():
+    t = "templates/"
+    d = "images/2026-11-16-team-01-local-delivery-distance-miles-from-latitude-longitude-fee-radians-asin-excel-google-sheets/"
+    save(d + "delivery-distance-and-fee-template.png",
+         render(compact_copy(t + "tidy-tabs-delivery-distance-from-coordinates.xlsx", "Deliveries", 12, "delivmiles", clear=["D1", "D2"]),
+                "Deliveries", hide_cols="IJK", name="delivmiles"))
+
+
+def heroes_2026_11_16_02():
+    t = "templates/"
+    d = "images/2026-11-16-team-02-electricity-cost-per-batch-from-watts-hours-kwh-rate-excel-google-sheets/"
+    save(d + "electricity-cost-per-batch-template.png",
+         render(compact_copy(t + "tidy-tabs-electricity-cost-per-batch.xlsx", "Equipment", 8, "elecbatch", hide_rows=[2], clear=["C1", "C2"]),
+                "Equipment", hide_cols="LMN", name="elecbatch"))
+
+
+def heroes_2026_11_16_03():
+    t = "templates/"
+    d = "images/2026-11-16-team-03-price-custom-size-between-price-list-sizes-linear-interpolation-index-match-excel-google-sheets/"
+    save(d + "custom-size-price-quote-template.png",
+         render(compact_copy(t + "tidy-tabs-custom-size-price-interpolation.xlsx", "Quote", 10, "customsize", hide_rows=[1, 2, 3]),
+                "Quote", hide_cols="C", name="customsize"))
+
+
+def heroes_2026_11_16_04():
+    t = "templates/"
+    d = "images/2026-11-16-team-04-convert-hex-color-codes-to-rgb-and-back-hex2dec-dec2hex-excel-google-sheets/"
+    save(d + "hex-to-rgb-color-converter-template.png",
+         render(compact_copy(t + "tidy-tabs-hex-rgb-color-converter.xlsx", "HEX to RGB", 9, "hexrgb", hide_rows=[1, 2, 3]),
+                "HEX to RGB", hide_cols="CDKLM", name="hexrgb"))
+
+
+def heroes_2026_11_16_05():
+    t = "templates/"
+    d = "images/2026-11-16-team-05-check-if-temperature-and-market-sales-move-together-correl-rsq-excel-google-sheets/"
+    save(d + "temperature-vs-market-sales-correl-template.png",
+         render(compact_copy(t + "tidy-tabs-correlation-sales-vs-temperature.xlsx", "Log", 19, "correltemp", hide_rows=[1, 2, 3]),
+                "Log", hide_cols="DFG", name="correltemp"))
+
+
 def main():
+    if "--only-2026-11-16" in sys.argv:
+        for n in "12345":
+            if not any(a.startswith("--only-2026-11-16-0") for a in sys.argv) or f"--only-2026-11-16-0{n}" in sys.argv:
+                globals()[f"heroes_2026_11_16_0{n}"]()
+        return
     if "--only-2026-11-15" in sys.argv:
         heroes_2026_11_15()
         return

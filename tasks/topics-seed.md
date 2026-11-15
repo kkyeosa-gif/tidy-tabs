@@ -243,3 +243,10 @@
 - How to Find the Next Date on a Schedule in Excel and Google Sheets - `2026-11-15-team-03-find-next-scheduled-date-after-a-date-small-countif-excel-google-sheets`
 - How to Plan Backward From an Event Date With WORKDAY in Excel and Google Sheets - `2026-11-15-team-04-plan-backward-from-event-date-task-start-dates-workday-excel-google-sheets`
 - How to Calculate How Many 5-Star Reviews You Need for a Target Rating in Excel and Google Sheets - `2026-11-15-team-05-five-star-reviews-needed-to-reach-target-rating-roundup-excel-google-sheets`
+
+## 2026-11-16 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-16.md)
+- How to Calculate Delivery Distance in Miles From Latitude and Longitude in Excel and Google Sheets - `2026-11-16-team-01-local-delivery-distance-miles-from-latitude-longitude-fee-radians-asin-excel-google-sheets`
+- How to Calculate the Electricity Cost of Each Batch From Watts in Excel and Google Sheets - `2026-11-16-team-02-electricity-cost-per-batch-from-watts-hours-kwh-rate-excel-google-sheets`
+- How to Price a Custom Size Between Two Sizes on Your Price List in Excel and Google Sheets - `2026-11-16-team-03-price-custom-size-between-price-list-sizes-linear-interpolation-index-match-excel-google-sheets`
+- How to Convert HEX Color Codes to RGB (and Back) in Excel and Google Sheets - `2026-11-16-team-04-convert-hex-color-codes-to-rgb-and-back-hex2dec-dec2hex-excel-google-sheets`
+- How to Check if Temperature and Market Sales Move Together With CORREL in Excel and Google Sheets - `2026-11-16-team-05-check-if-temperature-and-market-sales-move-together-correl-rsq-excel-google-sheets`

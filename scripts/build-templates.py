@@ -17256,6 +17256,473 @@ def reviews_needed_for_rating():
     wb.save(OUT / "tidy-tabs-reviews-needed-for-rating.xlsx")
 
 
+def delivery_distance_from_coordinates():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Deliveries"
+    settings = [
+        (1, "Shop latitude, longitude", 42.3601, "0.0000"),
+        (2, "Delivery radius (miles)", 15, "0.00"),
+        (3, "Base fee", 5.00, USD),
+        (4, "Fee per started mile", 1.50, USD),
+    ]
+    for r, label, v, fmt in settings:
+        ws[f"A{r}"], ws[f"B{r}"] = label, v
+        ws[f"A{r}"].font = Font(bold=True)
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = fmt
+    ws["C1"] = -71.0589
+    ws["C1"].fill = INPUT_FILL
+    ws["C1"].number_format = "0.0000"
+    ws["D1"] = ("Type the shop's latitude in B1 and longitude in C1, then each customer's in C and D (yellow, rows 7 to 106). "
+                "Fictional customers; the coordinates are sample points.")
+    ws["D2"] = "Straight-line miles, not driving miles. US longitudes are negative: keep the minus sign."
+    ws["D1"].font = ws["D2"].font = Font(italic=True)
+    _head_row(ws, 6, ["Customer", "ZIP", "Latitude", "Longitude", "Miles (straight line)", "In area?",
+                      "Delivery fee", "Status"], [26, 8, 11, 11, 11, 11, 10, 14], height=46)
+    customers = [
+        ("Cambridge order", "02139", 42.3736, -71.1097),
+        ("Somerville order", "02143", 42.3876, -71.0995),
+        ("Newton order", "02458", 42.3370, -71.2092),
+        ("Quincy order", "02169", 42.2529, -71.0023),
+        ("Lynn order", "01902", 42.4668, -70.9495),
+        ("Worcester order", "01608", 42.2626, -71.8023),
+    ]
+    for r in range(7, 107):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = "@"
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = "0.0000"
+        hav = (f"2*3958.8*ASIN(MIN(1,SQRT(SIN(RADIANS(C{r}-$B$1)/2)^2"
+               f"+COS(RADIANS($B$1))*COS(RADIANS(C{r}))*SIN(RADIANS(D{r}-$C$1)/2)^2)))")
+        ws[f"E{r}"] = (f'=IF(AND(C{r}="",D{r}=""),"",IF($K$6<>"OK","Check",IF(AND(ISNUMBER(C{r}),ISNUMBER(D{r})),'
+                       f'IF(AND(ABS(C{r})<=90,ABS(D{r})<=180),{hav},"Check"),"Check")))')
+        ws[f"F{r}"] = f'=IF(ISNUMBER(E{r}),IF(ROUND(E{r},2)<=$B$2,"Yes","Out of area"),"")'
+        ws[f"G{r}"] = f'=IF(F{r}="Yes",$B$3+$B$4*ROUNDUP(ROUND(E{r},2),0),"")'
+        ws[f"H{r}"] = (f'=IF(AND(TRIM(A{r})="",TRIM(B{r})="",C{r}="",D{r}=""),"",IF($K$6<>"OK","Check: settings",'
+                       f'IF(OR(C{r}="",D{r}=""),"Check: blank",IF(NOT(AND(ISNUMBER(C{r}),ISNUMBER(D{r}))),"Check: text",'
+                       f'IF(NOT(ISNUMBER(E{r})),"Check: range",IF(OR(C{r}<0,D{r}>0),"Check: sign","OK"))))))')
+        ws[f"E{r}"].number_format = "0.00"
+        ws[f"G{r}"].number_format = USD
+        for col in "EFGH":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(customers):
+        for col, v in zip("ABCD", row):
+            ws[f"{col}{7 + i}"] = v
+    ws.column_dimensions["I"].width = 3
+    ws.column_dimensions["J"].width = 34
+    ws.column_dimensions["K"].width = 11
+    _summary_block(ws, "J", "K", [
+        (6, "Shop location and fee settings",
+         '=IF(AND(ISNUMBER(B1),ISNUMBER(C1),ISNUMBER(B2),ISNUMBER(B3),ISNUMBER(B4)),'
+         'IF(AND(ABS(B1)<=90,ABS(C1)<=180,B2>=0,B3>=0,B4>=0),"OK","Check"),"Check")', "General"),
+        (7, "Deliveries listed", '=SUMPRODUCT(--(H7:H106<>""))', "0"),
+        (8, "In area", '=COUNTIF(F7:F106,"Yes")', "0"),
+        (9, "Out of area", '=COUNTIF(F7:F106,"Out of area")', "0"),
+        (10, "Farthest in-area miles", '=IF(K8=0,"",LARGE(E7:E106,K9+1))', "0.00"),
+        (11, "Fees for in-area deliveries", "=SUM(G7:G106)", USD),
+        (12, "Rows showing Check", '=K7-COUNTIF(H7:H106,"OK")', "0"),
+        (13, "Typed below row 106 (not read)", "=COUNTA(A107:D1000)", "0"),
+        (14, "CHECK", '=IF(AND(K6="OK",K7>0,K12=0,K13=0,COUNT(E7:E106)=SUMPRODUCT(--((C7:C106<>"")+(D7:D106<>"")>0))),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("H7:H106", FormulaRule(formula=['LEFT($H7,5)="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("F7:F106", FormulaRule(formula=['$F7="Out of area"'], fill=CHECK_ORANGE))
+    ws.conditional_formatting.add("K14", FormulaRule(formula=['$K$14<>"OK"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("K6", FormulaRule(formula=['$K$6<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A7"
+    notes_sheet(wb, [
+        "Tidy Tabs: Delivery Distance in Miles From Latitude and Longitude",
+        "",
+        "1. Deliveries tab: type the shop's latitude in B1 and longitude in C1, the delivery radius in miles in B2, the base fee in B3 and the fee per started mile in B4 (yellow).",
+        "2. One row per delivery (yellow, rows 7 to 106): customer, ZIP (kept as text so 02139 keeps its zero), latitude and longitude as plain decimal numbers, for example 42.3736 and -71.1097. Copy them from your own map app. The customers are fictional and the coordinates are sample points.",
+        "3. Miles, E7: =2*3958.8*ASIN(SQRT(SIN(RADIANS(C7-$B$1)/2)^2+COS(RADIANS($B$1))*COS(RADIANS(C7))*SIN(RADIANS(D7-$C$1)/2)^2)). This is the haversine formula; 3958.8 is Earth's mean radius in miles. RADIANS turns degrees into the unit SIN and COS expect.",
+        "   Full version in the file: blank when both coordinates are blank, Check when one is blank or text or outside -90 to 90 / -180 to 180, and MIN(1,...) inside ASIN as a safety step against rounding just above 1.",
+        "4. The result is the straight-line distance, a close estimate on a round Earth. Road miles are longer. The fee rule is your own choice.",
+        "5. In area?, F7: =IF(ROUND(E7,2)<=$B$2,\"Yes\",\"Out of area\"). Miles are compared as shown (two decimals), so 15.00 miles is in a 15-mile area.",
+        "6. Delivery fee, G7: =$B$3+$B$4*ROUNDUP(ROUND(E7,2),0). ROUNDUP charges every started mile: 2.76 miles counts as 3. Out-of-area rows have no fee.",
+        "7. Status: OK, Check: blank (one coordinate missing), Check: text (a coordinate typed as text, with a degree sign or a letter like N), Check: range, Check: sign (a US latitude should be positive and a US longitude negative; a dropped minus sign puts the point in Asia, thousands of miles away, and a swapped pair shows the same Check), Check: settings (B1:B4 or C1 blank or text).",
+        "8. CHECK is OK when the settings are OK, every row is OK, every row with a coordinate has miles, and nothing is typed below row 106.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "6:6"
+    wb.save(OUT / "tidy-tabs-delivery-distance-from-coordinates.xlsx")
+
+
+def electricity_cost_per_batch():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Equipment"
+    ws["A1"], ws["B1"] = "Rate per kWh from your bill", 0.18
+    ws["A1"].font = Font(bold=True)
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = '"$"#,##0.00##'
+    ws["C1"] = ("Type your own rate from your electric bill in B1 (the $0.18 sample is fictional) and one row per device "
+                "in A to F (yellow, rows 5 to 34). Fictional equipment.")
+    ws["C2"] = "Type run times as h:mm (2:30 for two and a half hours), not 2.5."
+    ws["C1"].font = ws["C2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Equipment", "Watts (label)", "Run time per batch (h:mm)", "Percent of time heating",
+                      "Batches per month", "Units per batch", "kWh per batch", "Cost per batch", "Cost per unit",
+                      "Cost per month", "Status"], [28, 9, 10, 10, 9, 9, 9, 9, 9, 10, 14], height=60)
+    equipment = [
+        ("Wax melter", 1500, 2.5, 1.0, 8, 24),
+        ("Heat gun", 1200, 20 / 60, 1.0, 8, 24),
+        ("Test kiln", 1800, 6, 0.70, 4, 30),
+        ("Drying fan", 60, 24, 1.0, 30, None),
+    ]
+    for r in range(5, 35):
+        for col in "ABCDEF":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = "#,##0"
+        ws[f"C{r}"].number_format = "[h]:mm"
+        ws[f"D{r}"].number_format = "0%"
+        ws[f"E{r}"].number_format = ws[f"F{r}"].number_format = "#,##0"
+        ws[f"G{r}"] = (f'=IF(TRIM(A{r})="","",IF(AND(ISNUMBER(B{r}),ISNUMBER(C{r}),OR(D{r}="",ISNUMBER(D{r}))),'
+                       f'B{r}/1000*C{r}*24*IF(D{r}="",1,D{r}),""))')
+        ws[f"H{r}"] = f'=IF(AND(ISNUMBER(G{r}),ISNUMBER($B$1)),ROUND(G{r}*$B$1,2),"")'
+        ws[f"I{r}"] = f'=IF(AND(ISNUMBER(G{r}),ISNUMBER($B$1),ISNUMBER(F{r})),IF(F{r}>0,G{r}*$B$1/F{r},""),"")'
+        ws[f"J{r}"] = f'=IF(AND(ISNUMBER(G{r}),ISNUMBER($B$1),ISNUMBER(E{r})),G{r}*$B$1*E{r},"")'
+        ws[f"K{r}"] = (f'=IF(AND(TRIM(A{r})="",COUNTA(B{r}:F{r})=0),"",IF(TRIM(A{r})="","Check: name",'
+                       f'IF(NOT(ISNUMBER($B$1)),"Check: rate",IF($B$1<=0,"Check: rate",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: watts",IF(B{r}<10,"Check: watts",'
+                       f'IF(NOT(ISNUMBER(C{r})),"Check: time",IF(OR(C{r}<=0,C{r}>1),"Check: time",'
+                       f'IF(AND(D{r}<>"",NOT(ISNUMBER(D{r}))),"Check: percent",IF(AND(ISNUMBER(D{r}),OR(D{r}<=0,D{r}>1)),"Check: percent",'
+                       f'IF(NOT(ISNUMBER(E{r})),"Check: batches",IF(E{r}<0,"Check: batches",'
+                       f'IF(AND(F{r}<>"",NOT(ISNUMBER(F{r}))),"Check: units",IF(AND(ISNUMBER(F{r}),F{r}<=0),"Check: units","OK"))))))))))))))')
+        ws[f"G{r}"].number_format = "0.00"
+        ws[f"H{r}"].number_format = ws[f"I{r}"].number_format = ws[f"J{r}"].number_format = USD
+        for col in "GHIJK":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (name, w, hours, pct, batches, units) in enumerate(equipment):
+        r = 5 + i
+        ws[f"A{r}"], ws[f"B{r}"], ws[f"C{r}"] = name, w, hours / 24
+        ws[f"D{r}"], ws[f"E{r}"] = pct, batches
+        if units is not None:
+            ws[f"F{r}"] = units
+    ws.column_dimensions["L"].width = 3
+    ws.column_dimensions["M"].width = 34
+    ws.column_dimensions["N"].width = 11
+    _summary_block(ws, "M", "N", [
+        (4, "Total cost per month", "=SUM(J5:J34)", USD),
+        (5, "Same total with SUMPRODUCT", '=IF(ISNUMBER(B1),SUMPRODUCT(G5:G34,E5:E34)*B1,"")', USD),
+        (6, "Total kWh per month", "=SUMPRODUCT(G5:G34,E5:E34)", "0.00"),
+        (7, "Equipment listed", '=SUMPRODUCT(--(K5:K34<>""))', "0"),
+        (8, "Rows showing Check", '=N7-COUNTIF(K5:K34,"OK")', "0"),
+        (9, "Typed below row 34 (not read)", "=COUNTA(A35:F200)", "0"),
+        (10, "CHECK", '=IF(AND(N7>0,N8=0,N9=0,ISNUMBER(N5)),IF(ROUND(N4-N5,6)=0,"OK","Check"),"Check")', "General"),
+    ])
+    ws.conditional_formatting.add("K5:K34", FormulaRule(formula=['LEFT($K5,5)="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("N10", FormulaRule(formula=['$N$10<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Electricity Cost per Batch From Watts",
+        "",
+        "1. Equipment tab: type the rate per kWh from your own electric bill in B1. The $0.18 sample is fictional, not a typical rate.",
+        "2. One row per device (yellow, rows 5 to 34): the watts on its label, the run time per batch as h:mm (2:30), the percent of that time it is actually heating, the batches per month and the units per batch. The equipment is fictional.",
+        "3. kWh per batch, G5: =B5/1000*C5*24*D5. Watts / 1000 gives kilowatts. A time like 2:30 is stored as a part of a day (0.104), so *24 turns it into hours (2.5). Leave D blank for a device that is on the whole time (counted as 100%).",
+        "4. Cost per batch, H5: =ROUND(G5*$B$1,2). Cost per unit, I5: G5*$B$1/F5 (blank when F is blank). Cost per month, J5: G5*$B$1*E5. I and J use the unrounded cost, so the month total is not thrown off by rounding each batch.",
+        "5. Label watts are the most the device draws. Many heaters switch on and off to hold a temperature, so the percent in D is your own estimate.",
+        "6. Without *24 the cost comes out 24 times too small (a 1,500 W melter for 2:30 at $0.18 shows $0.03 instead of $0.68). Typing 2.5 instead of 2:30 means 2.5 days, 24 times too big ($16.20); the Status shows Check: time.",
+        "7. Status: Check: watts (blank, text such as \"1,500 W\", or under 10, which is usually kW typed instead of W: 1.5 instead of 1500), Check: time (blank, text, 0, or more than 24:00; exactly 24:00 is allowed, so type one hour as 1:00, not 1), Check: percent (above 100%, for example 70 typed instead of 70%), Check: batches, Check: units, Check: rate, Check: name.",
+        "8. Format run-time cells as [h]:mm (already done in C5:C34). With plain h:mm, 24:00 shows as 0:00.",
+        "9. CHECK is OK when every row is OK, nothing is typed below row 34, and the SUMPRODUCT total =SUMPRODUCT(G5:G34,E5:E34)*B1 matches the sum of column J.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-electricity-cost-per-batch.xlsx")
+
+
+def custom_size_price_interpolation():
+    wb = Workbook()
+    pl = wb.active
+    pl.title = "Price list"
+    qu = wb.create_sheet("Quote")
+    pl["A1"] = ("Type your price list sizes smallest first, one size per row, no blank row between (yellow, rows 5 to 24). "
+                "Fictional sign shop prices.")
+    pl["A1"].font = Font(italic=True)
+    _head_row(pl, 4, ["Width (inches), smallest first", "Price", "Status"], [16, 12, 22], height=32)
+    prices = [(12, 40.00), (18, 55.00), (24, 75.00), (36, 110.00), (48, 150.00)]
+    for r in range(5, 25):
+        pl[f"A{r}"].fill = pl[f"B{r}"].fill = INPUT_FILL
+        pl[f"A{r}"].number_format = "0.##"
+        pl[f"B{r}"].number_format = USD
+        if r == 5:
+            nxt = '"OK"'
+        else:
+            nxt = f'IF(NOT(ISNUMBER(A{r - 1})),"Check: row above",IF(A{r}<=A{r - 1},"Check: order","OK"))'
+        pl[f"C{r}"] = (f'=IF(AND(A{r}="",B{r}=""),"",IF(NOT(AND(ISNUMBER(A{r}),ISNUMBER(B{r}))),"Check: number",{nxt}))')
+        pl[f"C{r}"].fill = FORMULA_FILL
+        pl[f"C{r}"].alignment = Alignment(horizontal="right")
+    for i, (w, p) in enumerate(prices):
+        pl[f"A{5 + i}"], pl[f"B{5 + i}"] = w, p
+    pl.column_dimensions["D"].width = 3
+    pl.column_dimensions["E"].width = 30
+    pl.column_dimensions["F"].width = 9
+    _summary_block(pl, "E", "F", [
+        (4, "Sizes listed", "=COUNT(A5:A24)", "0"),
+        (5, "Rows showing Check", '=SUMPRODUCT(--(C5:C24<>""))-COUNTIF(C5:C24,"OK")', "0"),
+        (6, "Typed below row 24 (not read)", "=COUNTA(A25:B200)", "0"),
+        (7, "CHECK", '=IF(AND(F4>=2,F5=0,F6=0),"OK","Check")', "General"),
+    ])
+    pl.conditional_formatting.add("C5:C24", FormulaRule(formula=['LEFT($C5,5)="Check"'], fill=ALERT_FILL))
+    pl.conditional_formatting.add("F7", FormulaRule(formula=['$F$7<>"OK"'], fill=ALERT_FILL))
+    pl.freeze_panes = "A5"
+
+    qu["A1"] = "Type the customer and the width wanted (yellow, rows 5 to 54). Fictional jobs. Prices come from the Price list tab."
+    qu["A1"].font = Font(italic=True)
+    _head_row(qu, 4, ["Customer or job", "Width wanted (inches)", "Row below (helper)", "Size below", "Size above",
+                      "Price", "Status"], [28, 10, 9, 9, 9, 17, 12], height=46)
+    jobs = [("Bakery window sign", 30), ("Cafe menu board", 20), ("Farm stand banner", 40),
+            ("Wedding welcome sign", 24), ("Porch sign", 48), ("Storefront banner", 60)]
+    sz, pr = "'Price list'!$A$5:$A$24", "'Price list'!$B$5:$B$24"
+    for r in range(5, 55):
+        qu[f"A{r}"].fill = qu[f"B{r}"].fill = INPUT_FILL
+        qu[f"B{r}"].number_format = "0.##"
+        qu[f"C{r}"] = (f'=IF(AND(ISNUMBER(B{r}),\'Price list\'!$F$7="OK"),'
+                       f'IFERROR(MIN(MATCH(B{r},{sz},1),COUNT({sz})-1),""),"")')
+        m = f"C{r}"
+        interp = (f"INDEX({pr},{m})+(B{r}-INDEX({sz},{m}))*(INDEX({pr},{m}+1)-INDEX({pr},{m}))"
+                  f"/(INDEX({sz},{m}+1)-INDEX({sz},{m}))")
+        qu[f"F{r}"] = (f'=IF(NOT(ISNUMBER(B{r})),"",IF(\'Price list\'!$F$7<>"OK","Check price list",'
+                       f'IF(OR(B{r}<MIN({sz}),B{r}>MAX({sz})),"Outside price list",ROUND({interp},2))))')
+        qu[f"D{r}"] = f'=IF(ISNUMBER(F{r}),INDEX({sz},C{r}),"")'
+        qu[f"E{r}"] = f'=IF(ISNUMBER(F{r}),INDEX({sz},C{r}+1),"")'
+        qu[f"G{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}=""),"",IF(NOT(ISNUMBER(B{r})),"Check",IF(ISNUMBER(F{r}),"OK",'
+                       f'IF(F{r}="Outside price list","Outside list","Check"))))')
+        qu[f"C{r}"].number_format = "0"
+        qu[f"D{r}"].number_format = qu[f"E{r}"].number_format = "0.##"
+        qu[f"F{r}"].number_format = USD
+        for col in "CDEFG":
+            qu[f"{col}{r}"].fill = FORMULA_FILL
+            qu[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (j, w) in enumerate(jobs):
+        qu[f"A{5 + i}"], qu[f"B{5 + i}"] = j, w
+    qu.column_dimensions["H"].width = 3
+    qu.column_dimensions["I"].width = 26
+    qu.column_dimensions["J"].width = 9
+    _summary_block(qu, "I", "J", [
+        (4, "Price list CHECK", "='Price list'!F7", "General"),
+        (5, "Quotes listed", '=SUMPRODUCT(--(G5:G54<>""))', "0"),
+        (6, "Priced", "=COUNT(F5:F54)", "0"),
+        (7, "Outside price list", '=COUNTIF(G5:G54,"Outside list")', "0"),
+        (8, "Rows showing Check", '=COUNTIF(G5:G54,"Check")', "0"),
+        (9, "CHECK", '=IF(AND(J4="OK",J5>0,J8=0),"OK","Check")', "General"),
+    ])
+    qu.conditional_formatting.add("G5:G54", FormulaRule(formula=['$G5="Check"'], fill=ALERT_FILL))
+    qu.conditional_formatting.add("G5:G54", FormulaRule(formula=['$G5="Outside list"'], fill=CHECK_ORANGE))
+    qu.conditional_formatting.add("J9", FormulaRule(formula=['$J$9<>"OK"'], fill=ALERT_FILL))
+    qu.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Price a Custom Size Between Two Sizes on Your Price List",
+        "",
+        "1. Price list tab: your sizes in A5 down, smallest first, with the price for each size in B (yellow). No blank row and no size twice. The sign shop prices are fictional.",
+        "2. Quote tab: one row per job (yellow, rows 5 to 54) with the width wanted in B.",
+        "3. Row below, C5: =MIN(MATCH(B5,'Price list'!$A$5:$A$24,1),COUNT('Price list'!$A$5:$A$24)-1). MATCH with 1 finds the last listed size at or below the width. MIN keeps it one row above the last size, so the largest size (48 in) still has a row above it to draw the line to.",
+        "4. Price, F5: =INDEX(prices,C5)+(B5-INDEX(sizes,C5))*(INDEX(prices,C5+1)-INDEX(prices,C5))/(INDEX(sizes,C5+1)-INDEX(sizes,C5)), rounded to cents. It draws a straight line between the two listed sizes: 30 in sits halfway between 24 in ($75.00) and 36 in ($110.00), so it gets $92.50.",
+        "5. A listed size gets its own price. A width below the smallest or above the largest size shows Outside price list: price those by hand.",
+        "6. MATCH with 1 needs the sizes sorted smallest first. On an unsorted list it can pick the wrong rows without any error, so the Price list Status shows Check: order, and a size listed twice also shows Check: order (it would divide by zero).",
+        "7. The result is a price on the line between your two prices, not a rule for what to charge. Round it to your own price points if you like.",
+        "8. Status on the Quote tab: OK, Outside list, or Check (the width is blank or typed as text, or the Price list CHECK is not OK).",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    pl.print_title_rows = qu.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-custom-size-price-interpolation.xlsx")
+
+
+def hex_rgb_color_converter():
+    wb = Workbook()
+    hx = wb.active
+    hx.title = "HEX to RGB"
+    rg = wb.create_sheet("RGB to HEX")
+    hx["A1"] = ("Type or paste each HEX code in B (yellow, rows 5 to 54): with or without #, upper or lower case, 3 or 6 digits. "
+                "Fictional palette.")
+    hx["A2"] = "Swatch (I) is a fill set by hand for the sample rows only: a formula cannot color a cell."
+    hx["A1"].font = hx["A2"].font = Font(italic=True)
+    _head_row(hx, 4, ["Color name", "HEX code", "Clean code (helper)", "6-digit code (helper)", "R", "G", "B",
+                      "Check back (HEX rebuilt)", "Swatch (static fill)", "Status"],
+              [22, 12, 10, 10, 6, 6, 6, 12, 10, 16], height=46)
+    colors = [("Sea green", "#2E8B57", "2E8B57"), ("Sandy orange", "#f4a261", "F4A261"), ("White", "#fff", "FFFFFF"),
+              ("Deep teal", "264653", "264653"), ("Coral (pasted with spaces)", " #E76F51 ", "E76F51")]
+    for r in range(5, 55):
+        hx[f"A{r}"].fill = hx[f"B{r}"].fill = INPUT_FILL
+        hx[f"B{r}"].number_format = "@"
+        hx[f"C{r}"] = f'=IF(TRIM(B{r})="","",UPPER(SUBSTITUTE(TRIM(B{r}),"#","")))'
+        hx[f"D{r}"] = (f'=IF(LEN(C{r})=3,MID(C{r},1,1)&MID(C{r},1,1)&MID(C{r},2,1)&MID(C{r},2,1)'
+                       f'&MID(C{r},3,1)&MID(C{r},3,1),C{r})')
+        for col, start in zip("EFG", (1, 3, 5)):
+            hx[f"{col}{r}"] = f'=IF(D{r}="","",IF(LEN(D{r})<>6,"Check",IFERROR(HEX2DEC(MID($D{r},{start},2)),"Check")))'
+        hx[f"H{r}"] = f'=IF(COUNT(E{r}:G{r})<3,"","#"&DEC2HEX(E{r},2)&DEC2HEX(F{r},2)&DEC2HEX(G{r},2))'
+        hx[f"J{r}"] = (f'=IF(TRIM(B{r})="",IF(TRIM(A{r})="","","Check: no code"),IF(COUNT(E{r}:G{r})=3,"OK",'
+                       f'IF(LEN(D{r})<>6,"Check: length","Check: letters")))')
+        for col in "CDEFGHJ":
+            hx[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "EFGHJ":
+            hx[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (name, code, fill) in enumerate(colors):
+        r = 5 + i
+        hx[f"A{r}"], hx[f"B{r}"] = name, code
+        hx[f"I{r}"].fill = PatternFill("solid", fgColor=fill)
+    hx.column_dimensions["K"].width = 3
+    hx.column_dimensions["L"].width = 28
+    hx.column_dimensions["M"].width = 8
+    _summary_block(hx, "L", "M", [
+        (4, "Codes listed", '=SUMPRODUCT(--(J5:J54<>""))', "0"),
+        (5, "Converted (OK)", '=COUNTIF(J5:J54,"OK")', "0"),
+        (6, "Rows showing Check", "=M4-M5", "0"),
+        (7, "Rebuilt code differs", '=SUMPRODUCT((J5:J54="OK")*(H5:H54<>"#"&D5:D54))', "0"),
+        (8, "Typed below row 54 (not read)", "=COUNTA(A55:B300)", "0"),
+        (9, "CHECK", '=IF(AND(M4>0,M6=0,M7=0,M8=0),"OK","Check")', "General"),
+    ])
+    hx.conditional_formatting.add("J5:J54", FormulaRule(formula=['LEFT($J5,5)="Check"'], fill=ALERT_FILL))
+    hx.conditional_formatting.add("M9", FormulaRule(formula=['$M$9<>"OK"'], fill=ALERT_FILL))
+    hx.freeze_panes = "A5"
+
+    rg["A1"] = "Type R, G and B as whole numbers from 0 to 255 (yellow, rows 5 to 54). Fictional palette."
+    rg["A1"].font = Font(italic=True)
+    _head_row(rg, 4, ["Color name", "R", "G", "B", "HEX", "Status"], [22, 7, 7, 7, 11, 20], height=32)
+    rgbs = [("Sea green", 46, 139, 87), ("Sandy orange", 244, 162, 97), ("Dark blue-gray", 5, 10, 15),
+            ("White", 255, 255, 255), ("Black", 0, 0, 0)]
+    for r in range(5, 55):
+        for col in "ABCD":
+            rg[f"{col}{r}"].fill = INPUT_FILL
+        bad = f"OR(B{r}<>INT(B{r}),C{r}<>INT(C{r}),D{r}<>INT(D{r}))"
+        rng = f"OR(MIN(B{r}:D{r})<0,MAX(B{r}:D{r})>255)"
+        rg[f"E{r}"] = (f'=IF(COUNT(B{r}:D{r})<3,"",IF(OR({rng},{bad}),"Check",'
+                       f'"#"&DEC2HEX(B{r},2)&DEC2HEX(C{r},2)&DEC2HEX(D{r},2)))')
+        rg[f"F{r}"] = (f'=IF(AND(TRIM(A{r})="",COUNTA(B{r}:D{r})=0),"",IF(COUNT(B{r}:D{r})<3,"Check: blank or text",'
+                       f'IF({rng},"Check: 0 to 255",IF({bad},"Check: whole numbers","OK"))))')
+        for col in "EF":
+            rg[f"{col}{r}"].fill = FORMULA_FILL
+            rg[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(rgbs):
+        for col, v in zip("ABCD", row):
+            rg[f"{col}{5 + i}"] = v
+    rg.column_dimensions["G"].width = 3
+    rg.column_dimensions["H"].width = 28
+    rg.column_dimensions["I"].width = 8
+    _summary_block(rg, "H", "I", [
+        (4, "Colors listed", '=SUMPRODUCT(--(F5:F54<>""))', "0"),
+        (5, "Converted (OK)", '=COUNTIF(F5:F54,"OK")', "0"),
+        (6, "Rows showing Check", "=I4-I5", "0"),
+        (7, "Typed below row 54 (not read)", "=COUNTA(A55:D300)", "0"),
+        (8, "CHECK", '=IF(AND(I4>0,I6=0,I7=0),"OK","Check")', "General"),
+    ])
+    rg.conditional_formatting.add("F5:F54", FormulaRule(formula=['LEFT($F5,5)="Check"'], fill=ALERT_FILL))
+    rg.conditional_formatting.add("I8", FormulaRule(formula=['$I$8<>"OK"'], fill=ALERT_FILL))
+    rg.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Convert HEX Color Codes to RGB and Back",
+        "",
+        "1. HEX to RGB tab: type or paste each code in B (yellow, rows 5 to 54). B is formatted as text so a code like 264653 or 000080 is not turned into a number. The palette is fictional.",
+        "2. Clean code, C5: =UPPER(SUBSTITUTE(TRIM(B5),\"#\",\"\")) removes spaces before and after, the #, and lower case.",
+        "3. 6-digit code, D5: a 3-digit shorthand such as FFF is doubled digit by digit to FFFFFF with MID. Other codes pass through.",
+        "4. R, E5: =HEX2DEC(MID(D5,1,2)). G uses MID(D5,3,2) and B uses MID(D5,5,2). Each pair of hex digits is one number from 0 to 255.",
+        "5. Check back, H5: =\"#\"&DEC2HEX(E5,2)&DEC2HEX(F5,2)&DEC2HEX(G5,2) rebuilds the code. The 2 keeps the leading zero: 5 becomes 05, not 5.",
+        "6. Status: OK, Check: length (not 3 or 6 digits after cleaning, for example #12345 or an 8-digit code with transparency, which this sheet does not support), Check: letters (a letter other than 0-9 and A-F, such as #GGGGGG), Check: no code (a name with no code).",
+        "7. RGB to HEX tab: R, G and B in B to D, whole numbers from 0 to 255. HEX, E5: =\"#\"&DEC2HEX(B5,2)&DEC2HEX(C5,2)&DEC2HEX(D5,2). 0, 0, 0 is real black (#000000); a blank row stays blank. Values below 0, above 255 or with decimals show Check.",
+        "8. Swatch: a formula cannot color a cell, so the swatches on the sample rows are fills set by hand. To add one, select the cell and pick a custom fill color with your HEX code.",
+        "9. Screen colors and printed colors differ. This sheet converts the codes; it does not match colors for print.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    hx.print_title_rows = rg.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-hex-rgb-color-converter.xlsx")
+
+
+def correlation_sales_vs_temperature():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Log"
+    ws["A1"] = ("Type one row per market day (yellow, rows 5 to 104): date, high temperature in F, sales. "
+                "Leave the temperature blank if you have none. Fictional Saturdays.")
+    ws["A2"] = "Correlation shows whether two columns move together. It does not show that one causes the other."
+    ws["A1"].font = ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Market date", "High temp (F)", "Sales", "Note", "Status",
+                      "Temp at or below cutoff (helper)", "Sales at or below cutoff (helper)"],
+              [12, 9, 11, 24, 14, 11, 11], height=60)
+    temps = [48, 52, 55, 61, 64, 68, 72, 75, 79, 83, 86, 90]
+    sales = [610, 655, 700, 780, 760, 845, 880, 905, 870, 920, 860, 815]
+    for r in range(5, 105):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"B{r}"].number_format = "0"
+        ws[f"C{r}"].number_format = USD
+        ws[f"E{r}"] = (f'=IF(AND(A{r}="",B{r}="",C{r}="",TRIM(D{r})=""),"",IF(OR(B{r}="",C{r}=""),"Skipped: blank",'
+                       f'IF(NOT(AND(ISNUMBER(B{r}),ISNUMBER(C{r}))),"Skipped: text",'
+                       f'IF(OR(B{r}<-40,B{r}>130),"Check: temp",IF(C{r}<0,"Check: sales","OK")))))')
+        ws[f"F{r}"] = f'=IF(AND(E{r}="OK",ISNUMBER($J$13)),IF(B{r}<=$J$13,B{r},""),"")'
+        ws[f"G{r}"] = f'=IF(ISNUMBER(F{r}),C{r},"")'
+        ws[f"F{r}"].number_format = "0"
+        ws[f"G{r}"].number_format = USD
+        for col in "EFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (t, s) in enumerate(zip(temps, sales)):
+        r = 5 + i
+        ws[f"A{r}"] = date(2026, 4, 25) + timedelta(days=7 * i)
+        ws[f"B{r}"], ws[f"C{r}"] = t, s
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 38
+    ws.column_dimensions["J"].width = 11
+    need = '"Need 3+ pairs"'
+    _summary_block(ws, "I", "J", [
+        (4, "Pairs used (temp and sales both numbers)", "=SUMPRODUCT(ISNUMBER(B5:B104)*ISNUMBER(C5:C104))", "0"),
+        (5, "Rows skipped (blank or text)", '=COUNTIF(E5:E104,"Skipped: blank")+COUNTIF(E5:E104,"Skipped: text")', "0"),
+        (6, "CORREL (-1 to 1)", f'=IF(J4<3,{need},IFERROR(CORREL(B5:B104,C5:C104),"Check"))', "0.0000"),
+        (7, "RSQ (0 to 1)", f'=IF(J4<3,{need},IFERROR(RSQ(C5:C104,B5:B104),"Check"))', "0.0000"),
+        (8, "SLOPE (sales change per 1 F)", f'=IF(J4<3,{need},IFERROR(SLOPE(C5:C104,B5:B104),"Check"))', USD),
+        (9, "INTERCEPT", f'=IF(J4<3,{need},IFERROR(INTERCEPT(C5:C104,B5:B104),"Check"))', USD),
+        (10, "Rows showing Check", '=COUNTIF(E5:E104,"Check: temp")+COUNTIF(E5:E104,"Check: sales")', "0"),
+        (11, "CHECK", '=IF(AND(J4>=3,J10=0,COUNTIF(E5:E104,"Skipped: text")=0,COUNTA(A105:D1000)=0,ISNUMBER(J6)),"OK","Check")', "General"),
+        (14, "Pairs at or below the cutoff", "=COUNT(F5:F104)", "0"),
+        (15, "CORREL at or below the cutoff", f'=IF(J14<3,{need},IFERROR(CORREL(F5:F104,G5:G104),"Check"))', "0.0000"),
+        (16, "SLOPE at or below the cutoff", f'=IF(J14<3,{need},IFERROR(SLOPE(G5:G104,F5:F104),"Check"))', USD),
+        (17, "Average sales at or below the cutoff", '=IF(J14=0,"",AVERAGE(G5:G104))', USD),
+        (18, "Pairs above the cutoff", '=IF(ISNUMBER(J13),COUNTIF(E5:E104,"OK")-J14,"")', "0"),
+        (19, "Average sales above the cutoff", '=IF(ISNUMBER(J18),IF(J18=0,"",(SUMIF(E5:E104,"OK",C5:C104)-SUM(G5:G104))/J18),"")', USD),
+    ])
+    ws["I13"], ws["J13"] = "Cutoff: days at or below (F)", 79
+    ws["I13"].font = Font(bold=True)
+    ws["J13"].fill = INPUT_FILL
+    ws["J13"].number_format = "0"
+    ws["J13"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("E5:E104", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("E5:E104", FormulaRule(formula=['LEFT($E5,7)="Skipped"'], fill=CHECK_ORANGE))
+    ws.conditional_formatting.add("J11", FormulaRule(formula=['$J$11<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Check if Temperature and Market Sales Move Together",
+        "",
+        "1. Log tab: one row per market day (yellow, rows 5 to 104): the date, the day's high temperature in F, the sales, and a note. The 12 Saturdays are fictional.",
+        "2. CORREL, J6: =CORREL(B5:B104,C5:C104). It gives one number from -1 to 1: near 1 means sales tend to be higher on warmer days, near -1 lower, near 0 no straight-line pattern. Labels like strong or weak are rough labels, not rules.",
+        "3. RSQ, J7: =RSQ(C5:C104,B5:B104), the share of the ups and downs in sales that a straight line on temperature accounts for. SLOPE, J8: =SLOPE(C5:C104,B5:B104), dollars of sales per 1 F along that line. In SLOPE and INTERCEPT the sales come first; CORREL gives the same answer either way round.",
+        "4. A row with a blank or text temperature or sales (for example \"$610.00\" typed as text, or n/a) is skipped as a pair. Pairs used, J4, counts the pairs that went in, so a skipped row shows up as a smaller count. Status shows Skipped: blank or Skipped: text, and CHECK shows Check for text.",
+        "5. Status Check: temp means a temperature below -40 or above 130, often a date pasted into the wrong column. Check: sales means negative sales.",
+        "6. One number can hide a pattern. In the sample, sales rise with temperature up to about 79 F and drop on the three hottest days. Type a cutoff in J13: J14 to J19 use only the days at or below it (helper columns F and G), and show the average sales above it.",
+        "7. With fewer than 3 pairs the results show Need 3+ pairs. When every temperature or every sales value is the same, CORREL cannot be worked out and shows Check.",
+        "8. Correlation is not cause: warm days and sales can both follow the season, the crowd or the calendar. 12 market days is a small sample. This sheet does not forecast sales.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-correlation-sales-vs-temperature.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -17468,4 +17935,9 @@ if __name__ == "__main__":
     next_date_on_schedule()
     plan_backward_from_event()
     reviews_needed_for_rating()
+    delivery_distance_from_coordinates()
+    electricity_cost_per_batch()
+    custom_size_price_interpolation()
+    hex_rgb_color_converter()
+    correlation_sales_vs_temperature()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

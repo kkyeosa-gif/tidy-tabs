@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DfxKmlwFD1N
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-reverse-list-so-oldest-row-comes.html
 title: How to Reverse a List So the Oldest Row Comes First in Excel and Google Sheets
 labels: excel-formulas, small-business, small-business-bookkeeping
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 25 workbooks and 25,275 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

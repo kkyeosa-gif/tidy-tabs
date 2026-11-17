@@ -892,7 +892,53 @@ def heroes_2026_11_16_05():
                 "Log", hide_cols="DFG", name="correltemp"))
 
 
+def heroes_2026_11_17_01():
+    t = "templates/"
+    d = "images/2026-11-17-team-01-pick-smallest-shipping-box-that-fits-item-dimensions-match-index-excel-google-sheets/"
+    save(d + "smallest-shipping-box-per-item-template.png",
+         render(compact_copy(t + "tidy-tabs-smallest-box-that-fits.xlsx", "Orders", 11, "smallbox", hide_rows=[2, 3], clear=["C1"]),
+                "Orders", hide_cols="HIJK", name="smallbox"))
+
+
+def heroes_2026_11_17_02():
+    t = "templates/"
+    d = "images/2026-11-17-team-02-true-cost-per-usable-unit-after-waste-percent-excel-google-sheets/"
+    save(d + "cost-per-usable-unit-after-waste-template.png",
+         render(compact_copy(t + "tidy-tabs-cost-per-usable-unit-after-waste.xlsx", "Materials", 9, "usablecost", hide_rows=[1, 2, 3]),
+                "Materials", hide_cols="BGJLMNOP", name="usablecost"))
+
+
+def heroes_2026_11_17_03():
+    t = "templates/"
+    d = "images/2026-11-17-team-03-three-point-estimate-project-hours-quote-range-pert-sumsq-excel-google-sheets/"
+    save(d + "three-point-estimate-hours-and-quotes-template.png",
+         render(compact_copy(t + "tidy-tabs-three-point-project-estimate.xlsx", "Estimate", 15, "pertest", hide_rows=[2, 3], clear=["C1"]),
+                "Estimate", hide_cols="GH", widths={"A": 24}, name="pertest"))
+
+
+def heroes_2026_11_17_04():
+    t = "templates/"
+    d = "images/2026-11-17-team-04-net-promoter-score-from-customer-survey-0-10-countifs-excel-google-sheets/"
+    save(d + "nps-score-by-channel-template.png",
+         render(compact_copy(t + "tidy-tabs-nps-survey-score.xlsx", "Summary", 8, "npsscore", hide_rows=[1, 2, 3]),
+                "Summary", hide_cols="I", name="npsscore"))
+
+
+def heroes_2026_11_17_05():
+    t = "templates/"
+    d = "images/2026-11-17-team-05-average-without-highest-and-lowest-value-trimmean-excel-google-sheets/"
+    save(d + "average-without-highest-and-lowest-template.png",
+         render(compact_copy(t + "tidy-tabs-average-without-highest-lowest.xlsx", "Sales", 14, "trimavg", hide_rows=[1, 2, 3],
+                             clear=["F14", "G14"]),
+                "Sales", hide_cols="DE", name="trimavg"))
+
+
 def main():
+    if "--only-2026-11-17" in sys.argv:
+        for n in "12345":
+            if not any(a.startswith("--only-2026-11-17-0") for a in sys.argv) or f"--only-2026-11-17-0{n}" in sys.argv:
+                globals()[f"heroes_2026_11_17_0{n}"]()
+        return
     if "--only-2026-11-16" in sys.argv:
         for n in "12345":
             if not any(a.startswith("--only-2026-11-16-0") for a in sys.argv) or f"--only-2026-11-16-0{n}" in sys.argv:

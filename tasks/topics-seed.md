@@ -250,3 +250,10 @@
 - How to Price a Custom Size Between Two Sizes on Your Price List in Excel and Google Sheets - `2026-11-16-team-03-price-custom-size-between-price-list-sizes-linear-interpolation-index-match-excel-google-sheets`
 - How to Convert HEX Color Codes to RGB (and Back) in Excel and Google Sheets - `2026-11-16-team-04-convert-hex-color-codes-to-rgb-and-back-hex2dec-dec2hex-excel-google-sheets`
 - How to Check if Temperature and Market Sales Move Together With CORREL in Excel and Google Sheets - `2026-11-16-team-05-check-if-temperature-and-market-sales-move-together-correl-rsq-excel-google-sheets`
+
+## 2026-11-17 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-17.md)
+- How to Pick the Smallest Shipping Box That Fits Each Item in Excel and Google Sheets - `2026-11-17-team-01-pick-smallest-shipping-box-that-fits-item-dimensions-match-index-excel-google-sheets`
+- How to Find the True Cost per Usable Unit After Waste in Excel and Google Sheets - `2026-11-17-team-02-true-cost-per-usable-unit-after-waste-percent-excel-google-sheets`
+- How to Estimate Project Hours With a Three-Point (PERT) Estimate in Excel and Google Sheets - `2026-11-17-team-03-three-point-estimate-project-hours-quote-range-pert-sumsq-excel-google-sheets`
+- How to Calculate a Net Promoter Score From a 0-10 Customer Survey in Excel and Google Sheets - `2026-11-17-team-04-net-promoter-score-from-customer-survey-0-10-countifs-excel-google-sheets`
+- How to Average Without the Highest and Lowest Value in Excel and Google Sheets - `2026-11-17-team-05-average-without-highest-and-lowest-value-trimmean-excel-google-sheets`

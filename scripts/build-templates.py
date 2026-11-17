@@ -17723,6 +17723,509 @@ def correlation_sales_vs_temperature():
     wb.save(OUT / "tidy-tabs-correlation-sales-vs-temperature.xlsx")
 
 
+def smallest_box_that_fits():
+    wb = Workbook()
+    bx = wb.active
+    bx.title = "Boxes"
+    od = wb.create_sheet("Orders")
+    bx["A1"] = ("List your boxes in the order you want them tried, smallest or cheapest first (yellow, rows 5 to 24). "
+                "Use the INSIDE length, width and height in inches. Fictional boxes and costs.")
+    bx["A2"] = "Gray columns sort each box into longest, middle and shortest side, so the order you type the sides in does not matter."
+    bx["A1"].font = bx["A2"].font = Font(italic=True)
+    _head_row(bx, 4, ["Box name", "Inside length (in)", "Inside width (in)", "Inside height (in)", "Cost each",
+                      "Longest side", "Middle side", "Shortest side", "Volume (cu in)", "Status"],
+              [18, 10, 10, 10, 10, 9, 9, 9, 10, 24], height=46)
+    boxes = [("6x4x4", 6, 4, 4, 0.85), ("8x6x4", 8, 6, 4, 1.05), ("10x8x4", 10, 8, 4, 1.30),
+             ("9x6x6", 9, 6, 6, 1.35), ("12x9x6", 12, 9, 6, 1.75), ("12x12x8", 12, 12, 8, 2.40),
+             ("16x12x8", 16, 12, 8, 2.95), ("18x14x10", 18, 14, 10, 3.80)]
+    for r in range(5, 25):
+        for col in "ABCDE":
+            bx[f"{col}{r}"].fill = INPUT_FILL
+        for col in "BCD":
+            bx[f"{col}{r}"].number_format = "0.##"
+        bx[f"E{r}"].number_format = USD
+        bx[f"I{r}"] = f'=IF(AND(TRIM(A{r})<>"",COUNT(B{r}:D{r})=3,MIN(B{r}:D{r})>0),B{r}*C{r}*D{r},"")'
+        bx[f"F{r}"] = f'=IF(ISNUMBER(I{r}),MAX(B{r}:D{r}),"")'
+        bx[f"G{r}"] = f'=IF(ISNUMBER(I{r}),ROUND(SUM(B{r}:D{r})-MAX(B{r}:D{r})-MIN(B{r}:D{r}),6),"")'
+        bx[f"H{r}"] = f'=IF(ISNUMBER(I{r}),MIN(B{r}:D{r}),"")'
+        above = '"OK"' if r == 5 else f'IF(AND(ISNUMBER(I{r - 1}),I{r}<I{r - 1}),"Note: smaller than above","OK")'
+        bx[f"J{r}"] = (f'=IF(AND(TRIM(A{r})="",COUNTA(B{r}:E{r})=0),"",IF(TRIM(A{r})="","Check: no name",'
+                       f'IF(NOT(ISNUMBER(I{r})),"Check: size",IF(AND(E{r}<>"",NOT(ISNUMBER(E{r}))),"Check: cost",{above}))))')
+        for col in "FGH":
+            bx[f"{col}{r}"].number_format = "0.##"
+        bx[f"I{r}"].number_format = "#,##0.##"
+        for col in "FGHIJ":
+            bx[f"{col}{r}"].fill = FORMULA_FILL
+            bx[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(boxes):
+        for col, v in zip("ABCDE", row):
+            bx[f"{col}{5 + i}"] = v
+    bx.column_dimensions["K"].width = 3
+    bx.column_dimensions["L"].width = 30
+    bx.column_dimensions["M"].width = 8
+    _summary_block(bx, "L", "M", [
+        (4, "Boxes listed", '=SUMPRODUCT(--(J5:J24<>""))', "0"),
+        (5, "Boxes the Orders tab can use", "=COUNT(I5:I24)", "0"),
+        (6, "Rows showing Check", '=SUMPRODUCT(--(LEFT(J5:J24,5)="Check"))', "0"),
+        (7, "Smaller than the box above", '=COUNTIF(J5:J24,"Note: smaller than above")', "0"),
+        (8, "Typed below row 24 (not read)", "=COUNTA(A25:E200)", "0"),
+    ])
+    bx.conditional_formatting.add("J5:J24", FormulaRule(formula=['LEFT($J5,5)="Check"'], fill=ALERT_FILL))
+    bx.conditional_formatting.add("J5:J24", FormulaRule(formula=['LEFT($J5,4)="Note"'], fill=CHECK_ORANGE))
+    bx.freeze_panes = "A5"
+
+    od["A1"], od["B1"] = "Padding added to each side (in)", 1
+    od["A1"].font = Font(bold=True)
+    od["B1"].fill = INPUT_FILL
+    od["B1"].number_format = "0.##"
+    od["C1"] = "Type each item's length, width and height in inches in any order (yellow, rows 5 to 104). Fictional orders."
+    od["C1"].font = Font(italic=True)
+    _head_row(od, 4, ["Order or item", "Length (in)", "Width (in)", "Height (in)", "Status", "Box to use",
+                      "Box cost", "Box row (helper)"], [30, 10, 10, 10, 14, 14, 10, 9], height=46)
+    items = [("Candle jar", 3, 3, 4), ("Mug", 4.5, 3.5, 4), ("Flat print", 11, 8.5, 0.25),
+             ("Tray (typed on its side)", 5, 9, 3), ("Big quilt", 15, 11, 7), ("Poster tube", 24, 3, 3),
+             ("Soap bar set", 5, 3, 3)]
+    pad = "N($B$1)"
+    for r in range(5, 105):
+        for col in "ABCD":
+            od[f"{col}{r}"].fill = INPUT_FILL
+        for col in "BCD":
+            od[f"{col}{r}"].number_format = "0.##"
+        od[f"E{r}"] = (f'=IF(COUNTA(A{r}:D{r})=0,"",IF(NOT(OR($B$1="",AND(ISNUMBER($B$1),$B$1>=0))),"Check: padding",'
+                       f'IF(AND(COUNT(B{r}:D{r})=3,MIN(B{r}:D{r})>0),"OK","Check: size")))')
+        test = (f"(Boxes!$F$5:$F$24>=ROUND(MAX(B{r}:D{r})+{pad},6))"
+                f"*(Boxes!$G$5:$G$24>=ROUND(SUM(B{r}:D{r})-MAX(B{r}:D{r})-MIN(B{r}:D{r})+{pad},6))"
+                f"*(Boxes!$H$5:$H$24>=ROUND(MIN(B{r}:D{r})+{pad},6))*ISNUMBER(Boxes!$I$5:$I$24)")
+        od[f"H{r}"] = f'=IF(E{r}<>"OK","",IFERROR(MATCH(1,INDEX({test},0),0),""))'
+        od[f"F{r}"] = f'=IF(E{r}<>"OK","",IF(ISNUMBER(H{r}),INDEX(Boxes!$A$5:$A$24,H{r}),"No box fits"))'
+        od[f"G{r}"] = (f'=IF(ISNUMBER(H{r}),IF(ISNUMBER(INDEX(Boxes!$E$5:$E$24,H{r})),'
+                       f'INDEX(Boxes!$E$5:$E$24,H{r}),""),"")')
+        od[f"G{r}"].number_format = USD
+        od[f"H{r}"].number_format = "0"
+        for col in "EFGH":
+            od[f"{col}{r}"].fill = FORMULA_FILL
+            od[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(items):
+        for col, v in zip("ABCD", row):
+            od[f"{col}{5 + i}"] = v
+    od.column_dimensions["I"].width = 3
+    od.column_dimensions["J"].width = 30
+    od.column_dimensions["K"].width = 10
+    _summary_block(od, "J", "K", [
+        (4, "Items listed", '=SUMPRODUCT(--(E5:E104<>""))', "0"),
+        (5, "Items with a box", "=COUNT(H5:H104)", "0"),
+        (6, "No box fits", '=COUNTIF(F5:F104,"No box fits")', "0"),
+        (7, "Rows showing Check", '=K4-COUNTIF(E5:E104,"OK")', "0"),
+        (8, "Total box cost", "=SUM(G5:G104)", USD),
+        (9, "Boxes tab rows showing Check", "=Boxes!M6", "0"),
+        (10, "Typed below row 104 (not read)", "=COUNTA(A105:D1000)", "0"),
+        (11, "CHECK", '=IF(AND(K4>0,K7=0,K9=0,K10=0,Boxes!M8=0,K5+K6=COUNTIF(E5:E104,"OK")),"OK","Check")', "General"),
+    ])
+    od.conditional_formatting.add("E5:E104", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    od.conditional_formatting.add("F5:F104", FormulaRule(formula=['$F5="No box fits"'], fill=CHECK_ORANGE))
+    od.conditional_formatting.add("K11", FormulaRule(formula=['$K$11<>"OK"'], fill=ALERT_FILL))
+    od.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Pick the Smallest Shipping Box That Fits Each Item",
+        "",
+        "1. Boxes tab: one box per row (yellow, rows 5 to 24) with its INSIDE length, width and height in inches and, if you like, its cost. List the boxes in the order you want them tried, smallest or cheapest first. The boxes and costs are fictional.",
+        "2. Gray helpers F to H sort each box: Longest =MAX(B5:D5), Middle =SUM(B5:D5)-MAX(B5:D5)-MIN(B5:D5) (rounded to 6 decimals, so a binary leftover such as 10.000000000000002 cannot spoil an exact fit), Shortest =MIN(B5:D5). They stay blank on a row with no name or with a size that is blank, text, 0 or negative.",
+        "3. Orders tab: type the padding you want on each side in B1 (yellow; blank counts as 0). Then one item per row with its length, width and height in any order.",
+        "4. Box row helper, H5: =MATCH(1,INDEX((longest>=MAX(item)+pad)*(middle>=SUM(item)-MAX(item)-MIN(item)+pad)*(shortest>=MIN(item)+pad)*ISNUMBER(volume),0),0), with each padded item side also rounded to 6 decimals. Each test gives 1 or 0, the product is 1 only when all three sides fit, and MATCH finds the first 1 in list order. The inner INDEX(...,0) lets it work as a normal formula.",
+        "5. Box to use, F5: the name in that row. If no box fits, F5 shows No box fits (orange). An exact fit counts: an item padded to exactly 6 x 4 x 4 gets the 6x4x4 box.",
+        "6. Sorting both the box and the item lets an item fit turned any way. Comparing length to length and width to width as typed can pick a bigger box than needed.",
+        "7. Status on the Orders tab: OK, Check: size (a size is blank, text such as 8 in, 0 or negative) or Check: padding (B1 is text or negative). On the Boxes tab: OK, Note: smaller than above (orange, the box is smaller by volume than the one above it, so check the order you want them tried), Check: size, Check: cost, Check: no name.",
+        "8. Straight fits only: no diagonal packing. This sheet does not know carrier size limits, dimensional weight or rates, and the padding is your own choice.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    bx.print_title_rows = od.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-smallest-box-that-fits.xlsx")
+
+
+def cost_per_usable_unit_after_waste():
+    wb = Workbook()
+    ma = wb.active
+    ma.title = "Materials"
+    lg = wb.create_sheet("Waste log")
+    ma["A1"] = ("One material per row (yellow, rows 5 to 54): pack cost, units per pack, your own waste percent and, if you like, "
+                "the usable units you need. Fictional prices and waste percents.")
+    ma["A2"] = "Type waste as a percent (20%), or link it to the Waste log, for example ='Waste log'!K5."
+    ma["A1"].font = ma["A2"].font = Font(italic=True)
+    _head_row(ma, 4, ["Material", "Unit", "Pack cost", "Units per pack", "Waste %", "Cost per bought unit",
+                      "Usable units per pack", "Cost per usable unit", "Shortcut: cost x (1 + waste)",
+                      "Usable units needed", "Packs to buy", "Status", "Usable units from those packs"],
+              [26, 8, 10, 9, 8, 11, 9, 11, 12, 9, 8, 20, 10], height=60)
+    mats = [("Garden roses", "stems", 30.00, 25, 0.20, 200), ("Quilting cotton", "yd", 9.50, 1, 0.15, 30),
+            ("Pine board", "ft", 14.40, 8, 0.125, 60), ("Green coffee", "lb", 6.75, 1, 0.18, 40),
+            ("Garden roses (waste from log)", "stems", 30.00, 25, "='Waste log'!K5", 200)]
+    money4 = '"$"#,##0.00##'
+    for r in range(5, 55):
+        for col in "ABCDEJ":
+            ma[f"{col}{r}"].fill = INPUT_FILL
+        ma[f"C{r}"].number_format = USD
+        ma[f"D{r}"].number_format = ma[f"J{r}"].number_format = "0.##"
+        ma[f"E{r}"].number_format = "0.0#%"
+        ma[f"L{r}"] = (f'=IF(AND(TRIM(A{r})="",COUNTA(B{r}:E{r})=0,J{r}=""),"",'
+                       f'IF(NOT(AND(ISNUMBER(C{r}),ISNUMBER(D{r}))),"Check: cost or units",'
+                       f'IF(OR(C{r}<=0,D{r}<=0),"Check: cost or units",IF(NOT(ISNUMBER(E{r})),"Check: waste",'
+                       f'IF(OR(E{r}<0,E{r}>=1),"Check: waste","OK")))))')
+        ma[f"F{r}"] = f'=IF(OR(L{r}="",L{r}="Check: cost or units"),"",C{r}/D{r})'
+        ma[f"G{r}"] = f'=IF(L{r}<>"OK","",D{r}*(1-E{r}))'
+        ma[f"H{r}"] = f'=IF(L{r}<>"OK","",C{r}/(D{r}*(1-E{r})))'
+        ma[f"I{r}"] = f'=IF(L{r}<>"OK","",C{r}/D{r}*(1+E{r}))'
+        ma[f"K{r}"] = (f'=IF(OR(L{r}<>"OK",J{r}=""),"",IF(AND(ISNUMBER(J{r}),J{r}>=0),'
+                       f'ROUNDUP(ROUND(J{r}/(D{r}*(1-E{r})),6),0),"Check"))')
+        ma[f"M{r}"] = f'=IF(ISNUMBER(K{r}),K{r}*D{r}*(1-E{r}),"")'
+        for col in "FHI":
+            ma[f"{col}{r}"].number_format = money4
+        ma[f"G{r}"].number_format = ma[f"M{r}"].number_format = "0.##"
+        ma[f"K{r}"].number_format = "0"
+        for col in "FGHIKLM":
+            ma[f"{col}{r}"].fill = FORMULA_FILL
+            ma[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (m, u, c, d, e, j) in enumerate(mats):
+        r = 5 + i
+        ma[f"A{r}"], ma[f"B{r}"], ma[f"C{r}"], ma[f"D{r}"], ma[f"E{r}"], ma[f"J{r}"] = m, u, c, d, e, j
+    ma.column_dimensions["N"].width = 3
+    ma.column_dimensions["O"].width = 30
+    ma.column_dimensions["P"].width = 8
+    _summary_block(ma, "O", "P", [
+        (4, "Materials listed", '=SUMPRODUCT(--(L5:L54<>""))', "0"),
+        (5, "Rows showing Check", '=P4-COUNTIF(L5:L54,"OK")', "0"),
+        (6, "Units needed showing Check", '=COUNTIF(K5:K54,"Check")', "0"),
+        (7, "Typed below row 54 (not read)", "=COUNTA(A55:J300)", "0"),
+        (8, "CHECK", '=IF(AND(P4>0,P5=0,P6=0,P7=0),"OK","Check")', "General"),
+    ])
+    ma.conditional_formatting.add("L5:L54", FormulaRule(formula=['LEFT($L5,5)="Check"'], fill=ALERT_FILL))
+    ma.conditional_formatting.add("K5:K54", FormulaRule(formula=['$K5="Check"'], fill=ALERT_FILL))
+    ma.conditional_formatting.add("P8", FormulaRule(formula=['$P$8<>"OK"'], fill=ALERT_FILL))
+    ma.freeze_panes = "A5"
+
+    lg["A1"] = ("One row per pack or batch you measured (yellow, rows 5 to 204): what you bought and what you could use. "
+                "Fictional counts.")
+    lg["A2"] = "Type the material name exactly as in G. A name with an extra space or another spelling is not counted."
+    lg["A1"].font = lg["A2"].font = Font(italic=True)
+    _head_row(lg, 4, ["Date", "Material", "Bought (units)", "Usable (units)", "Status"], [12, 22, 10, 10, 22], height=46)
+    for i, (t, w) in enumerate([("Material (type each name once)", 36), ("Rows logged (OK)", 9), ("Bought", 9),
+                                ("Usable", 9), ("Measured waste %", 10), ("Rows with Check", 9)]):
+        c = lg.cell(row=4, column=7 + i)
+        c.value, c.fill, c.font = t, HEADER_FILL, HEADER_FONT
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+        lg.column_dimensions[c.column_letter].width = w
+    lg.column_dimensions["F"].width = 3
+    log = [(date(2026, 11, 2), "Garden roses", 25, 21), (date(2026, 11, 5), "Garden roses", 25, 19),
+           (date(2026, 11, 9), "Garden roses", 50, 42), (date(2026, 11, 3), "Quilting cotton", 10, 8.5),
+           (date(2026, 11, 10), "Quilting cotton", 6, 5.25)]
+    for r in range(5, 205):
+        for col in "ABCD":
+            lg[f"{col}{r}"].fill = INPUT_FILL
+        lg[f"A{r}"].number_format = US_DATE
+        lg[f"C{r}"].number_format = lg[f"D{r}"].number_format = "0.##"
+        lg[f"E{r}"] = (f'=IF(AND(A{r}="",TRIM(B{r})="",C{r}="",D{r}=""),"",IF(TRIM(B{r})="","Check: no material",'
+                       f'IF(NOT(AND(ISNUMBER(C{r}),ISNUMBER(D{r}))),"Check: number",'
+                       f'IF(OR(C{r}<=0,D{r}<0,D{r}>C{r}),"Check: usable vs bought","OK"))))')
+        lg[f"E{r}"].fill = FORMULA_FILL
+        lg[f"E{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(log):
+        for col, v in zip("ABCD", row):
+            lg[f"{col}{5 + i}"] = v
+    for r in range(5, 25):
+        lg[f"G{r}"].fill = INPUT_FILL
+        lg[f"H{r}"] = f'=IF(TRIM(G{r})="","",COUNTIFS($B$5:$B$204,G{r},$E$5:$E$204,"OK"))'
+        lg[f"I{r}"] = f'=IF(TRIM(G{r})="","",SUMIFS($C$5:$C$204,$B$5:$B$204,G{r},$E$5:$E$204,"OK"))'
+        lg[f"J{r}"] = f'=IF(TRIM(G{r})="","",SUMIFS($D$5:$D$204,$B$5:$B$204,G{r},$E$5:$E$204,"OK"))'
+        lg[f"K{r}"] = f'=IF(TRIM(G{r})="","",IFERROR(1-J{r}/I{r},""))'
+        lg[f"L{r}"] = f'=IF(TRIM(G{r})="","",COUNTIF($B$5:$B$204,G{r})-H{r})'
+        lg[f"K{r}"].number_format = "0.00%"
+        for col in "HIJL":
+            lg[f"{col}{r}"].number_format = "0.##"
+        for col in "HIJKL":
+            lg[f"{col}{r}"].fill = FORMULA_FILL
+            lg[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, n in enumerate(["Garden roses", "Quilting cotton", "Pine board"]):
+        lg[f"G{5 + i}"] = n
+    _summary_block(lg, "G", "H", [
+        (26, "Log rows showing Check", '=SUMPRODUCT(--(LEFT(E5:E204,5)="Check"))', "0"),
+        (27, "Log rows whose name is not in G", '=SUMPRODUCT((TRIM(B5:B204)<>"")*(COUNTIF(G5:G24,B5:B204)=0))', "0"),
+        (28, "Typed below row 204 (not read)", "=COUNTA(A205:D1000)", "0"),
+        (29, "CHECK", '=IF(AND(H26=0,H27=0,H28=0),"OK","Check")', "General"),
+    ])
+    lg.conditional_formatting.add("E5:E204", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    lg.conditional_formatting.add("H29", FormulaRule(formula=['$H$29<>"OK"'], fill=ALERT_FILL))
+    lg.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: True Cost per Usable Unit After Waste",
+        "",
+        "1. Materials tab: one material per row (yellow, rows 5 to 54): the pack cost, the units in a pack (stems, yards, feet, pounds), and your own waste percent typed as a percent (20%). The prices and percents in the sample are fictional, not typical figures.",
+        "2. Cost per usable unit, H5: =C5/(D5*(1-E5)). You pay for the whole pack but can only use what is left: $30.00 for 25 roses at 20% waste is $30.00 / 20 usable stems = $1.50.",
+        "3. Shortcut, I5: =C5/D5*(1+E5) adds the waste percent on top of the bought cost. It comes out low: $1.20 + 20% = $1.44, 6 cents short on every stem. It is in the sheet for comparison only.",
+        "4. Packs to buy, K5: =ROUNDUP(J5/(D5*(1-E5)),0) (with a ROUND(...,6) inside as a safety step), whole packs that give at least the usable units in J. M shows the usable units those packs give.",
+        "5. Waste log tab: log what you bought and what you could use, one row per pack or batch. Type each material name once in G (yellow). Measured waste, K5: =1-J5/I5, total usable over total bought from the OK rows (SUMIFS). This is not the average of each row's percent, which counts a small pack as much as a big one.",
+        "6. To use the measured percent, type ='Waste log'!K5 (or the right row) in the Waste % cell on the Materials tab, as in the sample row 9.",
+        "7. A log row whose name has an extra space or another spelling is not counted for that material: the log shows it in Log rows whose name is not in G.",
+        "8. Status: Check: cost or units (blank, text such as $30.00 typed as text, 0 or negative), Check: waste (blank, below 0%, 100% or more, or 20 typed instead of 20%). On the log: Check: usable vs bought (usable more than bought, or bought 0).",
+        "9. This sheet works out a cost from your own numbers. It is not a price or markup suggestion and not an accounting or tax figure.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ma.print_title_rows = lg.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-cost-per-usable-unit-after-waste.xlsx")
+
+
+def three_point_project_estimate():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Estimate"
+    ws["A1"], ws["B1"] = "Hourly rate", 85
+    ws["A1"].font = Font(bold=True)
+    ws["B1"].fill = INPUT_FILL
+    ws["B1"].number_format = USD
+    ws["C1"] = ("Type each task with a best case, most likely and worst case in hours (yellow, rows 5 to 44). "
+                "Fictional web project and rate.")
+    ws["C1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Task", "Best case hours (O)", "Most likely hours (M)", "Worst case hours (P)",
+                      "Expected hours (O+4M+P)/6", "Spread (P-O)/6", "Status"], [30, 10, 10, 10, 12, 10, 10], height=60)
+    tasks = [("Discovery call and brief", 1, 2, 4), ("Wireframes", 4, 6, 10), ("Design mockups", 8, 12, 20),
+             ("Build pages", 12, 16, 30), ("Revisions", 2, 4, 12), ("Launch and handoff", 1, 2, 3)]
+    for r in range(5, 45):
+        for col in "ABCD":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        for col in "BCD":
+            ws[f"{col}{r}"].number_format = "0.##"
+        ws[f"G{r}"] = (f'=IF(AND(TRIM(A{r})="",COUNTA(B{r}:D{r})=0),"",IF(COUNT(B{r}:D{r})<3,"Check",'
+                       f'IF(AND(B{r}>=0,B{r}<=C{r},C{r}<=D{r}),"OK","Check")))')
+        ws[f"E{r}"] = f'=IF(G{r}<>"OK","",(B{r}+4*C{r}+D{r})/6)'
+        ws[f"F{r}"] = f'=IF(G{r}<>"OK","",(D{r}-B{r})/6)'
+        ws[f"E{r}"].number_format = ws[f"F{r}"].number_format = "0.00"
+        for col in "EFG":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(tasks):
+        for col, v in zip("ABCD", row):
+            ws[f"{col}{5 + i}"] = v
+    ws.column_dimensions["H"].width = 3
+    ws.column_dimensions["I"].width = 42
+    ws.column_dimensions["J"].width = 12
+    rate_ok = "AND(ISNUMBER($B$1),$B$1>0)"
+    _summary_block(ws, "I", "J", [
+        (4, "Tasks counted (OK)", '=COUNTIF(G5:G44,"OK")', "0"),
+        (5, "Best case total (hours)", '=SUMIF(G5:G44,"OK",B5:B44)', "0.00"),
+        (6, "Most likely total (hours)", '=SUMIF(G5:G44,"OK",C5:C44)', "0.00"),
+        (7, "Worst case total (hours)", '=SUMIF(G5:G44,"OK",D5:D44)', "0.00"),
+        (8, "Expected total (hours)", "=SUM(E5:E44)", "0.00"),
+        (9, "Project spread (hours)", "=SQRT(SUMSQ(F5:F44))", "0.00"),
+        (10, "Expected + 1 spread (hours)", "=J8+J9", "0.00"),
+        (11, "Expected + 2 spreads (hours)", "=J8+2*J9", "0.00"),
+        (12, "Task spreads added (do not use, too wide)", "=SUM(F5:F44)", "0.00"),
+        (13, "Quote at expected hours", f'=IF({rate_ok},ROUND(J8*$B$1,2),"")', USD),
+        (14, "Quote at expected + 1 spread", f'=IF({rate_ok},ROUND(J10*$B$1,2),"")', USD),
+        (15, "Quote at expected + 2 spreads", f'=IF({rate_ok},ROUND(J11*$B$1,2),"")', USD),
+        (16, "Rows showing Check", '=COUNTIF(G5:G44,"Check")', "0"),
+        (17, "Typed below row 44 (not read)", "=COUNTA(A45:D300)", "0"),
+        (18, "CHECK", f'=IF(AND(J4>0,J16=0,J17=0,{rate_ok}),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("G5:G44", FormulaRule(formula=['$G5="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("J18", FormulaRule(formula=['$J$18<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Three-Point (PERT) Estimate of Project Hours",
+        "",
+        "1. Type your hourly rate in B1 (yellow). The $85.00 rate and the web project are fictional.",
+        "2. One task per row (yellow, rows 5 to 44): a best case (O), most likely (M) and worst case (P) in hours. Best case must be the smallest and worst case the largest.",
+        "3. Expected hours, E5: =(B5+4*C5+D5)/6. The most likely guess counts four times, the best and worst case once each.",
+        "4. Spread, F5: =(D5-B5)/6, one sixth of the gap between best and worst case.",
+        "5. Project spread, J9: =SQRT(SUMSQ(F5:F44)), the square root of the sum of the squared task spreads. This is the usual way to combine spreads of tasks that do not depend on each other. Adding the task spreads (J12) gives a much wider number.",
+        "6. J10 and J11 add one or two project spreads to the expected total, and J13 to J15 turn the three totals into dollars at your rate, rounded to cents. Treat the extra hours as a buffer, not a guarantee: this sheet makes no probability claim.",
+        "7. Status Check: a number is missing or typed as text, the hours are out of order (best case above most likely, or most likely above worst case), or the best case is negative. A Check row is left out of every total until you fix it.",
+        "8. The rate and the quote are your own choice. This sheet does the math; it is not pricing advice.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-three-point-project-estimate.xlsx")
+
+
+def nps_survey_score():
+    wb = Workbook()
+    rs = wb.active
+    rs.title = "Responses"
+    sm = wb.create_sheet("Summary")
+    rs["A1"] = ("One survey answer per row (yellow, rows 5 to 504): date, channel, the 0 to 10 score and any comment. "
+                "Fictional responses.")
+    rs["A2"] = "Valid score (E) keeps only whole numbers from 0 to 10. Text, decimals, 11 or -1 show Check and are not counted."
+    rs["A1"].font = rs["A2"].font = Font(italic=True)
+    _head_row(rs, 4, ["Date", "Channel", "Score 0-10", "Comment", "Valid score (helper)", "Group"],
+              [12, 12, 9, 36, 10, 12], height=46)
+    scores = [10, 9, 9, 8, 6, 10, 7, 10, 9, 5, 3, 8, 10, 9, 7, 6, 10, 2, 9, 10]
+    chans = ["Etsy", "Etsy", "Market", "Etsy", "Etsy", "Market", "Market", "Email", "Etsy", "Market",
+             "Email", "Market", "Etsy", "Email", "Etsy", "Market", "Etsy", "Email", "Market", "Email"]
+    comments = {0: "Fast shipping", 4: "Box arrived dented", 10: "Wrong color sent", 17: "Never got a reply"}
+    for r in range(5, 505):
+        for col in "ABCD":
+            rs[f"{col}{r}"].fill = INPUT_FILL
+        rs[f"A{r}"].number_format = US_DATE
+        rs[f"E{r}"] = f'=IF(AND(ISNUMBER(C{r}),C{r}>=0,C{r}<=10),IF(C{r}=ROUND(C{r},0),C{r},""),"")'
+        rs[f"F{r}"] = (f'=IF(C{r}="","",IF(ISNUMBER(E{r}),IF(E{r}>=9,"Promoter",IF(E{r}>=7,"Passive","Detractor")),'
+                       f'"Check"))')
+        rs[f"E{r}"].number_format = "0"
+        for col in "EF":
+            rs[f"{col}{r}"].fill = FORMULA_FILL
+            rs[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (s, ch) in enumerate(zip(scores, chans)):
+        r = 5 + i
+        rs[f"A{r}"] = date(2026, 11, 2) + timedelta(days=i // 2)
+        rs[f"B{r}"], rs[f"C{r}"] = ch, s
+        if i in comments:
+            rs[f"D{r}"] = comments[i]
+    dv = DataValidation(type="list", formula1="=Summary!$A$6:$A$9", allow_blank=True, errorStyle="warning")
+    rs.add_data_validation(dv)
+    dv.add("B5:B504")
+    rs.conditional_formatting.add("F5:F504", FormulaRule(formula=['$F5="Check"'], fill=ALERT_FILL))
+    rs.conditional_formatting.add("F5:F504", FormulaRule(formula=['$F5="Promoter"'], fill=DONE_FILL))
+    rs.freeze_panes = "A5"
+
+    sm["A1"] = "Net Promoter Score = percent promoters (9 and 10) minus percent detractors (0 to 6). Passives (7 and 8) count in the total only."
+    sm["A2"] = "Type your channel names in A6:A9 (yellow); the Channel dropdown on Responses uses them."
+    sm["A1"].font = sm["A2"].font = Font(italic=True)
+    _head_row(sm, 4, ["Channel", "Responses counted", "Promoters (9-10)", "Passives (7-8)", "Detractors (0-6)",
+                      "% promoters", "% detractors", "NPS", "NPS (not rounded)"],
+              [38, 11, 11, 11, 11, 11, 11, 8, 11], height=46)
+    E, B = "Responses!$E$5:$E$504", "Responses!$B$5:$B$504"
+    sm["A5"] = "All responses"
+    sm["A5"].font = Font(bold=True)
+    for r, ch in zip(range(5, 10), [None, "Etsy", "Market", "Email", None]):
+        if r == 5:
+            sm["B5"] = f"=COUNT({E})"
+            sm["C5"] = f'=COUNTIF({E},">=9")'
+            sm["D5"] = f'=COUNTIFS({E},">=7",{E},"<=8")'
+            sm["E5"] = f'=COUNTIF({E},"<=6")'
+            blank = ""
+        else:
+            sm[f"A{r}"].fill = INPUT_FILL
+            if ch:
+                sm[f"A{r}"] = ch
+            a = f"$A{r}"
+            blank = f'TRIM({a})="",""'
+            sm[f"B{r}"] = f'=IF({blank},COUNTIFS({B},{a},{E},">=0"))'
+            sm[f"C{r}"] = f'=IF({blank},COUNTIFS({B},{a},{E},">=9"))'
+            sm[f"D{r}"] = f'=IF({blank},COUNTIFS({B},{a},{E},">=7",{E},"<=8"))'
+            sm[f"E{r}"] = f'=IF({blank},COUNTIFS({B},{a},{E},"<=6"))'
+        sm[f"F{r}"] = f'=IF(N(B{r})=0,"",C{r}/B{r})'
+        sm[f"G{r}"] = f'=IF(N(B{r})=0,"",E{r}/B{r})'
+        sm[f"H{r}"] = f'=IF(N(B{r})=0,"",ROUND((C{r}-E{r})/B{r}*100,0))'
+        sm[f"I{r}"] = f'=IF(N(B{r})=0,"",(C{r}-E{r})/B{r}*100)'
+        for col in "BCDE":
+            sm[f"{col}{r}"].number_format = "0"
+        sm[f"F{r}"].number_format = sm[f"G{r}"].number_format = "0.0%"
+        sm[f"H{r}"].number_format = "0"
+        sm[f"I{r}"].number_format = "0.00"
+        for col in "BCDEFGHI":
+            sm[f"{col}{r}"].fill = FORMULA_FILL
+            sm[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    _summary_block(sm, "A", "B", [
+        (11, "Rows showing Check", '=COUNTIF(Responses!F5:F504,"Check")', "0"),
+        (12, "Counted scores with no listed channel", "=B5-SUM(B6:B9)", "0"),
+        (13, "Typed below row 504 (not read)", "=COUNTA(Responses!A505:D2000)", "0"),
+        (14, "CHECK", '=IF(AND(B5>0,B11=0,B12=0,B13=0),"OK","Check")', "General"),
+    ])
+    sm.conditional_formatting.add("B14", FormulaRule(formula=['$B$14<>"OK"'], fill=ALERT_FILL))
+    sm.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Net Promoter Score From a 0 to 10 Survey",
+        "",
+        "1. Responses tab: one answer per row (yellow, rows 5 to 504): date, channel (dropdown from Summary A6:A9), the 0 to 10 score, and any comment. Paste scores as numbers. The responses are fictional.",
+        "2. Valid score, E5: =IF(AND(ISNUMBER(C5),C5>=0,C5<=10),IF(C5=ROUND(C5,0),C5,\"\"),\"\"). It keeps whole numbers from 0 to 10 and leaves anything else blank, so a text \"9\", 8.5, 11 or -1 is not counted. Group (F) shows Promoter, Passive, Detractor or Check (red). A blank score stays blank.",
+        "3. Summary row 5: Responses counted =COUNT(E), Promoters =COUNTIF(E,\">=9\"), Passives =COUNTIFS(E,\">=7\",E,\"<=8\"), Detractors =COUNTIF(E,\"<=6\").",
+        "4. NPS, H5: =ROUND((C5-E5)/B5*100,0), percent promoters minus percent detractors, shown as a whole number from -100 to 100. I5 shows it before rounding. With no responses it stays blank.",
+        "5. Rows 6 to 9 do the same per channel with COUNTIFS on the Channel column. Channel names match without regard to upper or lower case, but a name with an extra space (\"Etsy \") is not counted for that channel: Counted scores with no listed channel (B12) shows how many fell outside.",
+        "6. CHECK (B14) is OK when there is at least one score, no Check rows, every counted score has a listed channel, and nothing is typed below row 504.",
+        "7. Net Promoter Score and NPS are trademarks of their owners (Bain & Company, Satmetrix/NICE and Fred Reichheld). This sheet uses the term to describe the calculation and is not connected with them. It does not say what a good score is.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    rs.print_title_rows = sm.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-nps-survey-score.xlsx")
+
+
+def average_without_highest_lowest():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sales"
+    ws["A1"] = ("One market day per row (yellow, rows 5 to 104): date, sales and a note. Leave a closed day blank "
+                "(a 0 counts as the lowest day). Fictional Saturdays.")
+    ws["A1"].font = Font(italic=True)
+    _head_row(ws, 4, ["Market date", "Sales", "Note", "Status"], [12, 13, 26, 18], height=32)
+    sales = [(612, ""), (655, ""), (590, ""), (1480, "Holiday rush"), (640, ""), (128, "Rained out"),
+             (700, ""), (668, ""), (623, ""), (645, "")]
+    for r in range(5, 105):
+        for col in "ABC":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"A{r}"].number_format = US_DATE
+        ws[f"B{r}"].number_format = USD
+        ws[f"D{r}"] = (f'=IF(AND(A{r}="",B{r}="",TRIM(C{r})=""),"",IF(B{r}="","Skipped: blank",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Skipped: text",IF(B{r}<=0,"Check: 0 or less","OK"))))')
+        ws[f"D{r}"].fill = FORMULA_FILL
+        ws[f"D{r}"].alignment = Alignment(horizontal="right")
+    for i, (s, note) in enumerate(sales):
+        r = 5 + i
+        ws[f"A{r}"] = date(2026, 9, 5) + timedelta(days=7 * i)
+        ws[f"B{r}"] = s
+        if note:
+            ws[f"C{r}"] = note
+    ws.column_dimensions["E"].width = 3
+    ws.column_dimensions["F"].width = 52
+    ws.column_dimensions["G"].width = 13
+    rng = "B5:B104"
+    _summary_block(ws, "F", "G", [
+        (4, "Days counted", f"=COUNT({rng})", "0"),
+        (5, "Plain average", f'=IF(G4=0,"",AVERAGE({rng}))', USD),
+        (6, "Median", f'=IF(G4=0,"",MEDIAN({rng}))', USD),
+        (7, "Highest day", f'=IF(G4=0,"",MAX({rng}))', USD),
+        (8, "Lowest day", f'=IF(G4=0,"",MIN({rng}))', USD),
+        (9, "Average without highest and lowest",
+         f'=IF(COUNT({rng})<3,"Need 3+ days",(SUM({rng})-MAX({rng})-MIN({rng}))/(COUNT({rng})-2))', USD),
+        (10, "TRIMMEAN check, percent 2/COUNT (drops 1 each end)",
+         f'=IF(COUNT({rng})<3,"",TRIMMEAN({rng},2/COUNT({rng})))', USD),
+        (11, "The two match?", '=IF(G4<3,"",IF(ROUND(G9-G10,9)=0,"OK","Check"))', "General"),
+        (12, "Drop top and bottom 2 (5+ days)", f'=IF(COUNT({rng})<5,"Need 5+ days",TRIMMEAN({rng},4/COUNT({rng})))', USD),
+        (13, "TRIMMEAN(B5:B104,0.1), for comparison", f'=IF(COUNT({rng})<3,"",TRIMMEAN({rng},0.1))', USD),
+        (14, "Rows skipped (blank or text sales)", '=COUNTIF(D5:D104,"Skipped: blank")+COUNTIF(D5:D104,"Skipped: text")', "0"),
+        (15, "Rows showing Check (0 or less)", '=COUNTIF(D5:D104,"Check: 0 or less")', "0"),
+        (16, "Typed below row 104 (not read)", "=COUNTA(A105:C1000)", "0"),
+        (17, "CHECK", '=IF(AND(G4>=3,G11="OK",COUNTIF(D5:D104,"Skipped: text")=0,G15=0,G16=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("D5:D104", FormulaRule(formula=['LEFT($D5,5)="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("D5:D104", FormulaRule(formula=['LEFT($D5,7)="Skipped"'], fill=CHECK_ORANGE))
+    ws.conditional_formatting.add("G17", FormulaRule(formula=['$G$17<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Average Without the Highest and Lowest Value",
+        "",
+        "1. Sales tab: one market day per row (yellow, rows 5 to 104). The 10 Saturdays are fictional, with one holiday rush and one rained-out day.",
+        "2. Average without highest and lowest, G9: =(SUM(B5:B104)-MAX(B5:B104)-MIN(B5:B104))/(COUNT(B5:B104)-2). It drops one highest and one lowest day, even when two days tie for the top or bottom. With fewer than 3 days it shows Need 3+ days.",
+        "3. TRIMMEAN check, G10: =TRIMMEAN(B5:B104,2/COUNT(B5:B104)). TRIMMEAN takes the percent of all values to drop, split between the top and the bottom. 2/COUNT works out the percent that drops exactly one from each end as the list grows. G11 shows OK when G9 and G10 agree.",
+        "4. A fixed percent can drop nothing: with 10 days, =TRIMMEAN(B5:B104,0.1) (G13) gives the plain average, because in LibreOffice Calc the number of values dropped is rounded down to an even number (10% of 10 is 1, rounded down to 0). See Microsoft's TRIMMEAN help page for Excel.",
+        "5. G12 drops the top 2 and bottom 2 with =TRIMMEAN(B5:B104,4/COUNT(B5:B104)) once you have 5 or more days.",
+        "6. Blank sales and sales typed as text (such as \"$612.00\" typed as text, or n/a) are skipped by COUNT, SUM and TRIMMEAN: Days counted (G4) shows how many went in, and Status shows Skipped (orange). A 0 is a real number and counts as the lowest day, so leave a closed day blank; Status shows Check: 0 or less for a 0 or a negative refund.",
+        "7. Which average to use is your call: the plain average, the median (G6) and the trimmed average answer different questions. None of them is a forecast.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-average-without-highest-lowest.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -17940,4 +18443,9 @@ if __name__ == "__main__":
     custom_size_price_interpolation()
     hex_rgb_color_converter()
     correlation_sales_vs_temperature()
+    smallest_box_that_fits()
+    cost_per_usable_unit_after_waste()
+    three_point_project_estimate()
+    nps_survey_score()
+    average_without_highest_lowest()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

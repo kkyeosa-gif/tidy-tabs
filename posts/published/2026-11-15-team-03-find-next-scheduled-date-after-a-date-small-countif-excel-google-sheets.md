@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Df7J_Q5lU6K
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-find-next-date-on-schedule-in.html
 title: How to Find the Next Date on a Schedule in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 25 workbooks and 5,650 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

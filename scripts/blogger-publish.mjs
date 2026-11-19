@@ -59,14 +59,24 @@ function laNow() {
   return { date: `${get("year")}-${get("month")}-${get("day")}`, hour: Number(get("hour")) % 24 };
 }
 
-// Every file the post needs (AI images, screenshots, templates) must already
+// Every file the body links to (screenshots, heroes, templates) must already
 // be committed, or readers get broken images and dead download links.
 function missingAssets(file, meta, body) {
-  const needed = [
-    ...parseImagePrompts(meta).map(() => aiImagePath(file, meta)),
-    ...localAssetRefs(body),
-  ];
-  return needed.filter((p) => !existsSync(p));
+  return localAssetRefs(body).filter((p) => !existsSync(p));
+}
+
+// The AI photo is decoration only (style guide, Images #3): the real hero
+// leads every post. When image generation is down (2026-11-15..18: OpenAI
+// credits ran out and every post sat in ready/ for days), publish without
+// the photo instead of stalling the whole queue, and say so in an alert.
+function aiPhotoFor(file, meta) {
+  return parseImagePrompts(meta)
+    .map(({ alt }) => ({ path: aiImagePath(file, meta), alt }))
+    .filter((img) => {
+      if (existsSync(img.path)) return true;
+      alert(`Publishing ${file} without its AI photo (not generated: ${img.path}). Check OpenAI billing / generate-images.yml.`);
+      return false;
+    });
 }
 
 // Oldest ready post whose assets are all in place. A post still waiting on
@@ -112,7 +122,7 @@ async function main() {
   if (!meta.title) throw new Error(`${file}: frontmatter is missing 'title'`);
   const labels = meta.labels ? meta.labels.split(",").map((s) => s.trim()).filter(Boolean) : [];
 
-  const images = parseImagePrompts(meta).map(({ alt }) => ({ url: assetUrl(aiImagePath(file, meta)), alt }));
+  const images = aiPhotoFor(file, meta).map(({ path, alt }) => ({ url: assetUrl(path), alt }));
   const html = embedImages(paragraphsToHtml(body), images).join("\n");
   const searchDescription = deriveSearchDescription(meta, body);
 

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Df7rhZDmIyO
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-how-many-5-star.html
 title: How to Calculate How Many 5-Star Reviews You Need for a Target Rating in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 18 workbooks and 1,584 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

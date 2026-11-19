@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Df7dymDkeEx
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-plan-backward-from-event-date.html
 title: How to Plan Backward From an Event Date With WORKDAY in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 34 workbooks and 3,298 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

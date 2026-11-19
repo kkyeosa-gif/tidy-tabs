@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Df8AH1BoHGu
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-delivery-distance-in.html
 title: How to Calculate Delivery Distance in Miles From Latitude and Longitude in Excel and Google Sheets
 labels: excel-formulas, small-business, shipping, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python haversine model, 19 workbooks and 7,771 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

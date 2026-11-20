@@ -933,7 +933,52 @@ def heroes_2026_11_17_05():
                 "Sales", hide_cols="DE", name="trimavg"))
 
 
+def heroes_2026_11_20_01():
+    t = "templates/"
+    d = "images/2026-11-20-team-01-subscription-box-churn-rate-by-month-active-subscribers-countifs-excel-google-sheets/"
+    save(d + "subscription-churn-rate-by-month-template.png",
+         render(compact_copy(t + "tidy-tabs-subscription-churn-rate.xlsx", "Monthly", 10, "churnrate", hide_rows=[2], clear=["C1"]),
+                "Monthly", hide_cols="IJKLM", name="churnrate"))
+
+
+def heroes_2026_11_20_02():
+    t = "templates/"
+    d = "images/2026-11-20-team-02-how-many-more-sales-to-make-up-for-a-discount-break-even-volume-excel-google-sheets/"
+    save(d + "discount-break-even-extra-sales-template.png",
+         render(compact_copy(t + "tidy-tabs-discount-break-even-sales.xlsx", "Products", 12, "discountbe", hide_rows=[1, 2, 3]),
+                "Products", hide_cols="KLNOP", widths={"M": 9}, name="discountbe"))
+
+
+def heroes_2026_11_20_03():
+    t = "templates/"
+    d = "images/2026-11-20-team-03-add-st-nd-rd-th-to-dates-and-numbers-ordinal-suffix-mod-choose-excel-google-sheets/"
+    save(d + "ordinal-date-suffix-template.png",
+         render(compact_copy(t + "tidy-tabs-ordinal-dates.xlsx", "Dates", 16, "ordinaldates", hide_rows=[2], clear=["C1"]),
+                "Dates", hide_cols="FGHI", name="ordinaldates"))
+
+
+def heroes_2026_11_20_04():
+    t = "templates/"
+    d = "images/2026-11-20-team-04-convert-cups-tablespoons-teaspoons-recipe-units-convert-function-excel-google-sheets/"
+    save(d + "recipe-cups-tablespoons-teaspoons-converter-template.png",
+         render(compact_copy(t + "tidy-tabs-recipe-unit-converter.xlsx", "Converter", 10, "recipeunits", hide_rows=[1, 2, 3]),
+                "Converter", hide_cols="EFHIJK", name="recipeunits"))
+
+
+def heroes_2026_11_20_05():
+    t = "templates/"
+    d = "images/2026-11-20-team-05-percent-of-time-elapsed-vs-percent-complete-project-status-excel-google-sheets/"
+    save(d + "percent-time-elapsed-vs-complete-template.png",
+         render(compact_copy(t + "tidy-tabs-project-time-elapsed-tracker.xlsx", "Projects", 12, "timeelapsed", clear=["C1", "C2"]),
+                "Projects", hide_cols="JKL", name="timeelapsed"))
+
+
 def main():
+    if "--only-2026-11-20" in sys.argv:
+        for n in "12345":
+            if not any(a.startswith("--only-2026-11-20-0") for a in sys.argv) or f"--only-2026-11-20-0{n}" in sys.argv:
+                globals()[f"heroes_2026_11_20_0{n}"]()
+        return
     if "--only-2026-11-17" in sys.argv:
         for n in "12345":
             if not any(a.startswith("--only-2026-11-17-0") for a in sys.argv) or f"--only-2026-11-17-0{n}" in sys.argv:

@@ -257,3 +257,10 @@
 - How to Estimate Project Hours With a Three-Point (PERT) Estimate in Excel and Google Sheets - `2026-11-17-team-03-three-point-estimate-project-hours-quote-range-pert-sumsq-excel-google-sheets`
 - How to Calculate a Net Promoter Score From a 0-10 Customer Survey in Excel and Google Sheets - `2026-11-17-team-04-net-promoter-score-from-customer-survey-0-10-countifs-excel-google-sheets`
 - How to Average Without the Highest and Lowest Value in Excel and Google Sheets - `2026-11-17-team-05-average-without-highest-and-lowest-value-trimmean-excel-google-sheets`
+
+## 2026-11-20 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-20.md)
+- How to Calculate Monthly Churn Rate for a Subscription Box in Excel and Google Sheets - `2026-11-20-team-01-subscription-box-churn-rate-by-month-active-subscribers-countifs-excel-google-sheets`
+- How to Calculate How Many More Sales You Need to Make Up for a Discount in Excel and Google Sheets - `2026-11-20-team-02-how-many-more-sales-to-make-up-for-a-discount-break-even-volume-excel-google-sheets`
+- How to Add st, nd, rd and th to Dates and Numbers in Excel and Google Sheets - `2026-11-20-team-03-add-st-nd-rd-th-to-dates-and-numbers-ordinal-suffix-mod-choose-excel-google-sheets`
+- How to Convert Cups, Tablespoons and Teaspoons in Excel and Google Sheets - `2026-11-20-team-04-convert-cups-tablespoons-teaspoons-recipe-units-convert-function-excel-google-sheets`
+- How to Compare Percent of Time Elapsed With Percent Complete in Excel and Google Sheets - `2026-11-20-team-05-percent-of-time-elapsed-vs-percent-complete-project-status-excel-google-sheets`

@@ -18226,6 +18226,555 @@ def average_without_highest_lowest():
     wb.save(OUT / "tidy-tabs-average-without-highest-lowest.xlsx")
 
 
+def subscription_churn_rate():
+    wb = Workbook()
+    sb = wb.active
+    sb.title = "Subscribers"
+    mo = wb.create_sheet("Monthly")
+    sb["A1"] = ("One subscriber per row (yellow, rows 5 to 504): name or ID, plan, start date and cancel date (MM/DD/YYYY). "
+                "Leave the cancel date empty while the subscriber is active. Fictional subscribers.")
+    sb["A2"] = ("Cancel date = the day the subscription stopped. To clear a cancel date press Delete (a space is not empty). "
+                "A pause and restart is a new row with the new start date.")
+    sb["A1"].font = sb["A2"].font = Font(italic=True)
+    _head_row(sb, 4, ["Subscriber or ID", "Plan", "Start date", "Cancel date (blank while active)", "Status"],
+              [20, 16, 12, 14, 26], height=46)
+    subs = [("Ava", "Monthly box", date(2026, 6, 3), None), ("Ben", "Monthly box", date(2026, 6, 15), date(2026, 8, 10)),
+            ("Cara", "Monthly box", date(2026, 6, 20), None), ("Dev", "Mini box", date(2026, 7, 1), date(2026, 7, 25)),
+            ("Ella", "Monthly box", date(2026, 7, 8), None), ("Finn", "Mini box", date(2026, 7, 30), date(2026, 9, 1)),
+            ("Gia", "Monthly box", date(2026, 8, 1), None), ("Hank", "Monthly box", date(2026, 8, 12), date(2026, 10, 31)),
+            ("Iris", "Mini box", date(2026, 8, 31), None), ("Jon", "Monthly box", date(2026, 9, 5), date(2026, 9, 20)),
+            ("Kim", "Monthly box", date(2026, 9, 10), None), ("Leo", "Mini box", date(2026, 10, 1), None),
+            ("Mia", "Monthly box", date(2026, 10, 14), date(2026, 11, 2)), ("Nora", "Mini box", date(2026, 6, 1), date(2026, 7, 1))]
+    for r in range(5, 505):
+        for col in "ABCD":
+            sb[f"{col}{r}"].fill = INPUT_FILL
+        sb[f"C{r}"].number_format = sb[f"D{r}"].number_format = US_DATE
+        sb[f"E{r}"] = (f'=IF(AND(TRIM(A{r})="",TRIM(B{r})="",C{r}="",D{r}=""),"",'
+                       f'IF(AND(C{r}<>"",NOT(ISNUMBER(C{r}))),"Check: start date is text",'
+                       f'IF(AND(D{r}<>"",NOT(ISNUMBER(D{r}))),"Check: cancel date is text",'
+                       f'IF(C{r}="",IF(D{r}="","Check: no start date","Check: cancel, no start"),'
+                       f'IF(D{r}="","Active",IF(D{r}<C{r},"Check: cancel before start","Cancelled"))))))')
+        sb[f"E{r}"].fill = FORMULA_FILL
+        sb[f"E{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, p, s, c) in enumerate(subs):
+        r = 5 + i
+        sb[f"A{r}"], sb[f"B{r}"], sb[f"C{r}"] = n, p, s
+        if c:
+            sb[f"D{r}"] = c
+    sb.column_dimensions["F"].width = 3
+    sb.column_dimensions["G"].width = 30
+    sb.column_dimensions["H"].width = 8
+    _summary_block(sb, "G", "H", [
+        (4, "Subscribers listed", '=SUMPRODUCT(--(E5:E504<>""))', "0"),
+        (5, "Active (no cancel date)", '=COUNTIF(E5:E504,"Active")', "0"),
+        (6, "Cancelled", '=COUNTIF(E5:E504,"Cancelled")', "0"),
+        (7, "Rows showing Check", '=SUMPRODUCT(--(LEFT(E5:E504,5)="Check"))', "0"),
+        (8, "Typed below row 504 (not read)", "=COUNTA(A505:D2000)", "0"),
+    ])
+    sb.conditional_formatting.add("E5:E504", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    sb.freeze_panes = "A5"
+
+    mo["A1"], mo["B1"] = "First month", date(2026, 6, 1)
+    mo["A2"], mo["B2"] = "Average churn through", date(2026, 10, 1)
+    for c in ("A1", "A2"):
+        mo[c].font = Font(bold=True)
+    for c in ("B1", "B2"):
+        mo[c].fill = INPUT_FILL
+        mo[c].number_format = US_DATE
+    mo["C1"] = "Type any date in the first month you want to see (yellow). The sheet shows 24 months from there."
+    mo["C2"] = "Last month to include in the average (yellow). Blank = the month of the latest date on Subscribers."
+    mo["C1"].font = mo["C2"].font = Font(italic=True)
+    _head_row(mo, 4, ["Month start", "Active at start", "New in month", "Cancelled in month",
+                      "Cancelled from the start group", "Active at end", "Churn rate (start group)",
+                      "All cancels / active at start (comparison)", "End = next start?",
+                      "Blank-only start count (wrong, comparison)"],
+              [22, 10, 10, 11, 12, 10, 12, 14, 10, 14], height=60)
+    S, C = "Subscribers!$C$5:$C$504", "Subscribers!$D$5:$D$504"
+
+    def active_at(m):
+        return f'COUNTIFS({S},"<"&{m},{C},"")+COUNTIFS({S},"<"&{m},{C},">="&{m})'
+
+    for r in range(5, 29):
+        a = f"A{r}"
+        if r == 5:
+            mo[a] = '=IF(ISNUMBER($B$1),DATE(YEAR($B$1),MONTH($B$1),1),"")'
+        else:
+            mo[a] = f'=IF(A{r - 1}="","",DATE(YEAR(A{r - 1}),MONTH(A{r - 1})+1,1))'
+        nx = f"A{r + 1}" if r < 28 else f"DATE(YEAR({a}),MONTH({a})+1,1)"
+        g = f'IF({a}="","",'
+        mo[f"B{r}"] = f"={g}{active_at(a)})"
+        mo[f"C{r}"] = f'={g}COUNTIFS({S},">="&{a},{S},"<"&{nx}))'
+        mo[f"D{r}"] = f'={g}COUNTIFS({C},">="&{a},{C},"<"&{nx}))'
+        mo[f"E{r}"] = f'={g}COUNTIFS({S},"<"&{a},{C},">="&{a},{C},"<"&{nx}))'
+        mo[f"F{r}"] = f"={g}B{r}+C{r}-D{r})"
+        mo[f"G{r}"] = f'=IF(N(B{r})=0,"",E{r}/B{r})'
+        mo[f"H{r}"] = f'=IF(N(B{r})=0,"",D{r}/B{r})'
+        nxt = f"B{r + 1}" if r < 28 else active_at(nx)
+        mo[f"I{r}"] = f'={g}IF(F{r}={nxt},"OK","Check"))'
+        mo[f"J{r}"] = f'={g}COUNTIFS({S},"<"&{a},{C},""))'
+        mo[a].number_format = US_DATE
+        for col in "BCDEFJ":
+            mo[f"{col}{r}"].number_format = "0"
+        mo[f"G{r}"].number_format = mo[f"H{r}"].number_format = "0.00%"
+        for col in "ABCDEFGHIJ":
+            mo[f"{col}{r}"].fill = FORMULA_FILL
+            mo[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    mo.column_dimensions["K"].width = 3
+    mo.column_dimensions["L"].width = 40
+    mo.column_dimensions["M"].width = 11
+    lastd = "MAX(Subscribers!$C$5:$D$504)"
+    _summary_block(mo, "L", "M", [
+        (4, "Average churn through month",
+         f'=IF(ISNUMBER($B$2),DATE(YEAR($B$2),MONTH($B$2),1),IF(COUNT(Subscribers!$C$5:$D$504)=0,"",'
+         f'DATE(YEAR({lastd}),MONTH({lastd}),1)))', US_DATE),
+        (5, "Months in the average (start count above 0)",
+         '=IF(M4="",0,COUNTIFS(A5:A28,"<="&M4,B5:B28,">0"))', "0"),
+        (6, "Average monthly churn rate", '=IF(M5=0,"",AVERAGEIFS(G5:G28,A5:A28,"<="&M4,B5:B28,">0"))', "0.00%"),
+        (7, "New subscribers (first month to that month)", '=IF(M4="","",SUMIF(A5:A28,"<="&M4,C5:C28))', "0"),
+        (8, "Cancellations (first month to that month)", '=IF(M4="","",SUMIF(A5:A28,"<="&M4,D5:D28))', "0"),
+        (9, "Months where end is not next start", '=COUNTIF(I5:I28,"Check")', "0"),
+        (10, "Subscribers tab rows showing Check", "=Subscribers!H7", "0"),
+        (11, "Typed below row 504 (not read)", "=Subscribers!H8", "0"),
+        (12, "CHECK", '=IF(AND(ISNUMBER(A5),Subscribers!H4>0,M9=0,M10=0,M11=0),"OK","Check")', "General"),
+    ])
+    mo.conditional_formatting.add("I5:I28", FormulaRule(formula=['$I5="Check"'], fill=ALERT_FILL))
+    mo.conditional_formatting.add("M12", FormulaRule(formula=['$M$12<>"OK"'], fill=ALERT_FILL))
+    mo.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Monthly Churn Rate for a Subscription Box",
+        "",
+        "1. Subscribers tab: one subscriber per row (yellow, rows 5 to 504) with a start date and, once they stop, a cancel date (MM/DD/YYYY). Leave the cancel date empty while they are active. The 14 subscribers are fictional.",
+        "2. The cancel date is the day the subscription stopped. A subscriber who cancels on 07/01 counts as active at the start of July and cancelled in July.",
+        "3. Monthly tab: type a date in the first month you want in B1 (yellow). Each row is one month (24 months).",
+        "4. Active at start, B5: =COUNTIFS(start,\"<\"&A5,cancel,\"\")+COUNTIFS(start,\"<\"&A5,cancel,\">=\"&A5). The first part counts people who started before the month and have no cancel date; the second counts people who started before the month and cancelled on or after its first day (they were still active on the 1st).",
+        "5. New in month (C) counts start dates inside the month, Cancelled in month (D) counts cancel dates inside the month, and Cancelled from the start group (E) counts cancels inside the month by people who were active at the start.",
+        "6. Churn rate, G5: =E5/B5, cancels from the start group over the start count. A month with no one active at the start stays blank. This is one definition of churn; other tools may use another.",
+        "7. Comparison columns: H divides all of the month's cancels by the start count, so a subscriber who joined and left in the same month raises it (July 50% instead of 25% in the sample). J counts only blank cancel dates and misses people who cancel later (July 2 instead of 4).",
+        "8. End = next start? (I) is OK when Active at end (B + C - D) equals the next month's start count. A Check there usually means a cancel date typed as text, a cancel date with no start date, or a cancel date before the start.",
+        "9. Status on the Subscribers tab: Active, Cancelled, or Check (a date typed as text, a space in the cancel cell, no start date, a cancel date with no start, a cancel date before the start). A Check row can make the month counts wrong until you fix it.",
+        "10. Average monthly churn rate (M6) averages the months from B1 to the month in B2 that have someone active at the start. Leave B2 blank to use the month of the latest date typed on the Subscribers tab.",
+        "11. This sheet counts subscribers only. It has no revenue figures and does not say what a good churn rate is.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    sb.print_title_rows = mo.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-subscription-churn-rate.xlsx")
+
+
+def discount_break_even_sales():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Products"
+    tb = wb.create_sheet("Table")
+    ws["A1"] = ("One product and discount per row (yellow, rows 5 to 54): regular price, unit cost, discount and the units "
+                "you sell now at the regular price. Fictional prices and costs.")
+    ws["A2"] = "Type the discount as a percent (25%). Gross profit on unit cost only: fees, shipping and fixed costs are not included."
+    ws["A1"].font = ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Product", "Regular price", "Unit cost", "Discount %", "Units at regular price", "Margin",
+                      "Profit per unit on sale", "Units needed on sale", "Whole units", "More units than now (%)",
+                      "Profit now", "Profit at whole units", "Status"],
+              [18, 10, 9, 9, 10, 8, 10, 24, 8, 10, 11, 11, 24], height=60)
+    rows = [("Candle", 40, 16, 0.20, 100), ("Candle", 40, 16, 0.25, 100), ("Candle", 40, 16, 0.10, 100),
+            ("Mug", 25, 15, 0.10, 80), ("Mug", 25, 15, 0.30, 80), ("Sticker pack", 12, 3, 0.15, 200),
+            ("Candle", 40, 16, 0.60, 100), ("Candle", 40, 16, 0.70, 100)]
+    for r in range(5, 55):
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = ws[f"C{r}"].number_format = USD
+        ws[f"D{r}"].number_format = "0.0#%"
+        ws[f"E{r}"].number_format = "#,##0.##"
+        ws[f"M{r}"] = (f'=IF(AND(TRIM(A{r})="",COUNTA(B{r}:E{r})=0),"",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: price",IF(B{r}<=0,"Check: price",'
+                       f'IF(NOT(ISNUMBER(C{r})),"Check: cost",IF(C{r}<0,"Check: cost",'
+                       f'IF(C{r}>=B{r},"Check: cost at or above price",'
+                       f'IF(NOT(ISNUMBER(D{r})),"Check: discount",IF(OR(D{r}<0,D{r}>1),"Check: discount",'
+                       f'IF(NOT(ISNUMBER(E{r})),"Check: units",IF(E{r}<=0,"Check: units","OK"))))))))))')
+        ok = f'IF(M{r}<>"OK","",'
+        ws[f"F{r}"] = f"={ok}(B{r}-C{r})/B{r})"
+        ws[f"G{r}"] = f"={ok}ROUND(B{r}*(1-D{r})-C{r},10))"
+        ws[f"H{r}"] = f'={ok}IF(G{r}<=0,"Discount wipes out profit",E{r}*(B{r}-C{r})/G{r}))'
+        ws[f"I{r}"] = f'=IF(ISNUMBER(H{r}),ROUNDUP(ROUND(H{r},6),0),"")'
+        ws[f"J{r}"] = f'=IF(ISNUMBER(H{r}),H{r}/E{r}-1,"")'
+        ws[f"K{r}"] = f"={ok}E{r}*(B{r}-C{r}))"
+        ws[f"L{r}"] = f'=IF(ISNUMBER(I{r}),I{r}*G{r},"")'
+        ws[f"F{r}"].number_format = "0.0#%"
+        ws[f"J{r}"].number_format = "0.00%"
+        for col in "GKL":
+            ws[f"{col}{r}"].number_format = USD
+        ws[f"H{r}"].number_format = "#,##0.00"
+        ws[f"I{r}"].number_format = "#,##0"
+        for col in "FGHIJKLM":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCDE", row):
+            ws[f"{col}{5 + i}"] = v
+    ws.column_dimensions["N"].width = 3
+    ws.column_dimensions["O"].width = 44
+    ws.column_dimensions["P"].width = 8
+    _summary_block(ws, "O", "P", [
+        (4, "Rows listed", '=SUMPRODUCT(--(M5:M54<>""))', "0"),
+        (5, "Rows showing Check", '=P4-COUNTIF(M5:M54,"OK")', "0"),
+        (6, "Discount wipes out profit (no volume is enough)", '=COUNTIF(H5:H54,"Discount wipes out profit")', "0"),
+        (7, "Typed below row 54 (not read)", "=COUNTA(A55:E300)", "0"),
+        (8, "CHECK", '=IF(AND(P4>0,P5=0,P7=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("M5:M54", FormulaRule(formula=['LEFT($M5,5)="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("H5:H54", FormulaRule(formula=['$H5="Discount wipes out profit"'], fill=CHECK_ORANGE))
+    ws.conditional_formatting.add("P8", FormulaRule(formula=['$P$8<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+
+    tb["A1"] = ("More units you need to sell, by margin (down) and discount (across). Each cell: =margin/(margin-discount)-1. "
+                "No = the discount is the whole margin or more, so no volume is enough.")
+    tb["A2"] = "Margins and discounts are yellow: type your own. Margin = (price - cost) / price."
+    tb["A1"].font = tb["A2"].font = Font(italic=True)
+    tb["A4"] = "Margin \\ Discount"
+    tb["A4"].fill, tb["A4"].font = HEADER_FILL, HEADER_FONT
+    tb["A4"].alignment = Alignment(vertical="center", wrap_text=True)
+    tb.column_dimensions["A"].width = 12
+    tb.row_dimensions[4].height = 32
+    discs = [round(0.05 * k, 2) for k in range(1, 11)]
+    margins = [round(0.20 + 0.05 * k, 2) for k in range(13)]
+    cols = [chr(ord("B") + k) for k in range(10)]
+    for col, d in zip(cols, discs):
+        tb[f"{col}4"] = d
+        tb[f"{col}4"].fill = INPUT_FILL
+        tb[f"{col}4"].font = Font(bold=True)
+        tb[f"{col}4"].number_format = "0%"
+        tb[f"{col}4"].alignment = Alignment(horizontal="right", vertical="center")
+        tb.column_dimensions[col].width = 9
+    for i, m in enumerate(margins):
+        r = 5 + i
+        tb[f"A{r}"] = m
+        tb[f"A{r}"].fill = INPUT_FILL
+        tb[f"A{r}"].font = Font(bold=True)
+        tb[f"A{r}"].number_format = "0%"
+        for col in cols:
+            tb[f"{col}{r}"] = (f'=IF(AND(ISNUMBER($A{r}),ISNUMBER({col}$4)),'
+                               f'IF($A{r}<={col}$4,"No",$A{r}/($A{r}-{col}$4)-1),"")')
+            tb[f"{col}{r}"].number_format = "0%"
+            tb[f"{col}{r}"].fill = FORMULA_FILL
+            tb[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    tb.conditional_formatting.add("B5:K17", FormulaRule(formula=['B5="No"'], fill=CHECK_ORANGE))
+    tb.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: How Many More Sales You Need to Make Up for a Discount",
+        "",
+        "1. Products tab: one product and discount per row (yellow, rows 5 to 54): regular price, unit cost, the discount as a percent (25%), and the units you sell now at the regular price. The products, prices and costs are fictional.",
+        "2. Units needed on sale, H5: =E5*(B5-C5)/(B5*(1-D5)-C5). It is the profit you make now divided by the profit per unit at the sale price, so the sale makes the same gross profit.",
+        "3. Margin (F) is (price - cost) / price. More units than now (J) is =H5/E5-1, which is the same as =margin/(margin-discount)-1: with a 60% margin, 25% off needs 71.43% more units, not 25%.",
+        "4. When the discount is as big as the margin or bigger, the sale price is at or below cost and H shows Discount wipes out profit (orange): no number of extra sales makes up for it.",
+        "5. Whole units (I) rounds up to a whole number you can sell, and Profit at whole units (L) shows the profit at that count, which can be a little more than Profit now (K).",
+        "6. Status Check: a price that is blank, text (such as $40.00 typed as text), 0 or negative; a cost that is blank, text or negative; a cost at or above the price; a discount that is blank, text, below 0% or above 100% (25 typed instead of 25%); units at regular price that are blank, text, 0 or negative.",
+        "7. Table tab: the same percent for margins 20% to 80% and discounts 5% to 50%. Type your own margins and discounts in the yellow cells.",
+        "8. Gross profit on unit cost only: marketplace fees, card fees, shipping and fixed costs are not included. This sheet does the math on your numbers; it does not say whether to run a sale or how many extra sales a discount brings.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = tb.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-discount-break-even-sales.xlsx")
+
+
+def _ordinal_suffix(n):
+    """Excel text for st/nd/rd/th after the whole number n (a cell or expression)."""
+    return (f'IF(AND(MOD({n},100)>=11,MOD({n},100)<=13),"th",'
+            f'CHOOSE(MOD({n},10)+1,"th","st","nd","rd","th","th","th","th","th","th"))')
+
+
+def ordinal_dates():
+    wb = Workbook()
+    ds = wb.active
+    ds.title = "Dates"
+    ns = wb.create_sheet("Numbers")
+    ds["A1"], ds["B1"] = "Sign text", "Pickup on"
+    ds["A1"].font = Font(bold=True)
+    ds["B1"].fill = INPUT_FILL
+    ds["C1"] = "B1 is the text before the date in column E. Type real dates in column A (yellow, rows 5 to 104, MM/DD/YYYY). Columns B to E are text for printing. Fictional dates."
+    ds["C1"].font = Font(italic=True)
+    _head_row(ds, 4, ["Date", "Long", "Short", "Day only", "Sign line (B1 + date)", "Status"],
+              [12, 34, 12, 9, 38, 20], height=32)
+    dates = [date(2026, 11, 1), date(2026, 11, 2), date(2026, 11, 3), date(2026, 11, 11), date(2026, 11, 12),
+             date(2026, 11, 13), date(2026, 11, 20), date(2026, 11, 21), date(2026, 11, 22), date(2026, 11, 23),
+             date(2026, 12, 31), date(2027, 1, 1)]
+    for r in range(5, 105):
+        ds[f"A{r}"].fill = INPUT_FILL
+        ds[f"A{r}"].number_format = US_DATE
+        ds[f"F{r}"] = (f'=IF(A{r}="","",IF(NOT(ISNUMBER(A{r})),"Check: not a date",'
+                       f'IF(A{r}<1,"Check: not a date","OK")))')
+        ok = f'IF(F{r}<>"OK","",'
+        ds[f"B{r}"] = (f'={ok}TEXT(A{r},"dddd, mmmm ")&DAY(A{r})&IF(AND(DAY(A{r})>=11,DAY(A{r})<=13),"th",'
+                       f'CHOOSE(MOD(DAY(A{r}),10)+1,"th","st","nd","rd","th","th","th","th","th","th"))&TEXT(A{r},", yyyy"))')
+        ds[f"D{r}"] = (f'={ok}DAY(A{r})&IF(AND(DAY(A{r})>=11,DAY(A{r})<=13),"th",'
+                       f'CHOOSE(MOD(DAY(A{r}),10)+1,"th","st","nd","rd","th","th","th","th","th","th")))')
+        ds[f"C{r}"] = f'={ok}TEXT(A{r},"mmm ")&D{r})'
+        ds[f"E{r}"] = f'={ok}TRIM($B$1&" "&TEXT(A{r},"dddd, mmmm ")&D{r}))'
+        for col in "BCDEF":
+            ds[f"{col}{r}"].fill = FORMULA_FILL
+        ds[f"F{r}"].alignment = Alignment(horizontal="right")
+    for i, d in enumerate(dates):
+        ds[f"A{5 + i}"] = d
+    ds.column_dimensions["G"].width = 3
+    ds.column_dimensions["H"].width = 30
+    ds.column_dimensions["I"].width = 8
+    _summary_block(ds, "H", "I", [
+        (4, "Dates listed", '=SUMPRODUCT(--(F5:F104<>""))', "0"),
+        (5, "Rows showing Check", '=SUMPRODUCT(--(LEFT(F5:F104,5)="Check"))', "0"),
+        (6, "Typed below row 104 (not read)", "=COUNTA(A105:A1000)", "0"),
+        (7, "CHECK", '=IF(AND(I4>0,I5=0,I6=0),"OK","Check")', "General"),
+    ])
+    ds.conditional_formatting.add("F5:F104", FormulaRule(formula=['LEFT($F5,5)="Check"'], fill=ALERT_FILL))
+    ds.conditional_formatting.add("I7", FormulaRule(formula=['$I$7<>"OK"'], fill=ALERT_FILL))
+    ds.freeze_panes = "A5"
+
+    ns["A1"] = "Type whole numbers 1 or more in column A (yellow, rows 5 to 54). B is text: 1st, 2nd, 3rd, 11th, 21st."
+    ns["A1"].font = Font(italic=True)
+    _head_row(ns, 4, ["Number", "With suffix", "Status"], [12, 14, 22], height=32)
+    nums = [1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101, 111, 112, 113]
+    for r in range(5, 55):
+        ns[f"A{r}"].fill = INPUT_FILL
+        ns[f"A{r}"].number_format = "General"
+        ns[f"C{r}"] = (f'=IF(A{r}="","",IF(NOT(ISNUMBER(A{r})),"Check: text",IF(A{r}<1,"Check: 0 or less",'
+                       f'IF(A{r}<>INT(A{r}),"Check: decimal","OK"))))')
+        ns[f"B{r}"] = f'=IF(C{r}<>"OK","",A{r}&{_ordinal_suffix(f"A{r}")})'
+        for col in "BC":
+            ns[f"{col}{r}"].fill = FORMULA_FILL
+            ns[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, n in enumerate(nums):
+        ns[f"A{5 + i}"] = n
+    ns.column_dimensions["D"].width = 3
+    ns.column_dimensions["E"].width = 30
+    ns.column_dimensions["F"].width = 8
+    _summary_block(ns, "E", "F", [
+        (4, "Numbers listed", '=SUMPRODUCT(--(C5:C54<>""))', "0"),
+        (5, "Rows showing Check", '=SUMPRODUCT(--(LEFT(C5:C54,5)="Check"))', "0"),
+        (6, "Typed below row 54 (not read)", "=COUNTA(A55:A1000)", "0"),
+        (7, "CHECK", '=IF(AND(F4>0,F5=0,F6=0),"OK","Check")', "General"),
+    ])
+    ns.conditional_formatting.add("C5:C54", FormulaRule(formula=['LEFT($C5,5)="Check"'], fill=ALERT_FILL))
+    ns.conditional_formatting.add("F7", FormulaRule(formula=['$F$7<>"OK"'], fill=ALERT_FILL))
+    ns.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Add st, nd, rd and th to Dates and Numbers",
+        "",
+        "1. Dates tab: type real dates in column A (yellow, rows 5 to 104, MM/DD/YYYY). The 12 market and pickup dates are fictional.",
+        "2. Long, B5: =TEXT(A5,\"dddd, mmmm \")&DAY(A5)&IF(AND(DAY(A5)>=11,DAY(A5)<=13),\"th\",CHOOSE(MOD(DAY(A5),10)+1,\"th\",\"st\",\"nd\",\"rd\",\"th\",\"th\",\"th\",\"th\",\"th\",\"th\"))&TEXT(A5,\", yyyy\") gives Friday, November 20th, 2026.",
+        "3. How the suffix works: MOD(day,10) is the last digit, and CHOOSE picks th for 0, st for 1, nd for 2, rd for 3 and th for 4 to 9. The AND test catches 11, 12 and 13, which take th (11th, not 11st).",
+        "4. Day only (D) is just the day with its suffix (20th). Short (C) adds the short month name (Nov 20th). Sign line (E) puts the text in B1 in front (Pickup on Saturday, November 21st). Change B1 to your own words.",
+        "5. Numbers tab: whole numbers 1 or more in column A. With suffix, B5: =A5&IF(AND(MOD(A5,100)>=11,MOD(A5,100)<=13),\"th\",CHOOSE(MOD(A5,10)+1,\"th\",\"st\",\"nd\",\"rd\",\"th\",\"th\",\"th\",\"th\",\"th\",\"th\")). MOD(A5,100) catches 111th, 112th and 113th too.",
+        "6. Joining a date straight to text shows the date's serial number (=\"Market on \"&A5 gives Market on 46346). Wrap the date in TEXT, as these formulas do.",
+        "7. The results are text: they cannot be sorted or added as dates. Keep the real date in column A and use B to E for signs, cards and reminders.",
+        "8. Status Check: a date typed as text, or a number that is text, 0 or less, or has decimals. Day and month names follow the app's language setting; this file was checked in English only.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ds.print_title_rows = ns.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-ordinal-dates.xlsx")
+
+
+def recipe_unit_converter():
+    wb = Workbook()
+    cv = wb.active
+    cv.title = "Converter"
+    un = wb.create_sheet("Units")
+    cv["A1"] = ("One amount per row (yellow, rows 5 to 54): ingredient, amount as a number (0.5, not 1/2), and the From and To "
+                "units from the dropdowns. US kitchen volume only. Fictional batch.")
+    cv["A2"] = "Volume only: cups of flour or sugar to ounces of weight needs a density, which CONVERT cannot do."
+    cv["A1"].font = cv["A2"].font = Font(italic=True)
+    _head_row(cv, 4, ["Ingredient", "Amount", "From unit", "To unit", "From code (helper)", "To code (helper)",
+                      "Result", "Status"], [22, 9, 14, 14, 9, 9, 11, 22], height=46)
+    rows = [("Honey", 2.5, "Cup", "Fluid ounce"), ("Vanilla extract", 3, "Teaspoon", "Tablespoon"),
+            ("Water", 1, "Gallon", "Cup"), ("Fragrance oil", 24, "Teaspoon", "Cup"), ("Milk", 1, "Quart", "Cup"),
+            ("Lemon juice", 0.0625, "Cup", "Teaspoon")]
+    names, codes = "Units!$A$5:$A$20", "Units!$B$5:$B$20"
+    for r in range(5, 55):
+        for col in "ABCD":
+            cv[f"{col}{r}"].fill = INPUT_FILL
+        cv[f"B{r}"].number_format = "#,##0.####"
+        cv[f"E{r}"] = f'=IF(TRIM(C{r})="","",IFERROR(TRIM(INDEX({codes},MATCH(TRIM(C{r}),{names},0))),""))'
+        cv[f"F{r}"] = f'=IF(TRIM(D{r})="","",IFERROR(TRIM(INDEX({codes},MATCH(TRIM(D{r}),{names},0))),""))'
+        cv[f"H{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",TRIM(C{r})="",TRIM(D{r})=""),"",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: amount",IF(B{r}<0,"Check: amount",'
+                       f'IF(E{r}="","Check: from unit",IF(F{r}="","Check: to unit","OK")))))')
+        cv[f"G{r}"] = f'=IF(H{r}<>"OK","",IFERROR(CONVERT(B{r},E{r},F{r}),"Check units"))'
+        cv[f"G{r}"].number_format = "#,##0.####"
+        for col in "EFGH":
+            cv[f"{col}{r}"].fill = FORMULA_FILL
+            cv[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCD", row):
+            cv[f"{col}{5 + i}"] = v
+    dv = DataValidation(type="list", formula1=f"={names}", allow_blank=True, errorStyle="warning")
+    cv.add_data_validation(dv)
+    dv.add("C5:D54")
+    cv.column_dimensions["I"].width = 3
+    cv.column_dimensions["J"].width = 30
+    cv.column_dimensions["K"].width = 8
+    _summary_block(cv, "J", "K", [
+        (4, "Rows listed", '=SUMPRODUCT(--(H5:H54<>""))', "0"),
+        (5, "Rows showing Check", '=SUMPRODUCT(--(LEFT(H5:H54,5)="Check"))', "0"),
+        (6, "Results showing Check units", '=COUNTIF(G5:G54,"Check units")', "0"),
+        (7, "Units tab codes showing Check", '=COUNTIF(Units!C5:C20,"Check code")', "0"),
+        (8, "Typed below row 54 (not read)", "=COUNTA(A55:D300)", "0"),
+        (9, "CHECK", '=IF(AND(K4>0,K5=0,K6=0,K7=0,K8=0),"OK","Check")', "General"),
+    ])
+    cv.conditional_formatting.add("H5:H54", FormulaRule(formula=['LEFT($H5,5)="Check"'], fill=ALERT_FILL))
+    cv.conditional_formatting.add("G5:G54", FormulaRule(formula=['$G5="Check units"'], fill=ALERT_FILL))
+    cv.conditional_formatting.add("K9", FormulaRule(formula=['$K$9<>"OK"'], fill=ALERT_FILL))
+    cv.freeze_panes = "A5"
+
+    un["A1"] = ("Friendly names (A) for the dropdowns and their CONVERT codes (B). Codes must be exact: tbs, not tbsp; "
+                "oz here means fluid ounces. Add your own names in rows 12 to 20 (yellow).")
+    un["A2"] = "The grid shows how many of the unit across are in one of the unit down, worked out with CONVERT."
+    un["A1"].font = un["A2"].font = Font(italic=True)
+    _head_row(un, 4, ["Friendly name", "CONVERT code", "Teaspoons in one"], [14, 10, 11], height=46)
+    units = [("Teaspoon", "tsp"), ("Tablespoon", "tbs"), ("Fluid ounce", "oz"), ("Cup", "cup"), ("Pint", "pt"),
+             ("Quart", "qt"), ("Gallon", "gal")]
+    for r in range(5, 21):
+        un[f"A{r}"].fill = un[f"B{r}"].fill = INPUT_FILL
+        un[f"C{r}"] = f'=IF(TRIM(B{r})="","",IFERROR(CONVERT(1,TRIM(B{r}),"tsp"),"Check code"))'
+        un[f"C{r}"].number_format = "#,##0.####"
+        un[f"C{r}"].fill = FORMULA_FILL
+        un[f"C{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, c) in enumerate(units):
+        un[f"A{5 + i}"], un[f"B{5 + i}"] = n, c
+    un.column_dimensions["D"].width = 3
+    un["E4"] = "1 of these = (across)"
+    gcols = [chr(ord("F") + k) for k in range(7)]
+    for c in ["E4"] + [f"{g}4" for g in gcols]:
+        un[c].fill, un[c].font = HEADER_FILL, HEADER_FONT
+        un[c].alignment = Alignment(vertical="center", wrap_text=True, horizontal="center")
+    un.column_dimensions["E"].width = 14
+    for k, g in enumerate(gcols):
+        un[f"{g}4"] = f"=A{5 + k}"
+        un.column_dimensions[g].width = 11
+    for i in range(7):
+        r = 5 + i
+        un[f"E{r}"] = f"=A{r}"
+        un[f"E{r}"].font = Font(bold=True)
+        un[f"E{r}"].fill = FORMULA_FILL
+        for k, g in enumerate(gcols):
+            un[f"{g}{r}"] = f'=IFERROR(CONVERT(1,TRIM($B{r}),TRIM($B${5 + k})),"Check")'
+            un[f"{g}{r}"].number_format = "#,##0.####"
+            un[f"{g}{r}"].fill = FORMULA_FILL
+            un[f"{g}{r}"].alignment = Alignment(horizontal="right")
+    un.conditional_formatting.add("C5:C20", FormulaRule(formula=['$C5="Check code"'], fill=ALERT_FILL))
+    un.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Recipe Unit Converter (Cups, Tablespoons, Teaspoons)",
+        "",
+        "1. Converter tab: one amount per row (yellow, rows 5 to 54): the ingredient, the amount as a number, and the From and To units from the dropdowns. The batch is fictional.",
+        "2. The dropdowns use friendly names from the Units tab. From code and To code (E, F) look up the CONVERT code with =INDEX(Units!B,MATCH(TRIM(C5),Units!A,0)), so a name with an extra space still works.",
+        "3. Result, G5: =CONVERT(B5,E5,F5). For example =CONVERT(1,\"cup\",\"tbs\") gives 16 and =CONVERT(24,\"tsp\",\"cup\") gives 0.5.",
+        "4. CONVERT codes must be exact and are case-sensitive: tsp, tbs, oz, cup, pt, qt, gal. \"tbsp\" and \"Cup\" are not codes, and \"ozm\" is an ounce of weight, not a fluid ounce. A wrong code shows Check units (G) or Check code (Units tab).",
+        "5. The Units tab also shows teaspoons in one of each unit and a grid of every pair (1 cup = 16 tablespoons = 48 teaspoons = 8 fluid ounces).",
+        "6. Type amounts as decimals: 0.5, not 1/2 (a typed 1/2 can turn into a date or text). Status Check: amount (blank, text or negative), Check: from unit or Check: to unit (blank or not on the Units tab).",
+        "7. US kitchen volume only. Weight (cups of flour to ounces) needs the ingredient's density; this sheet does not do that and gives no recipe advice.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    cv.print_title_rows = un.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-recipe-unit-converter.xlsx")
+
+
+def project_time_elapsed_tracker():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Projects"
+    ws["A1"], ws["B1"] = "As-of date", date(2026, 11, 20)
+    ws["A2"], ws["B2"] = "Tolerance (points)", 0.10
+    for c in ("A1", "A2"):
+        ws[c].font = Font(bold=True)
+    ws["B1"].number_format = US_DATE
+    ws["B2"].number_format = "0%"
+    ws["B1"].fill = ws["B2"].fill = INPUT_FILL
+    ws["C1"] = "Type the date you are checking on (yellow). It does not change by itself."
+    ws["C2"] = "Within this many points of the time elapsed counts as On track (10% = 10 points)."
+    ws["C1"].font = ws["C2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Project", "Client", "Start date", "Due date", "Percent done", "Time elapsed %",
+                      "Done minus elapsed", "Days left", "Status"], [32, 20, 12, 12, 9, 10, 10, 8, 24], height=46)
+    projs = [("Logo refresh", "Maple Street Bakery", date(2026, 11, 2), date(2026, 11, 30), 0.50),
+             ("Website rebuild", "Harbor Yoga", date(2026, 11, 10), date(2026, 12, 10), 0.20),
+             ("Holiday catalog", "Pine & Co. Gifts", date(2026, 11, 1), date(2026, 11, 15), 0.80),
+             ("Menu boards", "Lakeside Cafe", date(2026, 11, 1), date(2026, 11, 15), 1.00),
+             ("Spring lookbook", "Fern & Thread", date(2026, 12, 1), date(2026, 12, 20), 0.00),
+             ("Flyer edit", "Main St. Hardware", date(2026, 11, 20), date(2026, 11, 20), 0.00),
+             ("Social posts", "Bloom Florist", date(2026, 11, 18), date(2026, 11, 22), 0.50),
+             ("Brochure (dates typed backwards)", "Cedar Dental", date(2026, 11, 30), date(2026, 11, 10), 0.30)]
+    for r in range(5, 55):
+        for col in "ABCDE":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = US_DATE
+        ws[f"E{r}"].number_format = "0%"
+        ws[f"F{r}"] = (f'=IF(OR(NOT(ISNUMBER(C{r})),NOT(ISNUMBER(D{r})),NOT(ISNUMBER($B$1))),"",'
+                       f'IF(D{r}<C{r},"",IF(D{r}=C{r},IF($B$1>=D{r},1,0),MIN(1,MAX(0,($B$1-C{r})/(D{r}-C{r}))))))')
+        ws[f"G{r}"] = f'=IF(AND(ISNUMBER(F{r}),ISNUMBER(E{r})),IF(AND(E{r}>=0,E{r}<=1),ROUND(E{r}-F{r},10),""),"")'
+        ws[f"H{r}"] = f'=IF(ISNUMBER(F{r}),MAX(0,D{r}-$B$1),"")'
+        ws[f"I{r}"] = (f'=IF(AND(TRIM(A{r})="",TRIM(B{r})="",C{r}="",D{r}="",E{r}=""),"",'
+                       f'IF(NOT(ISNUMBER($B$1)),"Check: as-of date",'
+                       f'IF(NOT(AND(ISNUMBER($B$2),$B$2>=0,$B$2<1)),"Check: tolerance",'
+                       f'IF(NOT(AND(ISNUMBER(C{r}),ISNUMBER(D{r}))),"Check: dates",'
+                       f'IF(D{r}<C{r},"Check: due before start",'
+                       f'IF(NOT(ISNUMBER(G{r})),"Check: percent done",'
+                       f'IF(E{r}>=1,"Done",IF($B$1>D{r},"Overdue",'
+                       f'IF(G{r}<-$B$2,"Behind",IF(G{r}>$B$2,"Ahead","On track"))))))))))')
+        ws[f"F{r}"].number_format = "0.00%"
+        ws[f"G{r}"].number_format = '+0.00%;-0.00%;0.00%'
+        ws[f"H{r}"].number_format = "0"
+        for col in "FGHI":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(projs):
+        for col, v in zip("ABCDE", row):
+            ws[f"{col}{5 + i}"] = v
+    ws.column_dimensions["J"].width = 3
+    ws.column_dimensions["K"].width = 30
+    ws.column_dimensions["L"].width = 8
+    _summary_block(ws, "K", "L", [
+        (4, "Projects listed", '=SUMPRODUCT(--(I5:I54<>""))', "0"),
+        (5, "Done", '=COUNTIF(I5:I54,"Done")', "0"),
+        (6, "Overdue", '=COUNTIF(I5:I54,"Overdue")', "0"),
+        (7, "Behind", '=COUNTIF(I5:I54,"Behind")', "0"),
+        (8, "On track", '=COUNTIF(I5:I54,"On track")', "0"),
+        (9, "Ahead", '=COUNTIF(I5:I54,"Ahead")', "0"),
+        (10, "Rows showing Check", '=SUMPRODUCT(--(LEFT(I5:I54,5)="Check"))', "0"),
+        (11, "Typed below row 54 (not read)", "=COUNTA(A55:E300)", "0"),
+        (12, "CHECK", '=IF(AND(L4>0,L10=0,L11=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("I5:I54", FormulaRule(formula=['LEFT($I5,5)="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("I5:I54", FormulaRule(formula=['$I5="Overdue"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("I5:I54", FormulaRule(formula=['$I5="Behind"'], fill=CHECK_ORANGE))
+    ws.conditional_formatting.add("I5:I54", FormulaRule(formula=['OR($I5="Done",$I5="Ahead")'], fill=DONE_FILL))
+    ws.conditional_formatting.add("L12", FormulaRule(formula=['$L$12<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Percent of Time Elapsed vs Percent Complete",
+        "",
+        "1. Type the date you are checking on in B1 (yellow). It is a typed date, so it stays the same until you change it. B2 is how close is close enough, in points (10% = 10 points).",
+        "2. One project per row (yellow, rows 5 to 54): project, client, start date, due date and your own percent done typed as a percent (50%). The projects and clients are fictional.",
+        "3. Time elapsed %, F5: =MIN(1,MAX(0,($B$1-C5)/(D5-C5))). It is the share of the calendar days from start to due that have passed by the as-of date, held between 0% (not started) and 100% (due date reached or passed). Calendar days only, no business days.",
+        "4. A one-day job (start = due) would divide by zero, so F5 shows 0% before that day and 100% on or after it.",
+        "5. Done minus elapsed (G) is percent done minus time elapsed. Status: Done (100% done), Overdue (past the due date and not done), Behind (more than B2 points below), Ahead (more than B2 points above), On track (in between). Days left (H) counts calendar days to the due date, 0 once it passes.",
+        "6. Without MIN and MAX the plain (as-of - start)/(due - start) runs past 100% on an overdue project and below 0% on one that has not started. Counting both end days with +1 gives a different percent (65.52% instead of 64.29% in the sample), so pick one rule and keep it.",
+        "7. Status Check: as-of date blank or text, tolerance not between 0% and 100%, a start or due date blank or text, a due date before the start, or a percent done that is blank, text, below 0% or above 100% (50 typed instead of 50%).",
+        "8. The last sample row (Brochure) has its dates typed backwards on purpose, so it shows Check: due before start and CHECK (L12) shows Check until you fix or delete it.",
+        "9. Percent done is your own estimate and the tolerance is your choice. The sheet compares the two numbers; it does not judge the work.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-project-time-elapsed-tracker.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -18448,4 +18997,9 @@ if __name__ == "__main__":
     three_point_project_estimate()
     nps_survey_score()
     average_without_highest_lowest()
+    subscription_churn_rate()
+    discount_break_even_sales()
+    ordinal_dates()
+    recipe_unit_converter()
+    project_time_elapsed_tracker()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

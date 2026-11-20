@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Df-k61glDDk
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-pick-smallest-shipping-box-that.html
 title: How to Pick the Smallest Shipping Box That Fits Each Item in Excel and Google Sheets
 labels: excel-formulas, small-business, shipping
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 28 workbooks and 14,364 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

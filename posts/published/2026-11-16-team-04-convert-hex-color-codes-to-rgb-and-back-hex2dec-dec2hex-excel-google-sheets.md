@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Df-ClcaFhM0
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-convert-hex-color-codes-to-rgb.html
 title: How to Convert HEX Color Codes to RGB (and Back) in Excel and Google Sheets
 labels: excel-formulas, small-business, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 13 workbooks and 5,993 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

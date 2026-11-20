@@ -18565,7 +18565,7 @@ def ordinal_dates():
         "3. How the suffix works: MOD(day,10) is the last digit, and CHOOSE picks th for 0, st for 1, nd for 2, rd for 3 and th for 4 to 9. The AND test catches 11, 12 and 13, which take th (11th, not 11st).",
         "4. Day only (D) is just the day with its suffix (20th). Short (C) adds the short month name (Nov 20th). Sign line (E) puts the text in B1 in front (Pickup on Saturday, November 21st). Change B1 to your own words.",
         "5. Numbers tab: whole numbers 1 or more in column A. With suffix, B5: =A5&IF(AND(MOD(A5,100)>=11,MOD(A5,100)<=13),\"th\",CHOOSE(MOD(A5,10)+1,\"th\",\"st\",\"nd\",\"rd\",\"th\",\"th\",\"th\",\"th\",\"th\",\"th\")). MOD(A5,100) catches 111th, 112th and 113th too.",
-        "6. Joining a date straight to text shows the date's serial number (=\"Market on \"&A5 gives Market on 46346). Wrap the date in TEXT, as these formulas do.",
+        "6. Joining a date straight to text shows the date's serial number (=\"Market on \"&A5 gives Market on 46327 for 11/01/2026). Wrap the date in TEXT, as these formulas do.",
         "7. The results are text: they cannot be sorted or added as dates. Keep the real date in column A and use B to E for signs, cards and reminders.",
         "8. Status Check: a date typed as text, or a number that is text, 0 or less, or has decimals. Day and month names follow the app's language setting; this file was checked in English only.",
         "",

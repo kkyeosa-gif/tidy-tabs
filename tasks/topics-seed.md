@@ -264,3 +264,10 @@
 - How to Add st, nd, rd and th to Dates and Numbers in Excel and Google Sheets - `2026-11-20-team-03-add-st-nd-rd-th-to-dates-and-numbers-ordinal-suffix-mod-choose-excel-google-sheets`
 - How to Convert Cups, Tablespoons and Teaspoons in Excel and Google Sheets - `2026-11-20-team-04-convert-cups-tablespoons-teaspoons-recipe-units-convert-function-excel-google-sheets`
 - How to Compare Percent of Time Elapsed With Percent Complete in Excel and Google Sheets - `2026-11-20-team-05-percent-of-time-elapsed-vs-percent-complete-project-status-excel-google-sheets`
+
+## 2026-11-21 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-21.md)
+- How to Split Shared Expenses and See Who Owes Whom in Excel and Google Sheets - `2026-11-21-team-01-split-shared-expenses-between-partners-who-owes-whom-sumif-excel-google-sheets`
+- How to Get the Week Number From a Date (US and ISO Weeks) in Excel and Google Sheets - `2026-11-21-team-02-week-number-from-date-us-and-iso-week-week-of-month-weeknum-excel-google-sheets`
+- How to Find How Much to Order at Once (Economic Order Quantity) in Excel and Google Sheets - `2026-11-21-team-03-economic-order-quantity-how-much-to-order-at-once-eoq-sqrt-excel-google-sheets`
+- How to Find a Value in a Grid and Return Its Row and Column Label in Excel and Google Sheets - `2026-11-21-team-04-find-value-in-grid-return-row-and-column-label-shelf-bin-map-sumproduct-excel-google-sheets`
+- How to Turn Product Titles Into URL Handles (Slugs) in Excel and Google Sheets - `2026-11-21-team-05-turn-product-titles-into-url-handles-slugs-lower-substitute-excel-google-sheets`

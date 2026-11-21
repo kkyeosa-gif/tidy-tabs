@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/Df_AYkzEVxy
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-find-true-cost-per-usable-unit.html
 title: How to Find the True Cost per Usable Unit After Waste in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 15 workbooks and 9,885 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

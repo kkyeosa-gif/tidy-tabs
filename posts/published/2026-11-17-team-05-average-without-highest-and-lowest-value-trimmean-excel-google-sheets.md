@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DgA1HOCieoX
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-average-without-highest-and.html
 title: How to Average Without the Highest and Lowest Value in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 28 workbooks and 3,192 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DgBJtjTlKXd
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-monthly-churn-rate-for.html
 title: How to Calculate Monthly Churn Rate for a Subscription Box in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 37 workbooks and 27,898 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

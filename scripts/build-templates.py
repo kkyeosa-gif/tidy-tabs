@@ -18775,6 +18775,613 @@ def project_time_elapsed_tracker():
     wb.save(OUT / "tidy-tabs-project-time-elapsed-tracker.xlsx")
 
 
+def shared_expense_split():
+    wb = Workbook()
+    ex = wb.active
+    ex.title = "Expenses"
+    pp = wb.create_sheet("People")
+    ex["A1"] = ("One shared expense per row (yellow, rows 5 to 204): date (MM/DD/YYYY), what it was, who paid (pick a name "
+                "from the People tab) and the amount. Fictional booth partners and receipts.")
+    ex["A2"] = ("Money back (a refund) is a negative amount: it is counted and Status says Refund (counted). "
+                "Paid by must match a People name exactly: \"Bea \" with a space at the end is not Bea.")
+    ex["A1"].font = ex["A2"].font = Font(italic=True)
+    _head_row(ex, 4, ["Date", "Description", "Paid by", "Amount", "Status"], [12, 30, 14, 12, 28], height=32)
+    people = "People!$A$5:$A$10"
+    rows = [(date(2026, 9, 5), "Booth fee, fall season", "Alex", 150.00),
+            (date(2026, 9, 5), "Tent weights", "Bea", 45.99),
+            (date(2026, 9, 12), "Ice and water", "Cal", 12.50),
+            (date(2026, 9, 19), "Card reader", "Alex", 59.00),
+            (date(2026, 10, 3), "Signs and price tags", "Bea", 33.33),
+            (date(2026, 10, 17), "Gas for the van", "Cal", 40.00)]
+    for r in range(5, 205):
+        for col in "ABCD":
+            ex[f"{col}{r}"].fill = INPUT_FILL
+        ex[f"A{r}"].number_format = US_DATE
+        ex[f"D{r}"].number_format = USD
+        ex[f"E{r}"] = (f'=IF(AND(A{r}="",TRIM(B{r})="",TRIM(C{r})="",D{r}=""),"",'
+                       f'IF(AND(A{r}<>"",NOT(ISNUMBER(A{r}))),"Check: date is text",'
+                       f'IF(TRIM(C{r})="","Check: no payer",'
+                       f'IF(COUNTIF({people},C{r})=0,"Check: payer not on People",'
+                       f'IF(D{r}="","Check: no amount",IF(NOT(ISNUMBER(D{r})),"Check: amount is text",'
+                       f'IF(D{r}<0,"Refund (counted)","OK")))))))')
+        ex[f"E{r}"].fill = FORMULA_FILL
+        ex[f"E{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCD", row):
+            ex[f"{col}{5 + i}"] = v
+    dv = DataValidation(type="list", formula1=f"={people}", allow_blank=True, errorStyle="warning")
+    ex.add_data_validation(dv)
+    dv.add("C5:C204")
+    ex.column_dimensions["F"].width = 3
+    ex.column_dimensions["G"].width = 36
+    ex.column_dimensions["H"].width = 12
+    _summary_block(ex, "G", "H", [
+        (4, "Expense rows listed", '=SUMPRODUCT(--(E5:E204<>""))', "0"),
+        (5, "Rows showing Check", '=SUMPRODUCT(--(LEFT(E5:E204,5)="Check"))', "0"),
+        (6, "Rows whose payer is not on People",
+         f'=SUMPRODUCT((C5:C204<>"")*(COUNTIF({people},C5:C204)=0))', "0"),
+        (7, "Refunds (negative, counted)", '=COUNTIF(D5:D204,"<0")', "0"),
+        (8, "Typed below row 204 (not read)", "=COUNTA(A205:D1000)", "0"),
+        (9, "Total spent", "=People!B1", USD),
+    ])
+    ex.conditional_formatting.add("E5:E204", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    ex.freeze_panes = "A5"
+
+    pp["A1"], pp["B1"] = "Total spent", "=SUM(Expenses!D5:D204)"
+    pp["A1"].font = Font(bold=True)
+    pp["B1"].number_format = USD
+    pp["B1"].fill = FORMULA_FILL
+    pp["C1"] = "All amounts on the Expenses tab (refunds count as minus)."
+    pp["A2"] = ("Row 5 is the treasurer: everyone settles with that person. Shares (B) must add to 100%: "
+                "type =1/3 in each row for equal thirds, or 50%, 30%, 20%. Up to 6 people. Fictional names.")
+    pp["C1"].font = pp["A2"].font = Font(italic=True)
+    _head_row(pp, 4, ["Name", "Share %", "Paid", "Fair share", "Balance (+ is owed, - owes)", "Settle line", "Status"],
+              [14, 9, 11, 11, 13, 34, 30], height=46)
+    for r in range(5, 11):
+        pp[f"A{r}"].fill = pp[f"B{r}"].fill = INPUT_FILL
+        pp[f"B{r}"].number_format = "0.00%"
+        pp[f"C{r}"] = f'=IF(TRIM(A{r})="","",SUMIF(Expenses!$C$5:$C$204,A{r},Expenses!$D$5:$D$204))'
+        gate = f'=IF(OR($J$4<>"OK",TRIM(A{r})=""),"",'
+        if r == 5:
+            pp[f"D{r}"] = f"{gate}ROUND(ROUND($B$1*B5,2)+$B$1-SUMPRODUCT(ROUND($B$1*$B$5:$B$10,2)),2))"
+            pp[f"F{r}"] = ('=IF(E5="","","Collects "&TEXT(-SUMIF(E6:E10,"<0"),"$#,##0.00")'
+                           '&", pays out "&TEXT(SUMIF(E6:E10,">0"),"$#,##0.00"))')
+        else:
+            pp[f"D{r}"] = f"{gate}ROUND($B$1*B{r},2))"
+            pp[f"F{r}"] = (f'=IF(E{r}="","",IF(E{r}<0,"Pay "&$A$5&" "&TEXT(-E{r},"$#,##0.00"),'
+                           f'IF(E{r}>0,$A$5&" pays you "&TEXT(E{r},"$#,##0.00"),"Even")))')
+        pp[f"E{r}"] = f'=IF(OR(C{r}="",D{r}=""),"",ROUND(C{r}-D{r},2))'
+        lead = 'IF(AND(TRIM(A5)="",COUNTA(A6:A10)>0),"Check: treasurer goes in row 5",' if r == 5 else ""
+        pp[f"G{r}"] = (f'={lead}IF(AND(TRIM(A{r})="",B{r}=""),"",'
+                       f'IF(TRIM(A{r})="","Check: share with no name",'
+                       f'IF(A{r}<>TRIM(A{r}),"Check: extra space in name",'
+                       f'IF(COUNTIF($A$5:$A$10,A{r})>1,"Check: name twice",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: share",IF(B{r}>1,"Check: share (50% not 50)",'
+                       f'IF(B{r}<0,"Check: share","OK")))))))' + (")" if r == 5 else ""))
+        for col in "CDE":
+            pp[f"{col}{r}"].number_format = USD
+        for col in "CDEFG":
+            pp[f"{col}{r}"].fill = FORMULA_FILL
+            pp[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        pp[f"F{r}"].alignment = Alignment(horizontal="left")
+    for i, n in enumerate(["Alex", "Bea", "Cal"]):
+        pp[f"A{5 + i}"], pp[f"B{5 + i}"] = n, "=1/3"
+    pp.column_dimensions["H"].width = 3
+    pp.column_dimensions["I"].width = 36
+    pp.column_dimensions["J"].width = 12
+    _summary_block(pp, "I", "J", [
+        (4, "Shares ready (add to 100%, no Check)",
+         '=IF(AND(TRIM(A5)<>"",ROUND(SUM(B5:B10),6)=1,J6=0),"OK","Check")', "General"),
+        (5, "Shares add to", "=SUM(B5:B10)", "0.00%"),
+        (6, "People rows showing Check", '=SUMPRODUCT(--(LEFT(G5:G10,5)="Check"))', "0"),
+        (7, "Total spent (B1)", "=B1", USD),
+        (8, "Paid by people on this list", "=SUM(C5:C10)", USD),
+        (9, "Spent under names not on this list", "=ROUND(J7-J8,2)", USD),
+        (10, "Fair shares add to", "=ROUND(SUM(D5:D10),2)", USD),
+        (11, "Balances add to", "=ROUND(SUM(E5:E10),2)", USD),
+        (12, "Expense rows showing Check", "=Expenses!H5", "0"),
+        (13, "CHECK", '=IF(AND(J4="OK",J9=0,ROUND(J10-J7,2)=0,ROUND(J11,2)=0,J12=0,Expenses!H8=0),"OK","Check")',
+         "General"),
+    ])
+    pp.conditional_formatting.add("G5:G10", FormulaRule(formula=['LEFT($G5,5)="Check"'], fill=ALERT_FILL))
+    pp.conditional_formatting.add("J4", FormulaRule(formula=['$J$4<>"OK"'], fill=ALERT_FILL))
+    pp.conditional_formatting.add("J13", FormulaRule(formula=['$J$13<>"OK"'], fill=ALERT_FILL))
+    pp.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Split Shared Expenses and See Who Owes Whom",
+        "",
+        "1. Expenses tab: one shared expense per row (yellow, rows 5 to 204): date, description, who paid (dropdown from the People tab) and the amount. The six booth expenses and the names Alex, Bea and Cal are fictional.",
+        "2. People tab: one person per row (yellow, rows 5 to 10, up to 6 people) with their share. Shares must add to 100%: type =1/3 in each row for equal thirds, or 50%, 30% and 20%. Row 5 is the treasurer, the person everyone settles with.",
+        "3. Paid, C5: =SUMIF(Expenses!$C$5:$C$204,A5,Expenses!$D$5:$D$204) totals what each person paid.",
+        "4. Fair share, D6 to D10: =ROUND($B$1*B6,2), the total spent (B1) times the share, rounded to the cent. D5 (the treasurer) adds the leftover cent: =ROUND($B$1*B5,2)+$B$1-SUMPRODUCT(ROUND($B$1*$B$5:$B$10,2)), so the fair shares add back to exactly the total. Rounding three equal thirds of $340.82 on their own gives 3 x $113.61 = $340.83, one cent too much.",
+        "5. Balance, E5: =ROUND(C5-D5,2). Plus means the person paid more than their share and is owed money; minus means they owe. The balances add to $0.00 (J11).",
+        "6. Settle line (F): everyone settles with the treasurer, so there are at most (people - 1) payments: \"Pay Alex $34.29\" or \"Alex pays you $12.00\". F5 shows what the treasurer collects and pays out in total. Settling through one person is simple; it is not always the fewest possible payments.",
+        "7. Expenses Status: Check: date is text, Check: no payer, Check: payer not on People (a typo or an extra space, \"Bea \"), Check: no amount, Check: amount is text; a negative amount is a refund and is counted (Refund (counted)). In LibreOffice Calc the name match ignores upper and lower case (bea counts as Bea).",
+        "8. People Status: Check: treasurer goes in row 5, Check: share with no name, Check: extra space in name, Check: name twice, Check: share (blank, text or negative), Check: share (50% not 50). Fair share, Balance and Settle line stay blank until J4 shows OK (shares add to 100% and no Check).",
+        "9. CHECK (J13) is OK when the shares are ready, every dollar spent was paid by someone on the list (J9 = $0.00), the fair shares add to the total, the balances add to $0.00 and no expense row shows Check.",
+        "10. This sheet does the arithmetic only. It does not decide how partners should split costs, and it does not cover how to record shared costs for a partnership or for taxes.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ex.print_title_rows = pp.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-shared-expense-split.xlsx")
+
+
+def _week_cells(ws, r, a, ok):
+    """US week, ISO week, ISO year, label, week of month for the date in cell a (ok = guard prefix)."""
+    return {
+        "us": f"={ok}INT(({a}-DATE(YEAR({a}),1,1)+WEEKDAY(DATE(YEAR({a}),1,1))-1)/7)+1)",
+        "iso": f"={ok}WEEKNUM({a},21))",
+        "isoyear": f"={ok}YEAR({a}-WEEKDAY({a},2)+4))",
+        "wom": f"={ok}INT((DAY({a})+WEEKDAY(DATE(YEAR({a}),MONTH({a}),1))-2)/7)+1)",
+    }
+
+
+def week_number_from_date():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Dates"
+    cal = wb.create_sheet("Calendar check")
+    ws["A1"] = ("One date per row (yellow, rows 5 to 504, MM/DD/YYYY). US week: Sunday start, the week holding January 1 is "
+                "week 1. ISO week: Monday start, week 1 holds the year's first Thursday. Fictional market and order dates.")
+    ws["A2"] = ("Use the ISO year (D) in a year-week label, not YEAR(date): 01/01/2027 is in 2026-W53. "
+                "Week of month: Sunday start, the 1st is always in week 1.")
+    ws["A1"].font = ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Date", "US week (Sunday start)", "ISO week (Monday start)", "ISO year", "Year-week label (ISO)",
+                      "Week of month (Sunday start)", "ISO week starts (Monday)", "Status",
+                      "ISO week, long formula (cross-check)", "Label with YEAR() (wrong, comparison)"],
+              [12, 10, 10, 8, 11, 10, 12, 20, 12, 13], height=60)
+    dates = [date(2025, 12, 29), date(2026, 1, 4), date(2026, 1, 5), date(2026, 11, 1), date(2026, 11, 16),
+             date(2026, 11, 21), date(2026, 11, 22), date(2026, 11, 30), date(2026, 12, 27), date(2026, 12, 28),
+             date(2026, 12, 31), date(2027, 1, 1), date(2027, 1, 3), date(2027, 1, 4), date(2027, 5, 1)]
+    for r in range(5, 505):
+        a = f"A{r}"
+        ws[a].fill = INPUT_FILL
+        ws[a].number_format = US_DATE
+        ws[f"H{r}"] = f'=IF({a}="","",IF(NOT(ISNUMBER({a})),"Check: date is text",IF({a}<1,"Check: not a date","OK")))'
+        ok = f'IF($H{r}<>"OK","",'
+        w = _week_cells(ws, r, a, ok)
+        ws[f"B{r}"], ws[f"C{r}"], ws[f"D{r}"], ws[f"F{r}"] = w["us"], w["iso"], w["isoyear"], w["wom"]
+        ws[f"E{r}"] = f'=IF(C{r}="","",D{r}&"-W"&TEXT(C{r},"00"))'
+        ws[f"G{r}"] = f"={ok}INT({a})-WEEKDAY({a},2)+1)"
+        ws[f"I{r}"] = (f"={ok}INT(({a}-DATE(YEAR({a}-WEEKDAY({a}-1)+4),1,3)"
+                       f"+WEEKDAY(DATE(YEAR({a}-WEEKDAY({a}-1)+4),1,3))+5)/7))")
+        ws[f"J{r}"] = f'={ok}YEAR({a})&"-W"&TEXT(C{r},"00"))'
+        ws[f"G{r}"].number_format = US_DATE
+        for col in "BCDFI":
+            ws[f"{col}{r}"].number_format = "0"
+        for col in "BCDEFGHIJ":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, d in enumerate(dates):
+        ws[f"A{5 + i}"] = d
+    ws.column_dimensions["K"].width = 3
+    ws.column_dimensions["L"].width = 36
+    ws.column_dimensions["M"].width = 10
+    _summary_block(ws, "L", "M", [
+        (4, "Dates listed", '=SUMPRODUCT(--(H5:H504<>""))', "0"),
+        (5, "Rows showing Check", '=SUMPRODUCT(--(LEFT(H5:H504,5)="Check"))', "0"),
+        (6, "ISO week differs from the long formula", "=SUMPRODUCT(--(C5:C504<>I5:I504))", "0"),
+        (8, "Rows with that year-week label", "=COUNTIF(E5:E504,M7)", "0"),
+        (9, "Typed below row 504 (not read)", "=COUNTA(A505:A2000)", "0"),
+        (10, "CHECK", '=IF(AND(M4>0,M5=0,M6=0,M9=0),"OK","Check")', "General"),
+    ])
+    ws["L7"], ws["M7"] = "Year-week to count (yellow)", "2026-W47"
+    ws["L7"].font = Font(bold=True)
+    ws["M7"].fill = INPUT_FILL
+    ws["M7"].alignment = Alignment(horizontal="right")
+    ws.conditional_formatting.add("H5:H504", FormulaRule(formula=['LEFT($H5,5)="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("M10", FormulaRule(formula=['$M$10<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+
+    cal["A1"], cal["B1"] = "First day", date(2026, 12, 1)
+    cal["A1"].font = Font(bold=True)
+    cal["B1"].fill = INPUT_FILL
+    cal["B1"].number_format = US_DATE
+    cal["C1"] = "Type the first day to show (yellow). The tab lists 62 days from there: December 2026 and January 2027."
+    cal["A2"] = "Differ (orange) marks the days where the US week and the ISO week have different numbers."
+    cal["C1"].font = cal["A2"].font = Font(italic=True)
+    _head_row(cal, 4, ["Date", "Day", "US week (Sunday start)", "ISO week (Monday start)", "ISO year",
+                       "Year-week label (ISO)", "Week of month (Sunday start)", "US and ISO week"],
+              [12, 11, 10, 10, 8, 11, 10, 10], height=60)
+    for r in range(5, 67):
+        a = f"A{r}"
+        cal[a] = '=IF(ISNUMBER($B$1),INT($B$1),"")' if r == 5 else f'=IF(A{r - 1}="","",A{r - 1}+1)'
+        ok = f'IF({a}="","",'
+        w = _week_cells(cal, r, a, ok)
+        cal[f"B{r}"] = f'={ok}TEXT({a},"ddd"))'
+        cal[f"C{r}"], cal[f"D{r}"], cal[f"E{r}"], cal[f"G{r}"] = w["us"], w["iso"], w["isoyear"], w["wom"]
+        cal[f"F{r}"] = f'=IF(D{r}="","",E{r}&"-W"&TEXT(D{r},"00"))'
+        cal[f"H{r}"] = f'={ok}IF(C{r}<>D{r},"Differ","Same"))'
+        cal[a].number_format = US_DATE
+        for col in "CDEG":
+            cal[f"{col}{r}"].number_format = "0"
+        for col in "ABCDEFGH":
+            cal[f"{col}{r}"].fill = FORMULA_FILL
+            cal[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    cal.conditional_formatting.add("H5:H66", FormulaRule(formula=['$H5="Differ"'], fill=CHECK_ORANGE))
+    cal.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Week Number From a Date (US and ISO Weeks, Week of Month)",
+        "",
+        "1. Dates tab: type one date per row in column A (yellow, rows 5 to 504, MM/DD/YYYY). The 15 market and order dates are fictional.",
+        "2. US week, B5: =INT((A5-DATE(YEAR(A5),1,1)+WEEKDAY(DATE(YEAR(A5),1,1))-1)/7)+1. Weeks start on Sunday and the week that holds January 1 is week 1, so a year can have a week 53 (12/27/2026 to 12/31/2026) or even a week 54 (12/31/2028). It counts days, so it does not depend on WEEKNUM's late-December behavior.",
+        "3. ISO week, C5: =WEEKNUM(A5,21). ISO weeks start on Monday and week 1 is the week with the year's first Thursday, so 12/29/2025 is in week 1 of 2026 and 01/01/2027 is in week 53 of 2026. ISOWEEKNUM(A5) is the newer name for the same number.",
+        "4. ISO year, D5: =YEAR(A5-WEEKDAY(A5,2)+4), the year of that week's Thursday. Year-week label, E5: =D5&\"-W\"&TEXT(C5,\"00\") gives 2026-W47. Column J builds the label with YEAR(A5) for comparison: it gives 2027-W53 for 01/01/2027, which is wrong.",
+        "5. Week of month, F5: =INT((DAY(A5)+WEEKDAY(DATE(YEAR(A5),MONTH(A5),1))-2)/7)+1. Sunday start, and the 1st of the month is always in week 1. There is no single standard for week of month; this is the one this sheet uses.",
+        "6. ISO week starts, G5: =INT(A5)-WEEKDAY(A5,2)+1, the Monday of that ISO week. Column I works out the ISO week a second way without WEEKNUM; M6 counts rows where the two differ (should be 0).",
+        "7. Count a week: type a label such as 2026-W47 in M7 (yellow); M8 counts the dates with that label.",
+        "8. Status Check: a date typed as text (11/21/2026 typed with an apostrophe, or pasted as text) or a number below 1. Fix it by retyping the date. A date with a time still works: the time is ignored.",
+        "9. Calendar check tab: type a first day in B1 (yellow) to list 62 days with both week numbers side by side; Differ (orange) marks the days where they disagree.",
+        "10. Fiscal or retail calendars (such as 4-5-4) number weeks their own way; this sheet does not cover them.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = cal.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-week-number-from-date.xlsx")
+
+
+def economic_order_quantity():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Supplies"
+    tb = wb.create_sheet("Cost table")
+    ws["A1"] = ("One supply per row (yellow, rows 5 to 54): units used per year, cost per order (shipping and handling), "
+                "unit cost, your holding cost % per year and the case size. Fictional supplies and prices.")
+    ws["A2"] = ("Type the holding cost as a percent (20%, not 20) and the use per YEAR (not per month). "
+                "EOQ is a starting point: it assumes steady use and the same cost for every order.")
+    ws["A1"].font = ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Item", "Units used per year", "Cost per order", "Unit cost", "Holding cost % per year",
+                      "Case size", "Holding cost per unit per year", "EOQ", "Order quantity (rounded up to the case)",
+                      "Orders per year", "Days between orders", "Yearly order cost", "Yearly holding cost",
+                      "Yearly total", "Status"],
+              [20, 10, 9, 9, 9, 7, 10, 9, 13, 8, 9, 10, 10, 10, 24], height=74)
+    rows = [("Glass jars, 8 oz", 2400, 25.00, 1.20, 0.20, 12),
+            ("Candle wicks", 5000, 8.00, 0.10, 0.25, 100),
+            ("Mailer boxes", 1800, 15.00, 0.85, 0.20, 50),
+            ("Soy wax, lb", 1200, 30.00, 2.40, 0.20, 50),
+            ("Fragrance oil, 16 oz", 300, 12.00, 9.50, 0.20, 6)]
+    for r in range(5, 55):
+        for col in "ABCDEF":
+            ws[f"{col}{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = "#,##0"
+        ws[f"C{r}"].number_format = ws[f"D{r}"].number_format = USD
+        ws[f"E{r}"].number_format = "0.0#%"
+        ws[f"F{r}"].number_format = "#,##0"
+        ws[f"O{r}"] = (f'=IF(AND(TRIM(A{r})="",COUNTA(B{r}:F{r})=0),"",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: units per year",IF(B{r}<=0,"Check: units per year",'
+                       f'IF(NOT(ISNUMBER(C{r})),"Check: cost per order",IF(C{r}<=0,"Check: cost per order",'
+                       f'IF(NOT(ISNUMBER(D{r})),"Check: unit cost",IF(D{r}<=0,"Check: unit cost",'
+                       f'IF(NOT(ISNUMBER(E{r})),"Check: holding %",IF(E{r}<=0,"Check: holding %",'
+                       f'IF(E{r}>1,"Check: holding % (20% not 20)",'
+                       f'IF(NOT(ISNUMBER(F{r})),"Check: case size",IF(F{r}<1,"Check: case size",'
+                       f'IF(F{r}<>INT(F{r}),"Check: case size","OK")))))))))))))')
+        ok = f'IF($O{r}<>"OK","",'
+        ws[f"G{r}"] = f"={ok}D{r}*E{r})"
+        ws[f"H{r}"] = f"={ok}SQRT(2*B{r}*C{r}/G{r}))"
+        ws[f"I{r}"] = f"={ok}ROUNDUP(ROUND(H{r}/F{r},9),0)*F{r})"
+        ws[f"J{r}"] = f"={ok}B{r}/I{r})"
+        ws[f"K{r}"] = f"={ok}365/J{r})"
+        ws[f"L{r}"] = f"={ok}J{r}*C{r})"
+        ws[f"M{r}"] = f"={ok}I{r}/2*G{r})"
+        ws[f"N{r}"] = f"={ok}L{r}+M{r})"
+        ws[f"G{r}"].number_format = '"$"#,##0.0000'
+        ws[f"H{r}"].number_format = "#,##0.00"
+        ws[f"I{r}"].number_format = "#,##0"
+        ws[f"J{r}"].number_format = ws[f"K{r}"].number_format = "#,##0.0"
+        for col in "LMN":
+            ws[f"{col}{r}"].number_format = USD
+        for col in "GHIJKLMNO":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(rows):
+        for col, v in zip("ABCDEF", row):
+            ws[f"{col}{5 + i}"] = v
+    ws.column_dimensions["P"].width = 3
+    ws.column_dimensions["Q"].width = 30
+    ws.column_dimensions["R"].width = 11
+    _summary_block(ws, "Q", "R", [
+        (4, "Items listed", '=SUMPRODUCT(--(O5:O54<>""))', "0"),
+        (5, "Rows showing Check", '=SUMPRODUCT(--(LEFT(O5:O54,5)="Check"))', "0"),
+        (6, "Yearly total, all OK items", "=SUM(N5:N54)", USD),
+        (7, "Typed below row 54 (not read)", "=COUNTA(A55:F300)", "0"),
+        (8, "CHECK", '=IF(AND(R4>0,R5=0,R7=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("O5:O54", FormulaRule(formula=['LEFT($O5,5)="Check"'], fill=ALERT_FILL))
+    ws.conditional_formatting.add("R8", FormulaRule(formula=['$R$8<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "A5"
+
+    tb["A1"], tb["B1"] = "Item", "Glass jars, 8 oz"
+    tb["A2"], tb["B2"] = "First quantity", 100
+    tb["A3"], tb["B3"] = "Step", 100
+    for c in ("A1", "A2", "A3"):
+        tb[c].font = Font(bold=True)
+    for c in ("B1", "B2", "B3"):
+        tb[c].fill = INPUT_FILL
+    tb["B2"].number_format = tb["B3"].number_format = "#,##0"
+    tb["C1"] = "Pick an item from the Supplies tab (yellow). The table shows the yearly cost at 20 order sizes."
+    tb["C2"] = "First quantity and step (yellow): 100 and 100 give 100 to 2,000. Use your case size as the step if you like."
+    tb["C1"].font = tb["C2"].font = Font(italic=True)
+    dv = DataValidation(type="list", formula1="=Supplies!$A$5:$A$54", allow_blank=True, errorStyle="warning")
+    tb.add_data_validation(dv)
+    dv.add("B1")
+    _head_row(tb, 4, ["Order quantity", "Yearly order cost", "Yearly holding cost", "Yearly total", "Lowest in table"],
+              [18, 22, 11, 11, 10], height=46)
+    tb["B1"].alignment = Alignment(horizontal="left")
+    for r in range(5, 25):
+        tb[f"A{r}"] = (f'=IF(AND(ISNUMBER($B$2),ISNUMBER($B$3)),$B$2,"")' if r == 5
+                       else f'=IF(A{r - 1}="","",A{r - 1}+$B$3)')
+        ok = f'IF(OR(A{r}="",$H$15<>"OK"),"",'
+        tb[f"B{r}"] = f"={ok}$H$6/A{r}*$H$7)"
+        tb[f"C{r}"] = f"={ok}A{r}/2*$H$8)"
+        tb[f"D{r}"] = f'=IF(B{r}="","",B{r}+C{r})'
+        tb[f"E{r}"] = f'=IF(D{r}="","",IF(D{r}=MIN($D$5:$D$24),"Lowest",""))'
+        tb[f"A{r}"].number_format = "#,##0"
+        for col in "BCD":
+            tb[f"{col}{r}"].number_format = USD
+        for col in "ABCDE":
+            tb[f"{col}{r}"].fill = FORMULA_FILL
+            tb[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    tb.column_dimensions["F"].width = 3
+    tb.column_dimensions["G"].width = 36
+    tb.column_dimensions["H"].width = 12
+    S = "Supplies!${c}$5:${c}$54"
+    _summary_block(tb, "G", "H", [
+        (4, "Row on Supplies", '=IFERROR(MATCH(B1,Supplies!$A$5:$A$54,0),"")', "0"),
+        (5, "That row's Status", f'=IF(H4="","Not on Supplies",INDEX({S.format(c="O")},H4))', "General"),
+        (6, "Units used per year", f'=IF(H5="OK",INDEX({S.format(c="B")},H4),"")', "#,##0"),
+        (7, "Cost per order", f'=IF(H5="OK",INDEX({S.format(c="C")},H4),"")', USD),
+        (8, "Holding cost per unit per year", f'=IF(H5="OK",INDEX({S.format(c="G")},H4),"")', '"$"#,##0.0000'),
+        (9, "EOQ", f'=IF(H5="OK",INDEX({S.format(c="H")},H4),"")', "#,##0.00"),
+        (10, "Order quantity (rounded up to the case)", f'=IF(H5="OK",INDEX({S.format(c="I")},H4),"")', "#,##0"),
+        (11, "Yearly total at that quantity", f'=IF(H5="OK",INDEX({S.format(c="N")},H4),"")', USD),
+        (12, "Yearly total at the exact EOQ", '=IF(H5="OK",H6/H9*H7+H9/2*H8,"")', USD),
+        (13, "Lowest-cost quantity in the table",
+         '=IF(COUNT(D5:D24)=0,"",INDEX(A5:A24,MATCH(MIN(D5:D24),D5:D24,0)))', "#,##0"),
+        (14, "Lowest yearly total in the table", '=IF(COUNT(D5:D24)=0,"",MIN(D5:D24))', USD),
+        (15, "CHECK", '=IF(AND(H5="OK",ISNUMBER(B2),ISNUMBER(B3)),IF(AND(B2>0,B3>0),"OK","Check"),"Check")',
+         "General"),
+    ])
+    tb.conditional_formatting.add("E5:E24", FormulaRule(formula=['$E5="Lowest"'], fill=DONE_FILL))
+    tb.conditional_formatting.add("H15", FormulaRule(formula=['$H$15<>"OK"'], fill=ALERT_FILL))
+    tb.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: How Much to Order at Once (Economic Order Quantity)",
+        "",
+        "1. Supplies tab: one supply per row (yellow, rows 5 to 54): units used per year, cost per order (shipping, handling, your time if you count it), unit cost, holding cost % per year and case size. The five supplies and their prices are fictional.",
+        "2. Holding cost % is your own estimate of what it costs per year to keep one dollar of stock on the shelf (cash tied up, space, breakage). This sheet does not suggest a rate.",
+        "3. Holding cost per unit per year, G5: =D5*E5. EOQ, H5: =SQRT(2*B5*C5/G5), the order size where the yearly order cost and the yearly holding cost are lowest together.",
+        "4. Order quantity, I5: =ROUNDUP(ROUND(H5/F5,9),0)*F5 rounds the EOQ up to whole cases (ROUND first so an EOQ that is already a whole number of cases is not pushed up by a tiny decimal).",
+        "5. Orders per year J5 =B5/I5, Days between orders K5 =365/J5, Yearly order cost L5 =J5*C5, Yearly holding cost M5 =I5/2*G5 (on average half an order is on the shelf), Yearly total N5 =L5+M5.",
+        "6. Status Check: a blank, text, 0 or negative entry in B to F, a holding % above 100% (20 typed instead of 20%), or a case size that is not a whole number 1 or more. Results stay blank until the row is OK.",
+        "7. Two typing mistakes to watch: 20 instead of 20% in E makes the EOQ about 10 times too small, and monthly use in B makes it too small by the square root of 12 (about 3.5 times).",
+        "8. Cost table tab: pick an item in B1 (yellow). The table shows the yearly total at 20 order sizes from B2 in steps of B3, and marks the lowest. The cost changes slowly near the EOQ, so rounding up to a case costs little.",
+        "9. EOQ is a starting point. It assumes steady use and the same cost for every order. It does not include quantity discounts, lead time or safety stock, and it says nothing about inventory accounting or taxes.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = tb.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-economic-order-quantity.xlsx")
+
+
+def shelf_bin_location_finder():
+    wb = Workbook()
+    mp = wb.active
+    mp.title = "Map"
+    fd = wb.create_sheet("Find")
+    mp["A1"] = ("Shelf map (yellow): shelf labels down column A (rows 5 to 10), bin labels across row 4 (B to I), one SKU per "
+                "bin. Leave a bin empty if nothing is in it. Fictional SKUs.")
+    mp["A2"] = ("Type SKUs as text, the same way you type them on the Find tab (1001 typed as a number on the map is not "
+                "found by the text \"1001\"). No spaces before or after a SKU.")
+    mp["A1"].font = mp["A2"].font = Font(italic=True)
+    mp["A4"] = "Shelf"
+    mp["A4"].fill, mp["A4"].font = HEADER_FILL, HEADER_FONT
+    mp["A4"].alignment = Alignment(vertical="center", wrap_text=True)
+    mp.row_dimensions[4].height = 24
+    mp.column_dimensions["A"].width = 8
+    cols = [chr(ord("B") + k) for k in range(8)]
+    for k, col in enumerate(cols):
+        mp[f"{col}4"] = f"Bin {k + 1}"
+        mp[f"{col}4"].fill = INPUT_FILL
+        mp[f"{col}4"].font = Font(bold=True)
+        mp[f"{col}4"].alignment = Alignment(horizontal="center", vertical="center")
+        mp.column_dimensions[col].width = 12
+    n = 100
+    for i, shelf in enumerate("ABCDEF"):
+        r = 5 + i
+        mp[f"A{r}"] = shelf
+        mp[f"A{r}"].fill = INPUT_FILL
+        mp[f"A{r}"].font = Font(bold=True)
+        mp[f"A{r}"].alignment = Alignment(horizontal="center")
+        for col in cols:
+            mp[f"{col}{r}"] = f"SKU-{n}"
+            mp[f"{col}{r}"].fill = INPUT_FILL
+            mp[f"{col}{r}"].alignment = Alignment(horizontal="center")
+            mp[f"{col}{r}"].number_format = "@"
+            n += 1
+    mp["G5"] = "MUG-BLU-12"
+    mp["C6"] = mp["F9"] = "CAN-LAV-08"
+    mp["D7"] = 1001
+    mp["D7"].number_format = "General"
+    mp["E8"] = None
+    mp.column_dimensions["J"].width = 3
+    mp.column_dimensions["K"].width = 40
+    mp.column_dimensions["L"].width = 8
+    _summary_block(mp, "K", "L", [
+        (4, "Filled bins", "=COUNTA(B5:I10)", "0"),
+        (5, "Empty bins", "=ROWS(B5:I10)*COLUMNS(B5:I10)-L4", "0"),
+        (6, "Bins holding a SKU that is in another bin too", '=SUMPRODUCT((B5:I10<>"")*(COUNTIF(B5:I10,B5:I10)>1))', "0"),
+        (7, "Bins with a space before or after the SKU", '=SUMPRODUCT((B5:I10<>"")*(LEN(B5:I10)<>LEN(TRIM(B5:I10))))', "0"),
+        (8, "Map CHECK", '=IF(AND(L4>0,L6=0,L7=0),"OK","Check")', "General"),
+    ])
+    mp.conditional_formatting.add("L8", FormulaRule(formula=['$L$8<>"OK"'], fill=ALERT_FILL))
+    mp.conditional_formatting.add("B5:I10", FormulaRule(formula=['AND(B5<>"",COUNTIF($B$5:$I$10,B5)>1)'],
+                                                       fill=CHECK_ORANGE))
+
+    fd["A1"] = ("Type or paste the SKUs to find (yellow, rows 5 to 54). Location shows shelf-bin, such as C-Bin 3. "
+                "Sort the list by Walk order (F) with Data > Sort to pick in one pass.")
+    fd["A2"] = "A location is shown only when the SKU is in exactly one bin; otherwise the sheet says Not on map or In 2 bins."
+    fd["A1"].font = fd["A2"].font = Font(italic=True)
+    _head_row(fd, 4, ["SKU", "Times on map", "Row number", "Column number", "Location", "Walk order", "Status"],
+              [16, 9, 9, 9, 14, 9, 34], height=46)
+    grid = "Map!$B$5:$I$10"
+    look = ["SKU-100", "SKU-147", "MUG-BLU-12", "SKU-123", "SKU-131", "mug-blu-12", "MUG-BLU-12 ", "CAN-LAV-08",
+            "SKU-200", 1001, "1001"]
+    for r in range(5, 55):
+        fd[f"A{r}"].fill = INPUT_FILL
+        fd[f"B{r}"] = f'=IF(TRIM(A{r})="","",SUMPRODUCT(--({grid}=A{r})))'
+        fd[f"C{r}"] = f'=IF(B{r}<>1,"",SUMPRODUCT(({grid}=A{r})*(ROW({grid})-ROW(Map!$B$5)+1)))'
+        fd[f"D{r}"] = f'=IF(B{r}<>1,"",SUMPRODUCT(({grid}=A{r})*(COLUMN({grid})-COLUMN(Map!$B$5)+1)))'
+        fd[f"E{r}"] = (f'=IF(B{r}="","",IF(B{r}=1,INDEX(Map!$A$5:$A$10,C{r})&"-"&INDEX(Map!$B$4:$I$4,D{r}),'
+                       f'IF(B{r}=0,"Not on map","In "&B{r}&" bins")))')
+        fd[f"F{r}"] = f'=IF(B{r}=1,C{r}*100+D{r},"")'
+        fd[f"G{r}"] = (f'=IF(B{r}="","",IF(B{r}=1,"OK",IF(B{r}>1,"Check: in "&B{r}&" bins",'
+                       f'IF(SUMPRODUCT(--(TRIM({grid})=TRIM(A{r})))>0,"Check: space, or number vs text",'
+                       f'"Check: not on map"))))')
+        for col in "BCDF":
+            fd[f"{col}{r}"].number_format = "0"
+        for col in "BCDEFG":
+            fd[f"{col}{r}"].fill = FORMULA_FILL
+            fd[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, v in enumerate(look):
+        fd[f"A{5 + i}"] = v
+        if isinstance(v, str):
+            fd[f"A{5 + i}"].number_format = "@"
+    fd.column_dimensions["H"].width = 3
+    fd.column_dimensions["I"].width = 30
+    fd.column_dimensions["J"].width = 8
+    _summary_block(fd, "I", "J", [
+        (4, "SKUs listed", '=SUMPRODUCT(--(B5:B54<>""))', "0"),
+        (5, "Found in one bin", "=COUNTIF(B5:B54,1)", "0"),
+        (6, "Not on map", "=COUNTIF(B5:B54,0)", "0"),
+        (7, "In more than one bin", '=COUNTIF(B5:B54,">1")', "0"),
+        (8, "Rows showing Check", '=SUMPRODUCT(--(LEFT(G5:G54,5)="Check"))', "0"),
+        (9, "Typed below row 54 (not read)", "=COUNTA(A55:A1000)", "0"),
+        (10, "Map CHECK", "=Map!L8", "General"),
+        (11, "CHECK", '=IF(AND(J4>0,J8=0,J9=0,J10="OK"),"OK","Check")', "General"),
+    ])
+    fd.conditional_formatting.add("G5:G54", FormulaRule(formula=['LEFT($G5,5)="Check"'], fill=ALERT_FILL))
+    fd.conditional_formatting.add("J11", FormulaRule(formula=['$J$11<>"OK"'], fill=ALERT_FILL))
+    fd.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find a SKU on a Shelf Map and Return Its Shelf and Bin",
+        "",
+        "1. Map tab: shelf labels in A5:A10, bin labels in B4:I4 and one SKU per bin in B5:I10 (all yellow; 6 shelves x 8 bins). Change the labels and SKUs to your own. The SKUs are fictional.",
+        "2. Find tab: type or paste SKUs in column A (yellow, rows 5 to 54).",
+        "3. Times on map, B5: =SUMPRODUCT(--(Map!$B$5:$I$10=A5)) counts the bins that hold the SKU. The blank check in front matters: an empty lookup cell would match an empty bin.",
+        "4. Row number, C5: =SUMPRODUCT((Map!$B$5:$I$10=A5)*(ROW(Map!$B$5:$I$10)-ROW(Map!$B$5)+1)). Column number (D) is the same with COLUMN. Both are worked out only when the SKU is in exactly one bin: with two matches the numbers would add together and point at the wrong cell.",
+        "5. Location, E5: =INDEX(Map!$A$5:$A$10,C5)&\"-\"&INDEX(Map!$B$4:$I$4,D5) gives a label such as F-Bin 8. It shows Not on map or In 2 bins instead of a wrong location or an error.",
+        "6. Walk order, F5: =C5*100+D5 (shelf A bin 1 is 101, shelf F bin 8 is 608). Select A4:G54 and use Data > Sort by Walk order, ascending, to pick shelf by shelf.",
+        "7. Status: OK, Check: in 2 bins, Check: not on map, or Check: space, or number vs text (the SKU matches only after trimming spaces or as text, for example \"MUG-BLU-12 \" with a space at the end, or 1001 stored as a number on the map but typed as text on Find).",
+        "8. In LibreOffice Calc the match ignores upper and lower case (mug-blu-12 finds MUG-BLU-12). * and ? are plain characters here: SUMPRODUCT compares whole values, unlike COUNTIF.",
+        "9. Map checks: Filled bins (L4), Empty bins (L5), Bins holding a SKU that is in another bin too (L6, those bins turn orange) and Bins with a space before or after the SKU (L7). The sample map has CAN-LAV-08 in two bins on purpose, so Map CHECK shows Check until you fix it.",
+        "10. The map must be one block with one SKU per cell. This sheet finds SKUs on your map; it is not an inventory system and does not track counts.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    mp.print_title_rows = fd.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-shelf-bin-location-finder.xlsx")
+
+
+URL_HANDLE_SPACE_CHARS = ["-", "/", ",", ".", ":", ";", "!", "?", "(", ")", '"', "#", "%", "+", "_", "|"]
+
+
+def _url_handle_formula(cell):
+    expr = f"LOWER({cell})"
+    expr = f'SUBSTITUTE({expr},"&"," and ")'
+    expr = f'SUBSTITUTE({expr},"\'","")'
+    expr = f'SUBSTITUTE({expr},"’","")'
+    for ch in URL_HANDLE_SPACE_CHARS:
+        q = '"' + ch.replace('"', '""') + '"'
+        expr = f'SUBSTITUTE({expr},{q}," ")'
+    return f'SUBSTITUTE(TRIM({expr})," ","-")'
+
+
+def url_handle_from_title():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Titles"
+    ws["A1"] = ("One product title per row (yellow, rows 5 to 204). Unique handle (E) is the lowercase, hyphenated handle "
+                "to copy into your import file. Fictional product titles.")
+    ws["A2"] = ("Leftover characters (C) counts anything that is not a-z, 0-9 or a hyphen, such as é or an en dash: "
+                "retype those letters in the title. Check your store's import help for its own handle rules.")
+    ws["A1"].font = ws["A2"].font = Font(italic=True)
+    _head_row(ws, 4, ["Product title", "Handle", "Leftover characters", "Times this handle appears",
+                      "Unique handle (adds -2, -3)", "Length", "Status", "Unique handle repeats",
+                      "Quick formula (wrong, comparison)"],
+              [34, 34, 10, 9, 36, 7, 24, 9, 34], height=60)
+    titles = ["Lavender & Honey Soy Candle - 8 oz", "Grandma's Apple Butter (16 oz.)", "  Hand-Painted  Mug, Blue/White ",
+              "Holiday Gift Box: 3 Jams!", "100% Cotton Tote #2", "Grandma’s Fig Jam", "Pumpkin_Spice+Clove | Wax Melt",
+              '"Best Seller" Tea Towel?', "Crème Brûlée Candle", "Lavender & Honey Soy Candle – 8 oz",
+              "Lavender and Honey Soy Candle 8 oz", "Lavender and Honey Soy Candle 8 oz"]
+    allowed = "abcdefghijklmnopqrstuvwxyz0123456789-"
+    for r in range(5, 205):
+        ws[f"A{r}"].fill = INPUT_FILL
+        ws[f"B{r}"] = f'=IF(TRIM(A{r})="","",{_url_handle_formula(f"A{r}")})'
+        ws[f"C{r}"] = (f'=IF(B{r}="","",SUMPRODUCT(--ISERROR(FIND(MID(B{r},ROW(INDIRECT("1:"&LEN(B{r}))),1),'
+                       f'"{allowed}"))))')
+        ws[f"D{r}"] = f'=IF(B{r}="","",COUNTIF($B$5:$B$204,B{r}))'
+        ws[f"E{r}"] = f'=IF(B{r}="","",IF(COUNTIF($B$5:B{r},B{r})>1,B{r}&"-"&COUNTIF($B$5:B{r},B{r}),B{r}))'
+        ws[f"F{r}"] = f'=IF(E{r}="","",LEN(E{r}))'
+        ws[f"H{r}"] = f'=IF(E{r}="","",COUNTIF($E$5:$E$204,E{r}))'
+        ws[f"G{r}"] = (f'=IF(TRIM(A{r})="","",IF(B{r}="","Check: no letters or digits",'
+                       f'IF(C{r}>0,"Fix: special letters",IF(H{r}>1,"Check: numbered handle repeats",'
+                       f'IF(D{r}>1,"Duplicate (numbered)","OK")))))')
+        ws[f"I{r}"] = f'=IF(TRIM(A{r})="","",SUBSTITUTE(LOWER(TRIM(A{r}))," ","-"))'
+        for col in "CDFH":
+            ws[f"{col}{r}"].number_format = "0"
+        for col in "BCDEFGHI":
+            ws[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "CDFGH":
+            ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, t in enumerate(titles):
+        ws[f"A{5 + i}"] = t
+    ws.column_dimensions["J"].width = 3
+    ws.column_dimensions["K"].width = 34
+    ws.column_dimensions["L"].width = 8
+    _summary_block(ws, "K", "L", [
+        (4, "Titles listed", '=SUMPRODUCT(--(G5:G204<>""))', "0"),
+        (5, "OK", '=COUNTIF(G5:G204,"OK")', "0"),
+        (6, "Duplicate (numbered)", '=COUNTIF(G5:G204,"Duplicate (numbered)")', "0"),
+        (7, "Fix: special letters", '=COUNTIF(G5:G204,"Fix: special letters")', "0"),
+        (8, "Rows showing Check", '=SUMPRODUCT(--(LEFT(G5:G204,5)="Check"))', "0"),
+        (9, "Longest handle (characters)", '=IF(COUNT(F5:F204)=0,"",MAX(F5:F204))', "0"),
+        (10, "Typed below row 204 (not read)", "=COUNTA(A205:A1000)", "0"),
+        (11, "CHECK", '=IF(AND(L4>0,L7=0,L8=0,L10=0),"OK","Check")', "General"),
+    ])
+    ws.conditional_formatting.add("G5:G204", FormulaRule(formula=['OR(LEFT($G5,5)="Check",LEFT($G5,4)="Fix:")'],
+                                                         fill=ALERT_FILL))
+    ws.conditional_formatting.add("G5:G204", FormulaRule(formula=['$G5="Duplicate (numbered)"'], fill=CHECK_ORANGE))
+    ws.conditional_formatting.add("L11", FormulaRule(formula=['$L$11<>"OK"'], fill=ALERT_FILL))
+    ws.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Turn Product Titles Into URL Handles (Slugs)",
+        "",
+        "1. Titles tab: one product title per row in column A (yellow, rows 5 to 204). The 12 titles are fictional.",
+        "2. Handle (B): LOWER makes the title lowercase, SUBSTITUTE turns & into \" and \", removes straight and curly apostrophes (' and ’), and turns each of these 16 characters into a space: - / , . : ; ! ? ( ) \" # % + _ |. TRIM then removes spaces at the ends and collapses double spaces, and the last SUBSTITUTE turns the spaces into hyphens. That is 19 SUBSTITUTE calls inside one formula, plus the outer one.",
+        "3. Leftover characters, C5: =IF(B5=\"\",\"\",SUMPRODUCT(--ISERROR(FIND(MID(B5,ROW(INDIRECT(\"1:\"&LEN(B5))),1),\"abcdefghijklmnopqrstuvwxyz0123456789-\")))) counts characters in the handle that are not a-z, 0-9 or a hyphen. Accented letters (é, û), an en dash (–) or symbols such as @ * ~ are not converted: Status shows Fix: special letters, and you retype them in the title.",
+        "4. Times this handle appears, D5: =COUNTIF($B$5:$B$204,B5). Unique handle, E5: =IF(COUNTIF($B$5:B5,B5)>1,B5&\"-\"&COUNTIF($B$5:B5,B5),B5) keeps the first one and adds -2, -3 to the later ones.",
+        "5. Unique handle repeats (H) counts E: if a numbered handle such as tote-2 matches another title's handle, Status shows Check: numbered handle repeats. Change one of the titles.",
+        "6. Status: OK, Duplicate (numbered) (orange: fine to use, already numbered), Fix: special letters, Check: no letters or digits (a title such as !!! gives an empty handle), Check: numbered handle repeats.",
+        "7. Column I is the quick formula =SUBSTITUTE(LOWER(TRIM(A5)),\" \",\"-\") for comparison: it leaves the symbols in (lavender-&-honey-soy-candle---8-oz).",
+        "8. To use the handles: copy column E and paste it as values only (Paste Special) into your import file. Length (F) is the handle's length in characters; check your store's import help for its own handle rules and limits.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ws.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-url-handle-from-title.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -19002,4 +19609,9 @@ if __name__ == "__main__":
     ordinal_dates()
     recipe_unit_converter()
     project_time_elapsed_tracker()
+    shared_expense_split()
+    week_number_from_date()
+    economic_order_quantity()
+    shelf_bin_location_finder()
+    url_handle_from_title()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

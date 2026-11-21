@@ -973,7 +973,65 @@ def heroes_2026_11_20_05():
                 "Projects", hide_cols="JKL", name="timeelapsed"))
 
 
+def save_stacked(out, *images, gap=30):
+    """Like save(), but the cards sit one above the other (for wide, short tabs)."""
+    canvas = Image.new("RGB", (W, H), BG)
+    max_w, max_h = W - 2 * PAD, H - 2 * PAD - gap * (len(images) - 1)
+    scale = min(max_w / max(i.width for i in images), max_h / sum(i.height for i in images))
+    cards = [card(i, i.width * scale, i.height * scale) for i in images]
+    y = (H - sum(c.height - 24 for c in cards) - gap * (len(cards) - 1)) // 2 - 12
+    for c in cards:
+        canvas.paste(c, ((W - c.width) // 2, y), c)
+        y += c.height - 24 + gap
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    canvas.save(out, optimize=True)
+    print("wrote", out, os.path.getsize(out) // 1024, "KB")
+
+
+def trimmed_copy(src, sheet, last_row, name, hide_rows=(), clear=()):
+    """Copy of a tab with the empty rows below last_row deleted (their gray formula
+    fill would otherwise shrink a fit-to-page render), plus hidden note rows."""
+    wb = load_workbook(src)
+    ws = wb[sheet]
+    if ws.max_row > last_row:
+        ws.delete_rows(last_row + 1, ws.max_row - last_row)
+    for r in hide_rows:
+        ws.row_dimensions[r].hidden = True
+    for cell in clear:
+        ws[cell] = None
+    path = f"{rp.TMP}/{name}-trimmed.xlsx"
+    wb.save(path)
+    return path
+
+
+def heroes_2026_11_21():
+    t = "templates/"
+    d = "images/2026-11-21-team-0%d-%s/"
+    save_stacked(d % (1, "split-shared-expenses-who-owes-whom-sumif-round-excel-google-sheets") + "shared-expense-split-who-owes-whom-template.png",
+         render(trimmed_copy(t + "tidy-tabs-shared-expense-split.xlsx", "Expenses", 10, "expsplitlog", hide_rows=[1, 2, 3]),
+                "Expenses", hide_cols="EFGH", name="expsplitlog"),
+         render(compact_copy(t + "tidy-tabs-shared-expense-split.xlsx", "People", 7, "expsplit", hide_rows=[2, 3], clear=["C1"]),
+                "People", hide_cols="GHIJ", name="expsplit"))
+    save(d % (2, "week-number-from-date-us-and-iso-week-weeknum-excel-google-sheets") + "week-number-us-vs-iso-week-template.png",
+         render(trimmed_copy(t + "tidy-tabs-week-number-from-date.xlsx", "Dates", 19, "weeknum", hide_rows=[1, 2, 3]),
+                "Dates", hide_cols="HIKLM", name="weeknum"))
+    save(d % (3, "economic-order-quantity-how-much-to-order-sqrt-roundup-excel-google-sheets") + "economic-order-quantity-supplies-template.png",
+         render(trimmed_copy(t + "tidy-tabs-economic-order-quantity.xlsx", "Supplies", 9, "eoq", hide_rows=[1, 2, 3]),
+                "Supplies", hide_cols="JKOPQR", name="eoq"))
+    save_stacked(d % (4, "find-value-in-grid-return-row-and-column-label-sumproduct-index-excel-google-sheets") + "shelf-bin-location-finder-template.png",
+         render(compact_copy(t + "tidy-tabs-shelf-bin-location-finder.xlsx", "Map", 10, "binmap", hide_rows=[1, 2, 3]),
+                "Map", hide_cols="JKL", name="binmap"),
+         render(trimmed_copy(t + "tidy-tabs-shelf-bin-location-finder.xlsx", "Find", 15, "binfind", hide_rows=[1, 2, 3]),
+                "Find", hide_cols="HIJ", name="binfind"))
+    save(d % (5, "product-titles-to-url-handles-slugs-substitute-trim-excel-google-sheets") + "product-title-to-url-handle-template.png",
+         render(trimmed_copy(t + "tidy-tabs-url-handle-from-title.xlsx", "Titles", 16, "urlhandle", hide_rows=[1, 2, 3]),
+                "Titles", hide_cols="DFHJKL", name="urlhandle"))
+
+
 def main():
+    if "--only-2026-11-21" in sys.argv:
+        heroes_2026_11_21()
+        return
     if "--only-2026-11-20" in sys.argv:
         for n in "12345":
             if not any(a.startswith("--only-2026-11-20-0") for a in sys.argv) or f"--only-2026-11-20-0{n}" in sys.argv:

@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DgATmFCm8HO
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-estimate-project-hours-with.html
 title: How to Estimate Project Hours With a Three-Point (PERT) Estimate in Excel and Google Sheets
 labels: excel-formulas, small-business, freelance, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 19 workbooks and 2,565 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

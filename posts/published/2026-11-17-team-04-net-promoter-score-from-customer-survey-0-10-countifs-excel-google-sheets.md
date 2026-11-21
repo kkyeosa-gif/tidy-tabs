@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DgAnYu9FKeY
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-net-promoter-score.html
 title: How to Calculate a Net Promoter Score From a 0 to 10 Customer Survey in Excel and Google Sheets
 labels: excel-formulas, small-business, customers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 22 workbooks and 22,968 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

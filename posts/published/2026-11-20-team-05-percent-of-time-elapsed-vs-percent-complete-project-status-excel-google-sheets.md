@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DgDZ6BxlgA6
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-compare-percent-of-time-elapsed.html
 title: How to Compare Percent of Time Elapsed With Percent Complete in Excel and Google Sheets
 labels: excel-formulas, freelancers, project-planning
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 41 workbooks and 8,569 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

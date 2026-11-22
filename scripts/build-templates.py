@@ -19382,6 +19382,642 @@ def url_handle_from_title():
     wb.save(OUT / "tidy-tabs-url-handle-from-title.xlsx")
 
 
+def alphabetical_sort_formula():
+    wb = Workbook()
+    vs = wb.active
+    vs.title = "Vendors"
+    az = wb.create_sheet("A to Z")
+    vs["A1"] = ("One vendor per row in sign-up order (yellow, rows 5 to 204): the name and a second value to carry along "
+                "(a booth fee or a booth number). The A to Z tab lists them in order by formula. Fictional vendors.")
+    vs["A2"] = ("Upper and lower case count as the same letter. Names starting with a space, numbers, and names with "
+                "* ? or ~ get a Check (they can break the COUNTIF rank); column F is the fix.")
+    vs["A1"].font = vs["A2"].font = Font(italic=True)
+    _head_row(vs, 4, ["Vendor name", "Booth fee (or any second value)", "Rank (A to Z)", "Rank (Z to A)", "Status",
+                      "Rank, SUMPRODUCT form (fix for the Check rows)"], [30, 13, 9, 9, 30, 15], height=60)
+    names = ["Maple Hollow Farm", "apple Annie's Pies", "Blue Door Bakery", "Zeke's Honey", "blue door bakery",
+             "Bea's Bees", "1st Street Coffee", "The Candle Barn", "Oak & Ivy Soap", "Maple Hollow Farm", None,
+             "Dee-Lish Jams", "De Luca Pasta", "Apple Annie's Pies", "Zeke's Honey", "zinnia Flower Co",
+             "Cedar Ridge Eggs", "Bea's Bees", "Kettle Corn King", "Ash Grove Apiary"]
+    fees = [35, 40, 30, 25, 30, 25, 45, 35, 30, 35, None, 25, 40, 40, 25, 30, 20, 25, 35, 25]
+    nm = "$A$5:$A$204"
+    for r in range(5, 205):
+        a = f"A{r}"
+        vs[a].fill = vs[f"B{r}"].fill = INPUT_FILL
+        vs[f"B{r}"].number_format = USD
+        vs[f"C{r}"] = f'=IF({a}="","",COUNTIF({nm},"<"&{a})+COUNTIF($A$5:{a},{a}))'
+        vs[f"D{r}"] = f'=IF({a}="","",COUNTIF({nm},">"&{a})+COUNTIF($A$5:{a},{a}))'
+        vs[f"E{r}"] = (f'=IF({a}="",IF(B{r}="","","Check: value with no name"),'
+                       f'IF(ISNUMBER({a}),"Check: number, not text",'
+                       f'IF(ISNUMBER(--{a}),"Check: number stored as text",'
+                       f'IF(LEN({a})<>LEN(TRIM({a})),"Check: extra spaces",'
+                       f'IF(OR(ISNUMBER(FIND("*",{a})),ISNUMBER(FIND("?",{a})),ISNUMBER(FIND("~",{a})),'
+                       f'ISNUMBER(FIND(LEFT({a},1),"<>="))),"Check: * ? ~ or < > = in name",'
+                       f'IF(OR(COUNTIF($C$5:$C$204,C{r})>1,COUNTIF($D$5:$D$204,D{r})>1),"Check: rank repeats",'
+                       f'"OK"))))))')
+        vs[f"F{r}"] = (f'=IF({a}="","",SUMPRODUCT(({nm}<>"")*({nm}<{a}))'
+                       f'+SUMPRODUCT(($A$5:{a}<>"")*($A$5:{a}={a})))')
+        for col in "CDF":
+            vs[f"{col}{r}"].number_format = "0"
+        for col in "CDEF":
+            vs[f"{col}{r}"].fill = FORMULA_FILL
+            vs[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (n, f) in enumerate(zip(names, fees)):
+        vs[f"A{5 + i}"], vs[f"B{5 + i}"] = n, f
+    vs.column_dimensions["G"].width = 3
+    vs.column_dimensions["H"].width = 34
+    vs.column_dimensions["I"].width = 9
+    _summary_block(vs, "H", "I", [
+        (4, "Names entered", f'=SUMPRODUCT(--({nm}<>""))', "0"),
+        (5, "Rows showing Check", '=SUMPRODUCT(--(LEFT(E5:E204,5)="Check"))', "0"),
+        (6, "Ranks that repeat (must be 0)", '=SUMPRODUCT((C5:C204<>"")*(COUNTIF(C5:C204,C5:C204)>1))', "0"),
+        (7, "Rows where F differs from C", '=SUMPRODUCT((C5:C204<>"")*(C5:C204<>F5:F204))', "0"),
+        (8, "Typed below row 204 (not read)", "=COUNTA(A205:B1000)", "0"),
+        (9, "CHECK", '=IF(AND(I4>0,I5=0,I6=0,I8=0),"OK","Check")', "General"),
+    ])
+    vs.conditional_formatting.add("E5:E204", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    vs.conditional_formatting.add("I9", FormulaRule(formula=['$I$9<>"OK"'], fill=ALERT_FILL))
+    vs.freeze_panes = "A5"
+
+    az["A1"] = ("A to Z (B:C) and Z to A (E:F) by formula from the Vendors tab. Nothing to type here: add or change a "
+                "vendor on the Vendors tab and both lists update.")
+    az["A2"] = ("The order is the spreadsheet's text order: \"The Candle Barn\" sorts under T, and Booth 10 comes before "
+                "Booth 2 (text, not numbers).")
+    az["A1"].font = az["A2"].font = Font(italic=True)
+    _head_row(az, 4, ["#", "Vendor (A to Z)", "Booth fee", "", "Vendor (Z to A)", "Booth fee"],
+              [5, 30, 11, 2, 30, 11], height=32)
+    az["D4"].fill = PatternFill(fill_type=None)
+    for r in range(5, 205):
+        k = f"ROWS(A$5:A{r})"
+        az[f"A{r}"] = f'=IF(AND(B{r}="",E{r}=""),"",{k})'
+        for name_col, fee_col, rank in (("B", "C", "$C$5:$C$204"), ("E", "F", "$D$5:$D$204")):
+            m = f"MATCH({k},Vendors!{rank},0)"
+            az[f"{name_col}{r}"] = f'=IFERROR(INDEX(Vendors!$A$5:$A$204,{m}),"")'
+            az[f"{fee_col}{r}"] = (f'=IFERROR(IF(INDEX(Vendors!$B$5:$B$204,{m})="","",'
+                                   f'INDEX(Vendors!$B$5:$B$204,{m})),"")')
+            az[f"{fee_col}{r}"].number_format = USD
+        az[f"A{r}"].number_format = "0"
+        for col in "ABCEF":
+            az[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "ACF":
+            az[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        for col in "BE":
+            az[f"{col}{r}"].alignment = Alignment(indent=1)
+    az.column_dimensions["G"].width = 3
+    az.column_dimensions["H"].width = 30
+    az.column_dimensions["I"].width = 9
+    _summary_block(az, "H", "I", [
+        (4, "Names entered (Vendors)", "=Vendors!I4", "0"),
+        (5, "Names shown A to Z", '=SUMPRODUCT(--(B5:B204<>""))', "0"),
+        (6, "Names shown Z to A", '=SUMPRODUCT(--(E5:E204<>""))', "0"),
+        (7, "Repeated ranks (must be 0)", "=Vendors!I6", "0"),
+        (8, "CHECK", '=IF(AND(I4>0,I5=I4,I6=I4,I7=0,Vendors!I9="OK"),"OK","Check")', "General"),
+    ])
+    az.conditional_formatting.add("I8", FormulaRule(formula=['$I$8<>"OK"'], fill=ALERT_FILL))
+    az.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Sort a List Alphabetically With a Formula (No SORT Function)",
+        "",
+        "1. Vendors tab: type one name per row in column A (yellow, rows 5 to 204) in any order, with a second value in column B (a booth fee, a booth number, a phone number). Blank rows are fine. The 19 vendors and fees are fictional.",
+        "2. Rank (A to Z), C5: =IF(A5=\"\",\"\",COUNTIF($A$5:$A$204,\"<\"&A5)+COUNTIF($A$5:A5,A5)). The first COUNTIF counts the names that come before this one in A to Z order; the second counts this name so far, so two identical names get ranks 5 and 6 instead of 5 and 5.",
+        "3. Rank (Z to A), D5: the same with \">\" in place of \"<\".",
+        "4. A to Z tab, B5: =IFERROR(INDEX(Vendors!$A$5:$A$204,MATCH(ROWS(A$5:A5),Vendors!$C$5:$C$204,0)),\"\"). ROWS counts 1, 2, 3 down the column and MATCH finds the name with that rank. C5 does the same on column B, so each fee stays with its vendor. Z to A (E:F) uses the ranks in column D.",
+        "5. Upper and lower case count as the same letter (apple Annie's Pies and Apple Annie's Pies tie; the one typed first is listed first). A space sorts before letters (De Luca Pasta comes before Dee-Lish Jams). \"The Candle Barn\" sorts under T. Booth 10 comes before Booth 2 because the names are text. Symbols and accented letters follow the spreadsheet's own text order; this order was checked in LibreOffice Calc only.",
+        "6. Status (E): Check: number, not text; Check: number stored as text; Check: extra spaces (a space before, after or doubled); Check: * ? ~ or < > = in name (COUNTIF reads these as wildcards or comparisons); Check: rank repeats. A rank that repeats leaves a name out of the A to Z list and a blank row in it.",
+        "7. Fix for the Check rows, F5: =IF(A5=\"\",\"\",SUMPRODUCT(($A$5:$A$204<>\"\")*($A$5:$A$204<A5))+SUMPRODUCT(($A$5:A5<>\"\")*($A$5:A5=A5))). SUMPRODUCT compares the cells directly, so * ? ~ and numbers do not confuse it (numbers sort before text). To use it, point the MATCH on the A to Z tab at Vendors!$F$5:$F$204. The cleaner fix is to remove the extra spaces and symbols from the names.",
+        "8. Checks: Names entered (Vendors I4), Ranks that repeat (I6, must be 0) and on the A to Z tab Names shown (I5, I6), which must equal the names entered.",
+        "9. To add more than 200 names, insert rows above row 204 on both tabs so every range grows, and copy the formulas down.",
+        "10. Newer Excel and Google Sheets also have a SORT function; this sheet does not use it, so it also works in Excel 2016 and 2019.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    vs.print_title_rows = az.print_title_rows = "4:4"
+    az.print_area = "A1:I204"
+    wb.save(OUT / "tidy-tabs-alphabetical-sort-formula.xlsx")
+
+
+def combined_shipping_calculator():
+    wb = Workbook()
+    pf = wb.active
+    pf.title = "Profiles"
+    od = wb.create_sheet("Orders")
+    pf["A1"] = ("Your shipping price list (yellow, rows 5 to 24): one row per item type with the price for the first item "
+                "in an order and for each additional item. Fictional prices.")
+    pf["A2"] = "Profile names must match the Orders tab exactly (\"Fragile \" with a space at the end is a different name)."
+    pf["A1"].font = pf["A2"].font = Font(italic=True)
+    _head_row(pf, 4, ["Profile name", "First item $", "Each additional $", "Status"], [16, 11, 12, 30], height=32)
+    profiles = [("Small", 5.00, 1.50), ("Fragile", 8.00, 3.00), ("Flat", 4.00, 0.75), ("Heavy", 12.00, 6.00)]
+    for r in range(5, 25):
+        for col in "ABC":
+            pf[f"{col}{r}"].fill = INPUT_FILL
+        pf[f"B{r}"].number_format = pf[f"C{r}"].number_format = USD
+        pf[f"D{r}"] = (f'=IF(AND(A{r}="",B{r}="",C{r}=""),"",IF(TRIM(A{r})="","Check: no profile name",'
+                       f'IF(LEN(A{r})<>LEN(TRIM(A{r})),"Check: extra spaces",'
+                       f'IF(COUNTIF($A$5:$A$24,A{r})>1,"Check: name twice",'
+                       f'IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r}))),"Check: price blank or text",'
+                       f'IF(OR(B{r}<0,C{r}<0),"Check: price below 0","OK"))))))')
+        pf[f"D{r}"].fill = FORMULA_FILL
+        pf[f"D{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(profiles):
+        for col, v in zip("ABC", row):
+            pf[f"{col}{5 + i}"] = v
+    pf.conditional_formatting.add("D5:D24", FormulaRule(formula=['LEFT($D5,5)="Check"'], fill=ALERT_FILL))
+    pf.freeze_panes = "A5"
+
+    od["A1"] = ("One order line per row (yellow, rows 5 to 304): order #, item, profile (dropdown) and quantity. "
+                "Lines of one order do not have to be next to each other. Fictional orders.")
+    od["A2"] = ("Rule: the item with the highest First item price pays it once; every other unit pays its Each "
+                "additional price. On a tie, the first line listed pays it.")
+    od["A1"].font = od["A2"].font = Font(italic=True)
+    _head_row(od, 4, ["Order #", "Item", "Profile", "Qty", "First item $", "Each additional $",
+                      "Pays first-item price (1 or 0)", "Line shipping", "Order shipping (first line of the order)",
+                      "Status", "Every line pays first item (wrong, comparison)"],
+              [10, 18, 11, 6, 9, 10, 10, 10, 13, 30, 13], height=60)
+    lines = [(1001, "Soy candle", "Small", 2), (1001, "Mug", "Fragile", 1), (1002, "Art print", "Flat", 3),
+             (1003, "Soy candle", "Small", 1), (1003, "Cast iron trivet", "Heavy", 1), (1003, "Art print", "Flat", 2),
+             (1004, "Mug", "Fragile", 2), (1004, "Vase", "Fragile", 1), (1005, "Soy candle", "Small", 0),
+             (1005, "Art print", "Flat", 1), (1006, "Soy candle", "Small", 1), (1002, "Sticker pack", "Flat", 1),
+             (1007, "Vase", "Fragile", 1), (1007, "Mug", "Fragile", 1)]
+    A, D, E, G, H = "$A$5:$A$304", "$D$5:$D$304", "$E$5:$E$304", "$G$5:$G$304", "$H$5:$H$304"
+    for r in range(5, 305):
+        for col in "ABCD":
+            od[f"{col}{r}"].fill = INPUT_FILL
+        od[f"B{r}"].alignment = Alignment(indent=1)
+        blank = f'AND(A{r}="",TRIM(B{r})="",TRIM(C{r})="",D{r}="")'
+        od[f"E{r}"] = f'=IFERROR(INDEX(Profiles!$B$5:$B$24,MATCH(C{r},Profiles!$A$5:$A$24,0))+0,"")'
+        od[f"F{r}"] = f'=IFERROR(INDEX(Profiles!$C$5:$C$24,MATCH(C{r},Profiles!$A$5:$A$24,0))+0,"")'
+        od[f"G{r}"] = (f'=IF({blank},"",IF(OR(A{r}="",E{r}="",NOT(ISNUMBER(D{r}))),0,'
+                       f'IF(AND(D{r}>0,COUNTIFS({A},A{r},{D},">0",{E},">"&E{r})=0,'
+                       f'COUNTIFS($A$5:A{r},A{r},$D$5:D{r},">0",$E$5:E{r},E{r})=1),1,0)))')
+        od[f"H{r}"] = (f'=IF(OR(A{r}="",E{r}="",F{r}="",D{r}=""),"",'
+                       f'IF(G{r}=1,E{r}+(D{r}-1)*F{r},D{r}*F{r}))')
+        od[f"I{r}"] = f'=IF(A{r}="","",IF(COUNTIF($A$5:A{r},A{r})=1,SUMIF({A},A{r},{H}),""))'
+        od[f"J{r}"] = (f'=IF({blank},"",IF(A{r}="","Check: no order #",'
+                       f'IF(AND(ISTEXT(A{r}),ISNUMBER(--A{r})),"Check: order # is text",'
+                       f'IF(TRIM(C{r})="","Check: no profile",IF(E{r}="","Check: profile not found",'
+                       f'IF(D{r}="","Check: no qty",IF(NOT(ISNUMBER(D{r})),"Check: qty is text",'
+                       f'IF(OR(D{r}<0,D{r}<>INT(D{r})),"Check: qty not a whole number","OK"))))))))')
+        od[f"K{r}"] = (f'=IF(I{r}="","",SUMIF({A},A{r},{H})+SUMIFS({E},{A},A{r},{D},">0",{G},0)'
+                       f'-SUMIFS($F$5:$F$304,{A},A{r},{D},">0",{G},0))')
+        for col in "EFHIK":
+            od[f"{col}{r}"].number_format = USD
+        od[f"G{r}"].number_format = "0"
+        for col in "EFGHIJK":
+            od[f"{col}{r}"].fill = FORMULA_FILL
+            od[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(lines):
+        for col, v in zip("ABCD", row):
+            od[f"{col}{5 + i}"] = v
+    dv = DataValidation(type="list", formula1="=Profiles!$A$5:$A$24", allow_blank=True, errorStyle="warning")
+    od.add_data_validation(dv)
+    dv.add("C5:C304")
+    od.column_dimensions["L"].width = 3
+    od.column_dimensions["M"].width = 36
+    od.column_dimensions["N"].width = 11
+    _summary_block(od, "M", "N", [
+        (4, "Order lines listed", '=SUMPRODUCT(--(J5:J304<>""))', "0"),
+        (5, "Orders", '=SUMPRODUCT(--(I5:I304<>""))', "0"),
+        (6, "Lines showing Check", '=SUMPRODUCT(--(LEFT(J5:J304,5)="Check"))', "0"),
+        (7, "Profiles rows showing Check", '=SUMPRODUCT(--(LEFT(Profiles!D5:D24,5)="Check"))', "0"),
+        (8, "Sum of order shipping (I)", "=SUM(I5:I304)", USD),
+        (9, "Sum of line shipping (H)", "=SUM(H5:H304)", USD),
+        (10, "Difference (must be $0.00)", "=ROUND(N8-N9,2)", USD),
+        (11, "Typed below row 304 (not read)", "=COUNTA(A305:D1000)", "0"),
+        (12, "CHECK", '=IF(AND(N4>0,N6=0,N7=0,N10=0,N11=0),"OK","Check")', "General"),
+    ])
+    od.conditional_formatting.add("J5:J304", FormulaRule(formula=['LEFT($J5,5)="Check"'], fill=ALERT_FILL))
+    od.conditional_formatting.add("N12", FormulaRule(formula=['$N$12<>"OK"'], fill=ALERT_FILL))
+    od.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Charge Shipping for the First Item and Each Additional Item",
+        "",
+        "1. Profiles tab: one item type per row (yellow, rows 5 to 24, up to 20): the profile name, the First item price and the Each additional price. The four profiles and prices are fictional; type your own.",
+        "2. Orders tab: one order line per row (yellow, rows 5 to 304): order #, item, profile (dropdown from the Profiles tab) and quantity. The 7 orders are fictional.",
+        "3. Rule used by this sheet: The item with the highest First item price pays it once; every other unit pays its Each additional price. On a tie, the first line listed pays it. Check your own shop's shipping settings help to see which rule your shop uses; this sheet does not describe any platform's rule.",
+        "4. First item $ and Each additional $, E5 and F5: =IFERROR(INDEX(Profiles!$B$5:$B$24,MATCH(C5,Profiles!$A$5:$A$24,0))+0,\"\") looks up the line's profile (F5 uses column C). The +0 turns a blank price into $0.00 (the Profiles tab then shows Check: price blank or text).",
+        "5. Pays first-item price, G5: =IF(AND(D5>0,COUNTIFS($A$5:$A$304,A5,$D$5:$D$304,\">0\",$E$5:$E$304,\">\"&E5)=0,COUNTIFS($A$5:A5,A5,$D$5:D5,\">0\",$E$5:E5,E5)=1),1,0). The first COUNTIFS checks that no line in the same order has a higher First item price; the second makes sure only the first of any tied lines gets the 1. Lines with qty 0 are skipped. The cell in the file also has a blank-row guard.",
+        "6. Line shipping, H5: =IF(G5=1,E5+(D5-1)*F5,D5*F5). Order shipping, I5: =IF(COUNTIF($A$5:A5,A5)=1,SUMIF($A$5:$A$304,A5,$H$5:$H$304),\"\") shows the order total on the order's first line only.",
+        "7. Column K shows what the order would cost if every line paid its own First item price (the overcharge to avoid): order 1001 would be $14.50 instead of $11.00.",
+        "8. Status (J): Check: no order #, Check: order # is text (a number stored as text, such as 1001 typed with an apostrophe: SUMIF can count it together with the number 1001 and double the total), Check: no profile, Check: profile not found (a typo or an extra space), Check: no qty, Check: qty is text, Check: qty not a whole number.",
+        "9. CHECK (N12) is OK when no line or profile shows Check and the order totals add up to the line charges. Profiles Status: Check: no profile name, Check: extra spaces, Check: name twice, Check: price blank or text, Check: price below 0.",
+        "10. This sheet totals what your own price list says to charge. It has no carrier rates and does not cover tax on shipping.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    od.print_title_rows = pf.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-combined-shipping-calculator.xlsx")
+
+
+COUPON_MAX_CHARS = 8
+
+
+def random_coupon_codes():
+    wb = Workbook()
+    st = wb.active
+    st.title = "Settings"
+    cd = wb.create_sheet("Codes")
+    st.column_dimensions["A"].width = 40
+    st.column_dimensions["B"].width = 36
+    st.column_dimensions["C"].width = 50
+    inputs = [("Character set", "ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
+               "Letters and digits to pick from. No O, 0, I or 1, so codes read aloud clearly."),
+              ("Prefix", "MKT-", "Text in front of every code (can be blank)."),
+              ("Random characters", 6, "How many random characters after the prefix: 1 to 8 (4 or more is usual)."),
+              ("How many codes", 200, "1 to 500.")]
+    for i, (label, v, note) in enumerate(inputs, start=1):
+        st[f"A{i}"], st[f"B{i}"], st[f"C{i}"] = label, v, note
+        st[f"A{i}"].font = Font(bold=True)
+        st[f"B{i}"].fill = INPUT_FILL
+        st[f"B{i}"].number_format = "@" if isinstance(v, str) else "0"
+        st[f"C{i}"].font = Font(italic=True)
+        st[f"C{i}"].alignment = Alignment(wrap_text=True, vertical="top")
+    st.row_dimensions[1].height = 30
+    st.row_dimensions[3].height = 30
+    nchars = "IF(LEN($B$1)=0,0,LEN($B$1)-LEN(SUBSTITUTE($B$1,MID($B$1,ROW($A$1:INDEX($A:$A,MAX(1,LEN($B$1)))),1),\"\")))"
+    st["A6"] = "Checks"
+    st["A6"].font = Font(bold=True, size=12)
+    _summary_block(st, "A", "B", [
+        (7, "Characters in the set", "=LEN(B1)", "0"),
+        (8, "Characters that appear more than once", f"=IF(LEN(B1)=0,0,SUMPRODUCT(--({nchars}>1)))", "0"),
+        (9, "Spaces, * ? or ~ in the set", '=LEN(B1)-LEN(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(B1," ",""),"*",""),"?",""),"~",""))', "0"),
+        (10, "Character set", '=IF(AND(B7>=10,B8=0,B9=0),"OK","Check: at least 10 characters, no repeats or spaces")', "General"),
+        (11, "Prefix", '=IF(OR(ISNUMBER(FIND("*",B2)),ISNUMBER(FIND("?",B2)),ISNUMBER(FIND("~",B2)),'
+                       'AND(LEN(B2)>0,ISNUMBER(FIND(LEFT(B2,1),"<>=")))),"Check: no * ? ~, and no < > = first",'
+                       'IF(ISNUMBER(FIND(" ",B2)),"OK (has a space)","OK"))', "General"),
+        (12, "Random characters", f'=IF(AND(ISNUMBER(B3),B3>=1,B3<={COUPON_MAX_CHARS},B3=INT(B3)),"OK",'
+                                  f'"Check: a whole number from 1 to {COUPON_MAX_CHARS}")', "General"),
+        (13, "How many codes", '=IF(AND(ISNUMBER(B4),B4>=1,B4<=500,B4=INT(B4)),"OK","Check: a whole number from 1 to 500")',
+         "General"),
+        (14, "Code length (prefix + random)", '=IF(B12="OK",LEN(B2)+B3,"")', "0"),
+        (15, "Possible different codes", '=IF(AND(B10="OK",B12="OK"),B7^B3,"")', "#,##0"),
+        (16, "Settings CHECK", '=IF(AND(B10="OK",LEFT(B11,2)="OK",B12="OK",B13="OK"),"OK","Check")', "General"),
+    ])
+    for r in range(7, 17):
+        st[f"B{r}"].alignment = Alignment(horizontal="right", wrap_text=True)
+    st.row_dimensions[10].height = 30
+    st["C16"] = "Codes are made only while this shows OK."
+    st["C16"].font = Font(italic=True)
+    for r in (10, 11, 12, 13, 16):
+        st.conditional_formatting.add(f"B{r}", FormulaRule(formula=[f'LEFT($B${r},5)="Check"'], fill=ALERT_FILL))
+
+    cd["A1"] = ("Live codes (B) change every time the sheet recalculates (any edit, or reopening the file). Copy B5:B504 "
+                "and paste it into D5 as values only (Paste Special) before you print or import the list.")
+    cd["A2"] = ("Times in list (C, E) must be 1. Random codes are not secret or secure: do not use them for passwords, "
+                "gift cards or payments.")
+    cd["A1"].font = cd["A2"].font = Font(italic=True)
+    _head_row(cd, 4, ["#", "Code (live, changes on every recalculation)", "Times in live list",
+                      "Pasted codes (paste values here)", "Times in pasted list", "Status"],
+              [6, 18, 9, 18, 9, 26], height=60)
+    pick = "MID(Settings!$B$1,RANDBETWEEN(1,LEN(Settings!$B$1)),1)"
+    pieces = "&".join(f'IF(Settings!$B$3>={k},{pick},"")' for k in range(1, COUPON_MAX_CHARS + 1))
+    for r in range(5, 505):
+        cd[f"A{r}"] = f'=IF(B{r}="","",ROWS(A$5:A{r}))'
+        cd[f"B{r}"] = (f'=IF(OR(Settings!$B$16<>"OK",ROWS(B$5:B{r})>Settings!$B$4),"",'
+                       f'Settings!$B$2&{pieces})')
+        cd[f"C{r}"] = f'=IF(B{r}="","",COUNTIF($B$5:$B$504,B{r}))'
+        cd[f"E{r}"] = f'=IF(D{r}="","",COUNTIF($D$5:$D$504,D{r}))'
+        cd[f"F{r}"] = (f'=IF(D{r}<>"",IF(E{r}>1,"Duplicate",IF(LEN(D{r})<>Settings!$B$14,"Check: length","OK")),'
+                       f'IF(B{r}="","",IF(C{r}>1,"Duplicate (live)","Live (paste as values)")))')
+        cd[f"D{r}"].fill = INPUT_FILL
+        cd[f"D{r}"].number_format = "@"
+        for col in "ACE":
+            cd[f"{col}{r}"].number_format = "0"
+        for col in "ABCEF":
+            cd[f"{col}{r}"].fill = FORMULA_FILL
+        for col in "ACEF":
+            cd[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        cd[f"B{r}"].alignment = Alignment(indent=1)
+    cd.column_dimensions["G"].width = 3
+    cd.column_dimensions["H"].width = 34
+    cd.column_dimensions["I"].width = 9
+    _summary_block(cd, "H", "I", [
+        (4, "Codes asked for (Settings B4)", "=Settings!B4", "0"),
+        (5, "Live codes shown", '=SUMPRODUCT(--(B5:B504<>""))', "0"),
+        (6, "Live codes that repeat", '=COUNTIF(C5:C504,">1")', "0"),
+        (7, "Pasted codes", '=SUMPRODUCT(--(D5:D504<>""))', "0"),
+        (8, "Pasted codes that repeat", '=COUNTIF(E5:E504,">1")', "0"),
+        (9, "Pasted codes with the wrong length", '=SUMPRODUCT(--(F5:F504="Check: length"))', "0"),
+        (10, "Settings CHECK", "=Settings!B16", "General"),
+        (11, "Pasted list CHECK (after you paste)", '=IF(AND(I7>0,I8=0,I9=0),"OK","Check")', "General"),
+    ])
+    cd.conditional_formatting.add("F5:F504", FormulaRule(formula=['OR(LEFT($F5,5)="Check",LEFT($F5,9)="Duplicate")'],
+                                                         fill=ALERT_FILL))
+    cd.conditional_formatting.add("I10:I11", FormulaRule(formula=['I10<>"OK"'], fill=ALERT_FILL))
+    cd.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Generate Random Coupon Codes",
+        "",
+        "1. Settings tab (yellow): the character set to pick from (B1), a prefix (B2), how many random characters (B3, 1 to 8) and how many codes (B4, up to 500). The default set ABCDEFGHJKLMNPQRSTUVWXYZ23456789 has 32 characters and leaves out O, 0, I and 1, which are easy to mix up on a printed flyer.",
+        "2. One random character: =MID(Settings!$B$1,RANDBETWEEN(1,LEN(Settings!$B$1)),1). RANDBETWEEN picks a position from 1 to the length of the set and MID takes the character there. RANDBETWEEN must start at 1: position 0 is an error.",
+        "3. A 6-character code with a fixed prefix: =\"MKT-\"&MID($B$1,RANDBETWEEN(1,32),1)&MID($B$1,RANDBETWEEN(1,32),1)&... (6 pieces). The Codes tab, B5, joins 8 pieces, each wrapped in IF(Settings!$B$3>=n, ... ,\"\"), so B3 decides how many are used. That is why B3 stops at 8.",
+        "4. The live codes in column B change every time the sheet recalculates: any edit, and when the file is opened. Before you print or import the list, select B5:B504, copy, click D5 and paste as values only (Paste Special). Column D then keeps the codes.",
+        "5. Times in list, C5: =COUNTIF($B$5:$B$504,B5) (E5 does the same for the pasted list). Every code should show 1. Duplicates are rare with 6 characters from 32 (1,073,741,824 possible codes) but not impossible; Status shows Duplicate, and you can fix one by typing a new code over it in column D.",
+        "6. Status (F): OK, Duplicate, Check: length (a pasted code that is not prefix + random characters long), Duplicate (live) or Live (paste as values) while column D is empty.",
+        "7. Settings checks: the set needs at least 10 characters with no repeats, spaces, * ? or ~; the prefix cannot hold * ? ~ or start with < > =; random characters 1 to 8; how many 1 to 500. Codes are made only while Settings CHECK (B16) is OK.",
+        "8. The duplicate check ignores upper and lower case in LibreOffice Calc, so use one case in the character set.",
+        "9. These codes are random, not secret or secure. Do not use them for passwords, gift cards, payments or anything else that needs security. Check your shop's own help for how to import discount codes.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    cd.print_title_rows = "4:4"
+    st.print_title_rows = None
+    wb.save(OUT / "tidy-tabs-random-coupon-codes.xlsx")
+
+
+def production_queue_finish_dates():
+    wb = Workbook()
+    qu = wb.active
+    qu.title = "Queue"
+    off = wb.create_sheet("Days off")
+    qu["A1"], qu["B1"] = "Start date", date(2026, 11, 23)
+    qu["A2"], qu["B2"] = "Units per work day", 40
+    qu["C1"] = ("The first day you can work on the queue (yellow). Work days are Monday to Friday minus the dates on "
+                "the Days off tab.")
+    qu["C2"] = ("How many units you finish in one work day (yellow). Orders are made in the order listed, one after "
+                "another; several orders can share a day. Fictional orders.")
+    for c in ("A1", "A2"):
+        qu[c].font = Font(bold=True)
+    for c in ("B1", "B2"):
+        qu[c].fill = INPUT_FILL
+        qu[c].alignment = Alignment(horizontal="right")
+    qu["B1"].number_format = US_DATE
+    qu["B2"].number_format = "#,##0"
+    qu["C1"].font = qu["C2"].font = Font(italic=True)
+    _head_row(qu, 4, ["Order", "Promised date", "Units", "Units through this order", "First work day #",
+                      "Last work day #", "Start date", "Finish date", "Status (late = calendar days)",
+                      "Work days late"],
+              [18, 12, 8, 10, 9, 9, 12, 12, 26, 8], height=46)
+    orders = [("W-101", date(2026, 11, 25), 60), ("W-102", date(2026, 11, 30), 100), ("W-103", date(2026, 12, 2), 20),
+              ("W-104", date(2026, 12, 3), 140), ("W-105", date(2026, 12, 11), 80), ("W-106", date(2026, 12, 16), 300),
+              ("W-107", date(2026, 12, 23), 40)]
+    days = "'Days off'!$A$2:$A$30"
+    for r in range(5, 105):
+        for col in "ABC":
+            qu[f"{col}{r}"].fill = INPUT_FILL
+        qu[f"B{r}"].number_format = US_DATE
+        ok = f'IF(OR($M$4<>"OK",NOT(ISNUMBER(C{r})),C{r}<=0),"",'
+        qu[f"D{r}"] = f'={ok}SUMIF($C$5:C{r},">0"))'
+        qu[f"E{r}"] = f'=IF(D{r}="","",INT(ROUND((D{r}-C{r})/$B$2,9))+1)'
+        qu[f"F{r}"] = f'=IF(D{r}="","",ROUNDUP(ROUND(D{r}/$B$2,9),0))'
+        qu[f"G{r}"] = f'=IF(E{r}="","",WORKDAY($B$1-1,E{r},{days}))'
+        qu[f"H{r}"] = f'=IF(F{r}="","",WORKDAY($B$1-1,F{r},{days}))'
+        qu[f"I{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",C{r}=""),"",IF(TRIM(A{r})="","Check: no order name",'
+                       f'IF(C{r}="","Check: no units",IF(NOT(ISNUMBER(C{r})),"Check: units are text",'
+                       f'IF(C{r}<=0,"Check: units 0 or less",IF($M$4<>"OK","Check: start date or units per day",'
+                       f'IF(B{r}="","No promised date",IF(NOT(ISNUMBER(B{r})),"Check: promised date is text",'
+                       f'IF(H{r}>B{r},"Late by "&(H{r}-INT(B{r}))&IF(H{r}-INT(B{r})=1," day"," days"),"On time")))))))))')
+        qu[f"J{r}"] = (f'=IF(OR(H{r}="",NOT(ISNUMBER(B{r}))),"",IF(H{r}>B{r},'
+                       f'NETWORKDAYS(INT(B{r})+1,H{r},{days}),0))')
+        for col in "DEFJ":
+            qu[f"{col}{r}"].number_format = "#,##0"
+        qu[f"G{r}"].number_format = qu[f"H{r}"].number_format = US_DATE
+        for col in "DEFGHIJ":
+            qu[f"{col}{r}"].fill = FORMULA_FILL
+            qu[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(orders):
+        for col, v in zip("ABC", row):
+            qu[f"{col}{5 + i}"] = v
+    qu.column_dimensions["K"].width = 3
+    qu.column_dimensions["L"].width = 32
+    qu.column_dimensions["M"].width = 12
+    _summary_block(qu, "L", "M", [
+        (4, "Start date and units per day", '=IF(AND(ISNUMBER(B1),B1>=1,ISNUMBER(B2),B2>0),"OK","Check")', "General"),
+        (5, "Orders listed", '=SUMPRODUCT(--(I5:I104<>""))', "0"),
+        (6, "Total units", "=SUMIF(C5:C104,\">0\")", "#,##0"),
+        (7, "Work days needed", '=IF(COUNT(F5:F104)=0,"",MAX(F5:F104))', "0"),
+        (8, "Last finish date", '=IF(COUNT(H5:H104)=0,"",MAX(H5:H104))', US_DATE),
+        (9, "Orders late", '=COUNTIF(I5:I104,"Late*")', "0"),
+        (10, "Rows showing Check", '=SUMPRODUCT(--(LEFT(I5:I104,5)="Check"))', "0"),
+        (11, "Days off typed as text", "='Days off'!E4", "0"),
+        (12, "Typed below row 104 (not read)", "=COUNTA(A105:C1000)", "0"),
+        (13, "CHECK", '=IF(AND(M4="OK",M5>0,M10=0,M11=0,M12=0),"OK","Check")', "General"),
+    ])
+    qu.conditional_formatting.add("I5:I104", FormulaRule(formula=['LEFT($I5,5)="Check"'], fill=ALERT_FILL))
+    qu.conditional_formatting.add("I5:I104", FormulaRule(formula=['LEFT($I5,4)="Late"'], fill=CHECK_ORANGE))
+    qu.conditional_formatting.add("M4", FormulaRule(formula=['$M$4<>"OK"'], fill=ALERT_FILL))
+    qu.conditional_formatting.add("M13", FormulaRule(formula=['$M$13<>"OK"'], fill=ALERT_FILL))
+    qu.freeze_panes = "A5"
+
+    _head_row(off, 1, ["Day off", "Day", "Status"], [12, 7, 22], height=24)
+    off["D1"] = "Your shop's own closed days (yellow, A2:A30, MM/DD/YYYY). Weekends are skipped already."
+    off["D1"].font = Font(italic=True)
+    off["D1"].alignment = Alignment(wrap_text=True, vertical="top")
+    off.row_dimensions[1].height = 46
+    off.column_dimensions["D"].width = 30
+    off.column_dimensions["E"].width = 8
+    for r in range(2, 31):
+        off[f"A{r}"].fill = INPUT_FILL
+        off[f"A{r}"].number_format = US_DATE
+        off[f"B{r}"] = f'=IF(ISNUMBER(A{r}),TEXT(A{r},"ddd"),"")'
+        off[f"C{r}"] = (f'=IF(A{r}="","",IF(NOT(ISNUMBER(A{r})),"Check: date is text",'
+                        f'IF(WEEKDAY(A{r},2)>5,"Weekend (no effect)","OK")))')
+        for col in "BC":
+            off[f"{col}{r}"].fill = FORMULA_FILL
+            off[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, d in enumerate([date(2026, 11, 26), date(2026, 11, 27), date(2026, 12, 24), date(2026, 12, 25)]):
+        off[f"A{2 + i}"] = d
+    off["D4"], off["E4"] = "Days off typed as text", '=SUMPRODUCT(--(C2:C30="Check: date is text"))'
+    off["D4"].font = Font(bold=True)
+    off["E4"].fill = FORMULA_FILL
+    off["E4"].alignment = Alignment(horizontal="right")
+    off.conditional_formatting.add("C2:C30", FormulaRule(formula=['LEFT($C2,5)="Check"'], fill=ALERT_FILL))
+    off.freeze_panes = "A2"
+    notes_sheet(wb, [
+        "Tidy Tabs: Production Queue Finish Dates From Daily Capacity",
+        "",
+        "1. Queue tab: type the first day you can work in B1 and how many units you finish per work day in B2 (yellow). List the orders in the order you will make them (yellow, rows 5 to 104): order name, promised date and units. The 7 holiday orders are fictional.",
+        "2. Days off tab: type your shop's own closed days in A2:A30 (yellow). Saturdays and Sundays are skipped already. The four sample days are an example, not an official holiday list.",
+        "3. Units through this order, D5: =SUMIF($C$5:C5,\">0\"), a running total of units in the queue up to this order (the file's version also leaves Check rows blank).",
+        "4. Last work day #, F5: =ROUNDUP(ROUND(D5/$B$2,9),0). If 160 units are done by the end of this order at 40 a day, the order finishes on work day 4. First work day #, E5: =INT(ROUND((D5-C5)/$B$2,9))+1, the day after the units ahead of it are done (or the same day if that day still has room). The inner ROUND keeps a value such as 3.0000000001 from rounding up to an extra day.",
+        "5. Start and finish dates, G5 and H5: =WORKDAY($B$1-1,E5,'Days off'!$A$2:$A$30). Starting one day before B1 makes work day 1 the start date itself when it is a work day. WORKDAY($B$1,F5,...) would make every date one work day late, and leaving out the Days off range would schedule work on a closed day.",
+        "6. Several orders can share a day: W-103 and W-104 both start on 12/01/2026, and day 18 is split between W-106 and W-107.",
+        "7. Status (I): On time, or Late by 1 day / Late by 2 days (calendar days after the promised date, orange). Work days late (J) counts the work days after the promised date up to the finish date: =NETWORKDAYS(B5+1,H5,'Days off'!$A$2:$A$30). Finishing on the promised date is On time.",
+        "8. Check: no order name, Check: no units, Check: units are text, Check: units 0 or less, Check: promised date is text, Check: start date or units per day (B1 is not a date or B2 is not above 0). On the Days off tab, Check: date is text marks a date that is stored as text; retype it.",
+        "9. Summary (L4:M13): total units, work days needed, last finish date, orders late, and CHECK.",
+        "10. This assumes a steady number of units every work day, made in the listed order. It does not plan staff, overtime or materials.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    qu.print_title_rows = "4:4"
+    off.page_setup.fitToHeight = 1
+    wb.save(OUT / "tidy-tabs-production-queue-finish-dates.xlsx")
+
+
+PAIRS_MAX_PRODUCTS = 12
+
+
+def bought_together_pairs():
+    from openpyxl.utils import get_column_letter
+    wb = Workbook()
+    it = wb.active
+    it.title = "Items"
+    bk = wb.create_sheet("Baskets")
+    pr = wb.create_sheet("Pairs")
+    n = PAIRS_MAX_PRODUCTS
+    plist = f"Pairs!$A$5:$A${4 + n}"
+    it["A1"] = ("Sold items export (yellow, rows 5 to 504): one row per item with its order number. The lines of one "
+                "order do not have to be next to each other. Fictional orders.")
+    it["A2"] = ("Products must match the names on the Pairs tab (upper and lower case do not matter, spaces do). "
+                "If your export puts all items of an order in one cell, split them into rows first.")
+    it["A1"].font = it["A2"].font = Font(italic=True)
+    _head_row(it, 4, ["Order #", "Product", "Order no.", "Status"], [10, 22, 8, 32], height=32)
+    lines = [(5001, "Lavender candle"), (5001, "Wick trimmer"), (5001, "Gift box"), (5002, "Soap bar"),
+             (5002, "Lip balm"), (5003, "Lavender candle"), (5003, "Wick trimmer"), (5004, "Cedar candle"),
+             (5004, "Wick trimmer"), (5004, "Cedar candle"), (5005, "Soap bar"), (5005, "Lip balm"),
+             (5005, "Gift box"), (5006, "Lavender candle"), (5007, "Lavender candle"), (5007, "Cedar candle"),
+             (5007, "Wick trimmer"), (5008, "Lip balm"), (5008, "Soap bar"), (5009, "Gift box"),
+             (5009, "Lavender candle"), (5010, "Soap bar")]
+    for r in range(5, 505):
+        it[f"A{r}"].fill = it[f"B{r}"].fill = INPUT_FILL
+        it[f"B{r}"].alignment = Alignment(indent=1)
+        if r == 5:
+            it[f"C{r}"] = '=IF(A5="","",1)'
+        else:
+            it[f"C{r}"] = f'=IF(A{r}="","",IF(COUNTIF($A$5:A{r},A{r})=1,MAX($C$5:C{r - 1})+1,""))'
+        it[f"D{r}"] = (f'=IF(AND(A{r}="",TRIM(B{r})=""),"",IF(A{r}="","Check: no order #",'
+                       f'IF(AND(ISTEXT(A{r}),ISNUMBER(--A{r})),"Check: order # is text",'
+                       f'IF(TRIM(B{r})="","Check: no product",IF(COUNTIF({plist},B{r})=0,'
+                       f'IF(COUNTIF({plist},TRIM(B{r}))>0,"Check: extra spaces","Check: product not on Pairs list"),'
+                       f'IF(COUNTIFS($A$5:A{r},A{r},$B$5:B{r},B{r})>1,"Repeat in this order (counted once)","OK"))))))')
+        it[f"C{r}"].number_format = "0"
+        for col in "CD":
+            it[f"{col}{r}"].fill = FORMULA_FILL
+            it[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (o, p) in enumerate(lines):
+        it[f"A{5 + i}"], it[f"B{5 + i}"] = o, p
+    it.column_dimensions["E"].width = 3
+    it.column_dimensions["F"].width = 34
+    it.column_dimensions["G"].width = 9
+    _summary_block(it, "F", "G", [
+        (4, "Item lines listed", '=SUMPRODUCT(--(D5:D504<>""))', "0"),
+        (5, "Orders", '=IF(COUNT(C5:C504)=0,0,MAX(C5:C504))', "0"),
+        (6, "Rows showing Check", '=SUMPRODUCT(--(LEFT(D5:D504,5)="Check"))', "0"),
+        (7, "Lines not on the Pairs list", '=SUMPRODUCT(--(D5:D504="Check: product not on Pairs list"))'
+                                           '+SUMPRODUCT(--(D5:D504="Check: extra spaces"))', "0"),
+        (8, "Typed below row 504 (not read)", "=COUNTA(A505:B2000)", "0"),
+    ])
+    it.conditional_formatting.add("D5:D504", FormulaRule(formula=['LEFT($D5,5)="Check"'], fill=ALERT_FILL))
+    it.freeze_panes = "A5"
+
+    gcols = [get_column_letter(3 + k) for k in range(n)]
+    bk["A1"] = ("One row per order (rows 5 to 304, up to 300 orders), filled by formula from the Items tab: 1 means "
+                "the order contains that product, 0 means it does not. Nothing to type here.")
+    bk["A2"] = "A product on two lines of the same order still counts once."
+    bk["A1"].font = bk["A2"].font = Font(italic=True)
+    _head_row(bk, 4, ["Order #", "Products in order"] + [""] * n, [10, 9] + [9] * n, height=46)
+    for k, col in enumerate(gcols):
+        bk[f"{col}4"] = f'=IF(Pairs!$A${5 + k}="","",Pairs!$A${5 + k})'
+    for r in range(5, 305):
+        bk[f"A{r}"] = f'=IFERROR(INDEX(Items!$A$5:$A$504,MATCH(ROWS(A$5:A{r}),Items!$C$5:$C$504,0)),"")'
+        bk[f"B{r}"] = f'=IF($A{r}="","",SUM(C{r}:{gcols[-1]}{r}))'
+        for col in gcols:
+            bk[f"{col}{r}"] = (f'=IF(OR($A{r}="",{col}$4=""),"",IF(COUNTIFS(Items!$A$5:$A$504,$A{r},'
+                               f'Items!$B$5:$B$504,{col}$4)>0,1,0))')
+            bk[f"{col}{r}"].alignment = Alignment(horizontal="center")
+        for col in ["A", "B"] + gcols:
+            bk[f"{col}{r}"].fill = FORMULA_FILL
+        bk[f"B{r}"].alignment = Alignment(horizontal="right")
+    bk.conditional_formatting.add(f"C5:{gcols[-1]}304", FormulaRule(formula=["C5=1"], fill=DONE_FILL))
+    bk.freeze_panes = "C5"
+
+    pcols = [get_column_letter(2 + k) for k in range(n)]
+    last = pcols[-1]
+    grid, heads = f"Baskets!$C$5:${gcols[-1]}$304", f"Baskets!$C$4:${gcols[-1]}$4"
+    pr["A1"] = ("Type your products in A5:A16 (yellow, up to 12). Each grid cell counts the orders that contain both "
+                "the row product and the column product. Fictional sample.")
+    pr["A2"] = ("Counts are orders, not item lines. On a tie, Most often with shows the first product in the list; "
+                "Partners tied says how many share the top count.")
+    pr["A1"].font = pr["A2"].font = Font(italic=True)
+    _head_row(pr, 4, ["Product"] + [""] * n + ["", "Orders with this product", "Most often with",
+                                                "Share of this product's orders", "Partners tied for most", "Status"],
+              [18] + [9] * n + [2, 9, 18, 9, 10, 24], height=60)
+    pr[f"{get_column_letter(2 + n)}4"].fill = PatternFill(fill_type=None)
+    o_c, p_c, q_c, t_c, s_c = (get_column_letter(3 + n + k) for k in range(5))
+    for k, col in enumerate(pcols):
+        pr[f"{col}4"] = f'=IF($A${5 + k}="","",$A${5 + k})'
+    products = ["Lavender candle", "Cedar candle", "Wick trimmer", "Soap bar", "Lip balm", "Gift box"]
+    for i in range(n):
+        r = 5 + i
+        pr[f"A{r}"].fill = INPUT_FILL
+        if i < len(products):
+            pr[f"A{r}"] = products[i]
+        mine = f"INDEX({grid},0,MATCH($A{r},{heads},0))"
+        for j, col in enumerate(pcols):
+            c = pr[f"{col}{r}"]
+            c.fill = FORMULA_FILL
+            c.alignment = Alignment(horizontal="center")
+            if i == j:
+                continue
+            other = f"INDEX({grid},0,MATCH({col}$4,{heads},0))"
+            c.value = f'=IF(OR($A{r}="",{col}$4=""),"",SUMPRODUCT(({mine}=1)*({other}=1)))'
+        row = f"B{r}:{last}{r}"
+        pr[f"{o_c}{r}"] = f'=IF($A{r}="","",SUM({mine}))'
+        pr[f"{p_c}{r}"] = f'=IF(OR($A{r}="",MAX({row})=0),"",INDEX($B$4:${last}$4,MATCH(MAX({row}),{row},0)))'
+        pr[f"{q_c}{r}"] = f'=IF({p_c}{r}="","",MAX({row})/{o_c}{r})'
+        pr[f"{t_c}{r}"] = f'=IF({p_c}{r}="","",COUNTIF({row},MAX({row})))'
+        pr[f"{s_c}{r}"] = (f'=IF(TRIM($A{r})="","",IF(LEN($A{r})<>LEN(TRIM($A{r})),"Check: extra spaces",'
+                           f'IF(COUNTIF($A$5:$A${4 + n},$A{r})>1,"Check: name twice","OK")))')
+        pr[f"{o_c}{r}"].number_format = pr[f"{t_c}{r}"].number_format = "0"
+        pr[f"{q_c}{r}"].number_format = "0.0%"
+        for col in (o_c, p_c, q_c, t_c, s_c):
+            pr[f"{col}{r}"].fill = FORMULA_FILL
+            pr[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    sr = 6 + n
+    pr[f"A{sr}"] = "Checks"
+    pr[f"A{sr}"].font = Font(bold=True, size=12)
+    vcol = pcols[4]
+    checks = [
+        ("Orders on the Items tab", "=Items!G5", "0"),
+        ("Orders listed on the Baskets tab (up to 300)", '=SUMPRODUCT(--(Baskets!A5:A304<>""))', "0"),
+        ("Item lines whose product is not on this list", "=Items!G7", "0"),
+        ("Rows showing Check (Items and this tab)",
+         f'=Items!G6+SUMPRODUCT(--(LEFT({s_c}5:{s_c}{4 + n},5)="Check"))', "0"),
+        ("Products listed", f'=SUMPRODUCT(--(TRIM(A5:A{4 + n})<>""))', "0"),
+        ("CHECK", f'=IF(AND({vcol}{sr + 1}>0,{vcol}{sr + 1}={vcol}{sr + 2},{vcol}{sr + 4}=0,Items!G8=0),"OK","Check")',
+         "General"),
+    ]
+    for k, (label, f, fmt) in enumerate(checks):
+        r = sr + 1 + k
+        pr[f"A{r}"] = label
+        pr[f"A{r}"].font = Font(bold=True)
+        pr[f"{vcol}{r}"] = f
+        pr[f"{vcol}{r}"].number_format = fmt
+        pr[f"{vcol}{r}"].fill = FORMULA_FILL
+        pr[f"{vcol}{r}"].alignment = Alignment(horizontal="right")
+    chk = f"{vcol}{sr + len(checks)}"
+    pr.conditional_formatting.add(chk, FormulaRule(formula=[f'${vcol}${sr + len(checks)}<>"OK"'], fill=ALERT_FILL))
+    pr.conditional_formatting.add(f"{s_c}5:{s_c}{4 + n}", FormulaRule(formula=[f'LEFT(${s_c}5,5)="Check"'],
+                                                                      fill=ALERT_FILL))
+    pr.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find Which Products Are Bought Together Most Often",
+        "",
+        "1. Pairs tab: type your products in A5:A16 (yellow, up to 12). The names appear across row 4 by formula and as the column headings on the Baskets tab.",
+        "2. Items tab: paste your sold-items export, one row per item (yellow, rows 5 to 504): order number in A and product in B. The 10 orders are fictional.",
+        "3. Order no., Items C6: =IF(A6=\"\",\"\",IF(COUNTIF($A$5:A6,A6)=1,MAX($C$5:C5)+1,\"\")) numbers each order once, on its first line (C5 is =IF(A5=\"\",\"\",1)). This lists every order once without UNIQUE.",
+        "4. Baskets tab, A5: =IFERROR(INDEX(Items!$A$5:$A$504,MATCH(ROWS(A$5:A5),Items!$C$5:$C$504,0)),\"\") lists order 1, 2, 3. C5: =IF($A5=\"\",\"\",IF(COUNTIFS(Items!$A$5:$A$504,$A5,Items!$B$5:$B$504,C$4)>0,1,0)) puts 1 when the order contains that product and 0 when it does not. A product on two lines of one order still gives 1.",
+        "5. Pair count, Pairs C5 (and every grid cell): =SUMPRODUCT((INDEX(Baskets!$C$5:$N$304,0,MATCH($A5,Baskets!$C$4:$N$4,0))=1)*(INDEX(Baskets!$C$5:$N$304,0,MATCH(C$4,Baskets!$C$4:$N$4,0))=1)). INDEX with row 0 returns a whole product column; the =1 tests matter, because the empty Baskets rows hold \"\" and multiplying them directly gives #VALUE!.",
+        "6. Orders with this product, O5: =SUM(INDEX(Baskets!$C$5:$N$304,0,MATCH($A5,Baskets!$C$4:$N$4,0))). This counts orders, not item lines (order 5004 has Cedar candle on two lines and counts once).",
+        "7. Most often with, P5: =INDEX($B$4:$M$4,MATCH(MAX(B5:M5),B5:M5,0)); Share, Q5: =MAX(B5:M5)/O5. On a tie the first product in the list is shown; Partners tied for most (R) says how many products share the top count.",
+        "8. Items Status: Check: no order #, Check: order # is text (a number stored as text), Check: no product, Check: extra spaces, Check: product not on Pairs list, or Repeat in this order (counted once). In LibreOffice Calc upper and lower case do not matter (soap bar counts as Soap bar).",
+        "9. Checks (below the grid): orders on Items and on Baskets must match (more than 300 orders do not fit), and no product may be missing from the list.",
+        "10. These are counts of orders that contain both products. They do not say that a bundle will sell more.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    it.print_title_rows = bk.print_title_rows = pr.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-bought-together-pairs.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -19614,4 +20250,9 @@ if __name__ == "__main__":
     economic_order_quantity()
     shelf_bin_location_finder()
     url_handle_from_title()
+    alphabetical_sort_formula()
+    combined_shipping_calculator()
+    random_coupon_codes()
+    production_queue_finish_dates()
+    bought_together_pairs()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

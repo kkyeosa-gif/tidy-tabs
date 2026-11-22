@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DgC4X_km2_2
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-add-st-nd-rd-and-th-to-dates-and.html
 title: How to Add st, nd, rd and th to Dates and Numbers in Excel and Google Sheets
 labels: excel-formulas, dates, text-functions, small-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 36 workbooks and 21,888 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

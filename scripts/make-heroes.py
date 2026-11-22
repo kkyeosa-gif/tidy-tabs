@@ -988,7 +988,7 @@ def save_stacked(out, *images, gap=30):
     print("wrote", out, os.path.getsize(out) // 1024, "KB")
 
 
-def trimmed_copy(src, sheet, last_row, name, hide_rows=(), clear=()):
+def trimmed_copy(src, sheet, last_row, name, hide_rows=(), clear=(), drop_print_area=False):
     """Copy of a tab with the empty rows below last_row deleted (their gray formula
     fill would otherwise shrink a fit-to-page render), plus hidden note rows."""
     wb = load_workbook(src)
@@ -999,6 +999,8 @@ def trimmed_copy(src, sheet, last_row, name, hide_rows=(), clear=()):
         ws.row_dimensions[r].hidden = True
     for cell in clear:
         ws[cell] = None
+    if drop_print_area:  # a saved print area (e.g. A1:I204) would still print the deleted rows' space
+        ws.print_area = None
     path = f"{rp.TMP}/{name}-trimmed.xlsx"
     wb.save(path)
     return path
@@ -1028,7 +1030,33 @@ def heroes_2026_11_21():
                 "Titles", hide_cols="DFHJKL", name="urlhandle"))
 
 
+def heroes_2026_11_22():
+    t = "templates/"
+    d = "images/2026-11-22-team-0%d-%s/"
+    save(d % (1, "sort-list-alphabetically-with-formula-no-sort-function-countif-index-match-excel-google-sheets") + "alphabetical-sort-formula-template.png",
+         render(trimmed_copy(t + "tidy-tabs-alphabetical-sort-formula.xlsx", "Vendors", 24, "azvendors", hide_rows=[1, 2, 3]),
+                "Vendors", hide_cols="DFGHI", name="azvendors"),
+         render(trimmed_copy(t + "tidy-tabs-alphabetical-sort-formula.xlsx", "A to Z", 23, "azsorted", hide_rows=[1, 2, 3], drop_print_area=True),
+                "A to Z", hide_cols="GHI", name="azsorted"))
+    save_stacked(d % (2, "combined-shipping-first-item-each-additional-item-countifs-sumif-excel-google-sheets") + "combined-shipping-first-additional-item-template.png",
+         render(trimmed_copy(t + "tidy-tabs-combined-shipping-calculator.xlsx", "Orders", 18, "combship", hide_rows=[1, 3]),
+                "Orders", hide_cols="LMN", name="combship"))
+    save(d % (3, "generate-random-unique-coupon-codes-randbetween-mid-excel-google-sheets") + "random-coupon-codes-template.png",
+         render(t + "tidy-tabs-random-coupon-codes.xlsx", "Settings", hide_cols="C", name="couponset"),
+         render(trimmed_copy(t + "tidy-tabs-random-coupon-codes.xlsx", "Codes", 20, "coupons", hide_rows=[1, 2, 3]),
+                "Codes", hide_cols="DEFGHI", name="coupons"))
+    save_stacked(d % (4, "production-queue-finish-dates-from-daily-capacity-workday-roundup-excel-google-sheets") + "production-queue-finish-dates-template.png",
+         render(trimmed_copy(t + "tidy-tabs-production-queue-finish-dates.xlsx", "Queue", 11, "prodqueue", hide_rows=[3]),
+                "Queue", hide_cols="CKLM", name="prodqueue"))
+    save_stacked(d % (5, "products-frequently-bought-together-pair-counts-countifs-sumproduct-index-excel-google-sheets") + "products-bought-together-pairs-template.png",
+         render(trimmed_copy(t + "tidy-tabs-bought-together-pairs.xlsx", "Pairs", 10, "pairs", hide_rows=[1, 2, 3]),
+                "Pairs", hide_cols="HIJKLMN", name="pairs"))
+
+
 def main():
+    if "--only-2026-11-22" in sys.argv:
+        heroes_2026_11_22()
+        return
     if "--only-2026-11-21" in sys.argv:
         heroes_2026_11_21()
         return

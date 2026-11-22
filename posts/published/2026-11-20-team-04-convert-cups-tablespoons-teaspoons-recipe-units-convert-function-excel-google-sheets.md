@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DgDMLXXlL35
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-convert-cups-tablespoons-and.html
 title: How to Convert Cups, Tablespoons and Teaspoons in Excel and Google Sheets
 labels: excel-formulas, small-business, food-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 30 workbooks and 8,550 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

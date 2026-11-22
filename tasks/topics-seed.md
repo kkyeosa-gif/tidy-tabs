@@ -271,3 +271,10 @@
 - How to Find How Much to Order at Once (Economic Order Quantity) in Excel and Google Sheets - `2026-11-21-team-03-economic-order-quantity-how-much-to-order-at-once-eoq-sqrt-excel-google-sheets`
 - How to Find a Value in a Grid and Return Its Row and Column Label in Excel and Google Sheets - `2026-11-21-team-04-find-value-in-grid-return-row-and-column-label-shelf-bin-map-sumproduct-excel-google-sheets`
 - How to Turn Product Titles Into URL Handles (Slugs) in Excel and Google Sheets - `2026-11-21-team-05-turn-product-titles-into-url-handles-slugs-lower-substitute-excel-google-sheets`
+
+## 2026-11-22 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-22.md)
+- How to Sort a List Alphabetically With a Formula (No SORT Function) in Excel and Google Sheets - `2026-11-22-team-01-sort-list-alphabetically-with-formula-no-sort-function-countif-index-match-excel-google-sheets`
+- How to Charge Shipping for the First Item and Each Additional Item in Excel and Google Sheets - `2026-11-22-team-02-combined-shipping-first-item-each-additional-item-countifs-sumif-excel-google-sheets`
+- How to Generate Random Coupon Codes in Excel and Google Sheets - `2026-11-22-team-03-generate-random-unique-coupon-codes-randbetween-mid-excel-google-sheets`
+- How to Estimate When Each Order Will Be Finished From Your Daily Capacity in Excel and Google Sheets - `2026-11-22-team-04-production-queue-finish-dates-from-daily-capacity-workday-roundup-excel-google-sheets`
+- How to Find Which Products Are Bought Together Most Often in Excel and Google Sheets - `2026-11-22-team-05-products-frequently-bought-together-pair-counts-countifs-sumproduct-index-excel-google-sheets`

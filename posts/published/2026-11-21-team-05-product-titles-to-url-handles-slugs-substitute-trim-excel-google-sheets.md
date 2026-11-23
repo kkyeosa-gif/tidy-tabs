@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DgF-tZlo7Xl
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-turn-product-titles-into-url.html
 title: How to Turn Product Titles Into URL Handles (Slugs) in Excel and Google Sheets
 labels: excel-formulas, text-functions, small-business
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 20 workbooks and 31,981 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

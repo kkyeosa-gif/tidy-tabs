@@ -1053,7 +1053,66 @@ def heroes_2026_11_22():
                 "Pairs", hide_cols="HIJKLMN", name="pairs"))
 
 
+def cells_set_copy(path, sheet, values, name):
+    """Copy of a (temp) workbook with some input cells retyped, e.g. a second criteria row."""
+    wb = load_workbook(path)
+    for cell, value in values.items():
+        wb[sheet][cell] = value
+    out = f"{rp.TMP}/{name}-set.xlsx"
+    wb.save(out)
+    return out
+
+
+T_1123 = "templates/"
+D_1123 = "images/2026-11-23-team-0%d-%s/"
+
+
+def heroes_2026_11_23_01():
+    src = T_1123 + "tidy-tabs-invoices-that-add-up-to-payment.xlsx"
+    save(D_1123 % (1, "find-which-invoices-add-up-to-a-payment-amount-mod-int-sumproduct-excel-google-sheets") + "invoices-that-add-up-to-payment-template.png",
+         render(compact_copy(src, "Invoices", 18, "invmatch", hide_rows=[3], clear=["C1", "C2"]),
+                "Invoices", hide_cols="G", widths={"C": 10}, name="invmatch"))
+
+
+def heroes_2026_11_23_02():
+    src = T_1123 + "tidy-tabs-print-size-dpi-checker.xlsx"
+    save(D_1123 % (2, "check-image-pixels-for-print-size-300-dpi-crop-percent-min-max-excel-google-sheets") + "print-size-dpi-checker-template.png",
+         render(trimmed_copy(src, "Images", 10, "dpiimages", hide_rows=[1, 2, 3], drop_print_area=True),
+                "Images", hide_cols="DEHKMNPQSTUVWX", widths={c: 18 for c in "IJLOR"}, name="dpiimages"))
+
+
+def heroes_2026_11_23_03():
+    src = T_1123 + "tidy-tabs-maintenance-due-tracker.xlsx"
+    save(D_1123 % (3, "maintenance-due-date-by-months-or-miles-whichever-comes-first-edate-min-excel-google-sheets") + "maintenance-due-tracker-template.png",
+         render(trimmed_copy(src, "Equipment", 11, "maintdue", hide_rows=[3], clear=["C1", "C2"]),
+                "Equipment", hide_cols="IOPQ", widths={"A": 30, "N": 11}, name="maintdue"))
+
+
+def heroes_2026_11_23_04():
+    src = T_1123 + "tidy-tabs-dsum-criteria-box-report.xlsx"
+    report = cells_set_copy(trimmed_copy(src, "Report", 6, "dsumreport", hide_rows=[1, 2]),
+                            "Report", {"C5": '="=Market"'}, "dsumreport")
+    save_stacked(D_1123 % (4, "total-sales-with-criteria-box-and-or-conditions-dsum-dcount-excel-google-sheets") + "dsum-criteria-box-report-template.png",
+         render(report, "Report", name="dsumreport"),
+         render(trimmed_copy(src, "Sales", 14, "dsumsales", hide_rows=[1, 2, 3]),
+                "Sales", hide_cols="FGHI", name="dsumsales"))
+
+
+def heroes_2026_11_23_05():
+    src = T_1123 + "tidy-tabs-season-from-date.xlsx"
+    save(D_1123 % (5, "assign-season-and-rate-to-any-date-seasons-crossing-new-year-month-day-match-excel-google-sheets") + "season-and-rate-from-date-template.png",
+         render(trimmed_copy(src, "Seasons", 10, "seasons", hide_rows=[1, 2, 3]),
+                "Seasons", hide_cols="FGHI", name="seasons"),
+         render(trimmed_copy(src, "Dates", 21, "seasondates", hide_rows=[1, 2, 3]),
+                "Dates", hide_cols="EFGH", name="seasondates"))
+
+
 def main():
+    if "--only-2026-11-23" in sys.argv:
+        for n in "12345":
+            if not any(a.startswith("--only-2026-11-23-0") for a in sys.argv) or f"--only-2026-11-23-0{n}" in sys.argv:
+                globals()[f"heroes_2026_11_23_0{n}"]()
+        return
     if "--only-2026-11-22" in sys.argv:
         heroes_2026_11_22()
         return

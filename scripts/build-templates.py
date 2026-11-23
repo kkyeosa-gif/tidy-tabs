@@ -20018,6 +20018,655 @@ def bought_together_pairs():
     wb.save(OUT / "tidy-tabs-bought-together-pairs.xlsx")
 
 
+INVOICE_COMBO_MAX = 12
+
+
+def invoices_add_up_to_payment():
+    from openpyxl.utils import get_column_letter
+    wb = Workbook()
+    iv = wb.active
+    iv.title = "Invoices"
+    cb = wb.create_sheet("Combos")
+    n = INVOICE_COMBO_MAX
+    last = 4 + 2 ** n - 1
+    iv["A1"], iv["B1"] = "Payment received", 416.24
+    iv["A2"], iv["B2"] = "Allowed difference", 0
+    iv["C1"] = "The one payment to match (yellow), such as an ACH deposit with no remittance note."
+    iv["C2"] = ("$0.00 for an exact match. Type 3.00 to also list sets within $3.00 of the payment "
+                "(for example a deducted fee).")
+    for c in ("A1", "A2"):
+        iv[c].font = Font(bold=True)
+    for c in ("B1", "B2"):
+        iv[c].fill = INPUT_FILL
+        iv[c].number_format = USD
+        iv[c].alignment = Alignment(horizontal="right")
+    iv["C1"].font = iv["C2"].font = Font(italic=True)
+    _head_row(iv, 4, ["Invoice #", "Amount", "Status", "Match 1", "Match 2", "Match 3"],
+              [20, 13, 34, 10, 10, 10], height=32)
+    invoices = [("INV-1041", 412.50), ("INV-1042", 189.99), ("INV-1043", 76.25), ("INV-1044", 1050.00),
+                ("INV-1045", 230.10), ("INV-1046", 95.00), ("INV-1047", 318.40), ("INV-1048", 64.99),
+                ("INV-1049", 150.00), ("INV-1050", 520.35), ("INV-1051", 88.80), ("INV-1052", 275.00)]
+    combo_bits = f"Combos!$B$5:${get_column_letter(1 + n)}${last}"
+    for r in range(5, 5 + n):
+        iv[f"A{r}"].fill = iv[f"B{r}"].fill = INPUT_FILL
+        iv[f"A{r}"].alignment = Alignment(indent=1)
+        iv[f"B{r}"].number_format = USD
+        iv[f"C{r}"] = (f'=IF(AND(A{r}="",B{r}=""),IF(COUNTA(A{r}:$B${4 + n})>0,"Check: blank row above a filled row",""),'
+                       f'IF(B{r}="","Check: no amount",IF(NOT(ISNUMBER(B{r})),"Check: amount is text",'
+                       f'IF(TRIM(A{r})="","Check: no invoice #",IF(COUNTIF($A$5:$A${4 + n},A{r})>1,"Check: invoice # twice",'
+                       f'IF(B{r}<0,"Check: negative amount (credit memo)",'
+                       f'IF(B{r}<>ROUND(B{r},2),"Check: more than 2 decimals","OK")))))))')
+        for k, col in enumerate("DEF", start=1):
+            iv[f"{col}{r}"] = (f'=IFERROR(IF(INDEX({combo_bits},MATCH({k},Combos!$P$5:$P${last},0),'
+                               f'ROWS({col}$5:{col}{r}))=1,"Yes",""),"")')
+        for col in "CDEF":
+            iv[f"{col}{r}"].fill = FORMULA_FILL
+            iv[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (inv, amt) in enumerate(invoices):
+        iv[f"A{5 + i}"], iv[f"B{5 + i}"] = inv, amt
+    tr = 5 + n
+    iv[f"C{tr}"], iv[f"C{tr + 1}"] = "Total of this set", "Combination # (Combos tab)"
+    for k, col in enumerate("DEF", start=1):
+        iv[f"{col}{tr}"] = (f'=IF(COUNTIF({col}5:{col}{4 + n},"Yes")=0,"",'
+                            f'SUMIF({col}5:{col}{4 + n},"Yes",$B$5:$B${4 + n}))')
+        iv[f"{col}{tr + 1}"] = f'=IFERROR(INDEX(Combos!$A$5:$A${last},MATCH({k},Combos!$P$5:$P${last},0)),"")'
+        iv[f"{col}{tr}"].number_format = USD
+        iv[f"{col}{tr + 1}"].number_format = "0"
+        for rr in (tr, tr + 1):
+            iv[f"{col}{rr}"].fill = FORMULA_FILL
+            iv[f"{col}{rr}"].alignment = Alignment(horizontal="right")
+    for rr in (tr, tr + 1):
+        iv[f"C{rr}"].font = Font(bold=True)
+        iv[f"C{rr}"].alignment = Alignment(horizontal="right")
+    iv.column_dimensions["G"].width = 3
+    iv.column_dimensions["H"].width = 38
+    iv.column_dimensions["I"].width = 16
+    rows = f"5:{4 + n}"
+    _summary_block(iv, "H", "I", [
+        (4, "Invoices with an amount (numbers)", f"=COUNT(B5:B{4 + n})", "0"),
+        (5, "Amounts typed as text (must be 0)", f"=COUNTA(B5:B{4 + n})-COUNT(B5:B{4 + n})", "0"),
+        (6, "Combinations checked (2^n - 1)", "=IF(I4=0,0,2^I4-1)", "#,##0"),
+        (7, "Matches found", f"=COUNTIF(Combos!$O$5:$O${last},1)", "#,##0"),
+        (8, "Result", '=IF(I11<>"OK","Type the payment in B1",IF(I7=0,"No match",IF(I7=1,"1 match",'
+                      'I7&" matches"&IF(I7>3," (first 3 listed)",""))))', "General"),
+        (9, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(C5:C{4 + n},5)="Check"))', "0"),
+        (10, f"Typed below row {4 + n} (only {n} supported)", f"=COUNTA(A{tr}:B1000)", "0"),
+        (11, "Payment and allowed difference", '=IF(AND(ISNUMBER(B1),B1>0,ISNUMBER(B2),B2>=0),"OK","Check")',
+         "General"),
+        (12, "CHECK", '=IF(AND(I4>0,I5=0,I9=0,I10=0,I11="OK"),"OK","Check")', "General"),
+    ])
+    iv.conditional_formatting.add(f"C5:C{4 + n}", FormulaRule(formula=['LEFT($C5,5)="Check"'], fill=ALERT_FILL))
+    iv.conditional_formatting.add(f"D5:F{4 + n}", FormulaRule(formula=['D5="Yes"'], fill=DONE_FILL))
+    iv.conditional_formatting.add("I11:I12", FormulaRule(formula=['I11<>"OK"'], fill=ALERT_FILL))
+    iv.freeze_panes = "A5"
+
+    cb["A1"] = ("Every combination of the invoices, one per row. Nothing to type here. 1 = that invoice is in the "
+                "combination, 0 = it is not. Row 3 pulls the amounts across from the Invoices tab.")
+    cb["A2"] = ("Combination n: invoice k+1 is in it when MOD(INT(n/2^k),2) = 1. Total = SUMPRODUCT of row 3 and "
+                "the 1s and 0s. Match = 1 when the total is the payment.")
+    cb["A1"].font = cb["A2"].font = Font(italic=True)
+    _head_row(cb, 4, ["Combination #"] + [""] * n + ["Total", "Match (1/0)", "Match no."],
+              [12] + [9] * n + [12, 8, 8], height=32)
+    cb["A3"] = "Amount"
+    cb["A3"].font = Font(bold=True)
+    tot_c, m_c, no_c = (get_column_letter(2 + n + i) for i in range(3))
+    for k in range(n):
+        col = get_column_letter(2 + k)
+        cb[f"{col}3"] = f"=INDEX(Invoices!$B$5:$B${4 + n},{k + 1})"
+        cb[f"{col}3"].number_format = USD
+        cb[f"{col}3"].fill = FORMULA_FILL
+        cb[f"{col}4"] = (f'=IF(INDEX(Invoices!$A$5:$A${4 + n},{k + 1})="","Invoice {k + 1}",'
+                         f'INDEX(Invoices!$A$5:$A${4 + n},{k + 1}))')
+    first_bit, last_bit = "B", get_column_letter(1 + n)
+    for r in range(5, last + 1):
+        cb[f"A{r}"] = f'=IF(ROWS(A$5:A{r})>2^COUNT(Invoices!$B$5:$B${4 + n})-1,"",ROWS(A$5:A{r}))'
+        for k in range(n):
+            col = get_column_letter(2 + k)
+            cb[f"{col}{r}"] = f'=IF($A{r}="","",MOD(INT($A{r}/2^{k}),2))'
+        cb[f"{tot_c}{r}"] = (f'=IF($A{r}="","",ROUND(SUMPRODUCT(${first_bit}$3:${last_bit}$3,'
+                             f'{first_bit}{r}:{last_bit}{r}),2))')
+        cb[f"{m_c}{r}"] = (f'=IF(OR({tot_c}{r}="",Invoices!$I$11<>"OK"),"",'
+                           f'IF(ABS({tot_c}{r}-ROUND(Invoices!$B$1,2))<=Invoices!$B$2,1,0))')
+        cb[f"{no_c}{r}"] = f'=IF({m_c}{r}=1,COUNTIF(${m_c}$5:{m_c}{r},1),"")'
+        cb[f"{tot_c}{r}"].number_format = USD
+    cb.conditional_formatting.add(f"{m_c}5:{no_c}{last}", FormulaRule(formula=[f'${m_c}5=1'], fill=DONE_FILL))
+    cb.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find Which Invoices Add Up to a Payment",
+        "",
+        "1. Invoices tab: type the payment you received in B1 and the allowed difference in B2 (yellow; $0.00 for an exact match). List the open invoices in A5:B16 (yellow, up to 12, no blank rows in between). The 12 invoices are fictional.",
+        "2. Combos tab (nothing to type): every combination of the invoices gets a number, 1 to 4,095 for 12 invoices (2^12 - 1). A5: =IF(ROWS(A$5:A5)>2^COUNT(Invoices!$B$5:$B$16)-1,\"\",ROWS(A$5:A5)) stops the list at the number of invoices you typed.",
+        "3. In or out, B5 (and across to M5 with 2^1, 2^2 ... 2^11): =IF($A5=\"\",\"\",MOD(INT($A5/2^0),2)). This reads the combination number as base 2 digits: 1 means the invoice in that column is in the combination, 0 means it is not.",
+        "4. Total, N5: =IF($A5=\"\",\"\",ROUND(SUMPRODUCT($B$3:$M$3,B5:M5),2)) multiplies each amount in row 3 by its 1 or 0 and adds them up. ROUND to cents is a guard so a total such as 416.24000000001 still counts as $416.24.",
+        "5. Match, O5: =IF(ABS(N5-ROUND(Invoices!$B$1,2))<=Invoices!$B$2,1,0). The cell in the file also stays blank until the payment is a number above 0 and the allowed difference is a number of 0 or more (I11). Match no., P5: =IF(O5=1,COUNTIF($O$5:O5,1),\"\") numbers the matches 1, 2, 3 down the list.",
+        "6. Match 1 to 3, Invoices D5: =IFERROR(IF(INDEX(Combos!$B$5:$M$4099,MATCH(1,Combos!$P$5:$P$4099,0),ROWS(D$5:D5))=1,\"Yes\",\"\"),\"\") shows Yes next to each invoice in the first matching set (E and F use match 2 and 3). Rows 17 and 18 show each set's total and its combination number.",
+        "7. Matches found (I7) counts every matching set. When it is more than 1, two or more different sets of invoices add up to the payment: ask the client which invoices they paid. Only the first 3 are listed; the rest are on the Combos tab (Match no. 4, 5 ...).",
+        "8. Status (C): Check: amount is text (a text amount is left out of the count, so fewer combinations are built, and it counts as $0.00 in the totals), Check: blank row above a filled row (the invoices below it are not tried), Check: no amount, Check: no invoice #, Check: invoice # twice, Check: negative amount (credit memo), Check: more than 2 decimals.",
+        "9. Up to 12 invoices: 13 would need 8,191 rows and 20 over a million. Narrow the list first (one client, the dates the payment could cover). I10 counts anything typed below row 16.",
+        "10. The sheet finds sets of invoices that add up to the payment. It does not decide which invoices the client meant to pay; confirm with the client before you mark invoices paid.",
+        "11. The Combos tab prints only its first 32 combinations (print area A1:P36); the whole list stays on screen.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    iv.print_title_rows = cb.print_title_rows = "4:4"
+    cb.print_area = "A1:P36"
+    wb.save(OUT / "tidy-tabs-invoices-that-add-up-to-payment.xlsx")
+
+
+PRINT_SIZE_ROWS = 16
+
+
+def print_size_dpi_checker():
+    from openpyxl.utils import get_column_letter as col_l
+    wb = Workbook()
+    im = wb.active
+    im.title = "Images"
+    ps = wb.create_sheet("Print sizes")
+    ns = PRINT_SIZE_ROWS
+    s_last = 4 + ns
+    ps["A1"], ps["B1"] = "Minimum DPI", 300
+    ps["A1"].font = Font(bold=True)
+    ps["B1"].fill = INPUT_FILL
+    ps["B1"].number_format = "0"
+    ps["B1"].alignment = Alignment(horizontal="right")
+    ps["C1"] = ("Pixels per printed inch you want at least (yellow). Type the number your print lab's guide gives; "
+                "300 is the sample.")
+    ps["A2"] = ("Print sizes in inches (yellow, rows 5 to 20). Either side can come first; D and E sort them. "
+                "US sizes; add your own, such as 12x12.")
+    ps["C1"].font = ps["A2"].font = Font(italic=True)
+    _head_row(ps, 4, ["Size name", "Short side (in)", "Long side (in)", "Short (sorted)", "Long (sorted)",
+                      "Area (sq in)", "Status"], [12, 10, 10, 9, 9, 9, 28], height=46)
+    sizes = [("4x6", 4, 6), ("5x7", 5, 7), ("8x10", 8, 10), ("8.5x11", 8.5, 11), ("11x14", 11, 14),
+             ("11x17", 11, 17), ("12x18", 12, 18), ("16x20", 16, 20), ("18x24", 18, 24), ("20x30", 20, 30),
+             ("24x36", 24, 36)]
+    for r in range(5, s_last + 1):
+        for col in "ABC":
+            ps[f"{col}{r}"].fill = INPUT_FILL
+        ps[f"G{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",C{r}=""),"",IF(TRIM(A{r})="","Check: no size name",'
+                       f'IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r}))),"Check: side blank or text",'
+                       f'IF(OR(B{r}<=0,C{r}<=0),"Check: side 0 or less",'
+                       f'IF(COUNTIF($A$5:$A${s_last},A{r})>1,"Check: name twice","OK")))))')
+        ps[f"D{r}"] = f'=IF(G{r}<>"OK","",MIN(B{r},C{r}))'
+        ps[f"E{r}"] = f'=IF(G{r}<>"OK","",MAX(B{r},C{r}))'
+        ps[f"F{r}"] = f'=IF(G{r}<>"OK","",D{r}*E{r})'
+        for col in "BCDEF":
+            ps[f"{col}{r}"].number_format = "0.0##"
+        for col in "DEFG":
+            ps[f"{col}{r}"].fill = FORMULA_FILL
+            ps[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(sizes):
+        for col, v in zip("ABC", row):
+            ps[f"{col}{5 + i}"] = v
+    ps.column_dimensions["H"].width = 3
+    ps.column_dimensions["I"].width = 30
+    ps.column_dimensions["J"].width = 9
+    _summary_block(ps, "I", "J", [
+        (4, "Minimum DPI (B1)", '=IF(AND(ISNUMBER(B1),B1>0),"OK","Check")', "General"),
+        (5, "Sizes listed", f'=COUNTIF(G5:G{s_last},"OK")', "0"),
+        (6, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(G5:G{s_last},5)="Check"))', "0"),
+        (7, f"Typed below row {s_last} (not read)", f"=COUNTA(A{s_last + 1}:C1000)", "0"),
+        (8, "Images listed (Images tab)", f'=SUMPRODUCT(--(Images!{col_l(8 + ns)}5:{col_l(8 + ns)}104<>""))', "0"),
+        (9, "Image rows showing Check", f'=SUMPRODUCT(--(LEFT(Images!{col_l(8 + ns)}5:{col_l(8 + ns)}104,5)="Check"))',
+         "0"),
+        (10, "Images typed below row 104 (not read)", "=COUNTA(Images!A105:C1000)", "0"),
+        (11, "CHECK", '=IF(AND(J4="OK",J5>0,J6=0,J7=0,J8>0,J9=0,J10=0),"OK","Check")', "General"),
+    ])
+    ps.conditional_formatting.add(f"G5:G{s_last}", FormulaRule(formula=['LEFT($G5,5)="Check"'], fill=ALERT_FILL))
+    ps.conditional_formatting.add("J4", FormulaRule(formula=['$J$4<>"OK"'], fill=ALERT_FILL))
+    ps.conditional_formatting.add("J11", FormulaRule(formula=['$J$11<>"OK"'], fill=ALERT_FILL))
+    ps.freeze_panes = "A5"
+
+    im["A1"] = ("One image file per row (yellow, rows 5 to 104): the file name and its width and height in pixels. "
+                "Fictional files.")
+    im["A2"] = ("OK = enough pixels at the Minimum DPI (Print sizes tab) when the print is filled edge to edge. "
+                "(crops 17%) = share of the image cut off to fill that print's shape. Too small shows the DPI you would get.")
+    im["A1"].font = im["A2"].font = Font(italic=True)
+    st_c = col_l(8 + ns)
+    lab0 = 8
+    dpi0, crop0, area0 = 10 + ns, 10 + 2 * ns, 10 + 3 * ns
+    heads = (["File name", "Width px", "Height px", "Long px", "Short px", "Largest print at min DPI",
+              "Largest listed size that prints"] + [""] * ns + ["Status"])
+    _head_row(im, 4, heads, [26, 8, 8, 8, 8, 13, 12] + [10] * ns + [26], height=46)
+    im.column_dimensions[col_l(9 + ns)].width = 3
+    for j in range(ns):
+        s = 5 + j
+        for c0 in (lab0, dpi0, crop0, area0):
+            c = im.cell(row=4, column=c0 + j)
+            prefix = {lab0: "", dpi0: "DPI ", crop0: "Crop ", area0: "Area "}[c0]
+            c.value = f"=IF('Print sizes'!$A${s}=\"\",\"\",\"{prefix}\"&'Print sizes'!$A${s})"
+            c.fill, c.font = HEADER_FILL, HEADER_FONT
+            c.alignment = Alignment(vertical="center", wrap_text=True)
+    for c0, t in ((dpi0, "Effective DPI (helper)"), (crop0, "Crop share (helper)"), (area0, "Area if OK, sq in (helper)")):
+        im.cell(row=3, column=c0, value=t).font = Font(bold=True)
+    mindpi, minchk = "'Print sizes'!$B$1", "'Print sizes'!$J$4"
+    a_first, a_last = col_l(area0), col_l(area0 + ns - 1)
+    for r in range(5, 105):
+        for col in "ABC":
+            im[f"{col}{r}"].fill = INPUT_FILL
+        im[f"A{r}"].alignment = Alignment(indent=1)
+        im[f"B{r}"].number_format = im[f"C{r}"].number_format = "#,##0"
+        im[f"{st_c}{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",C{r}=""),"",'
+                            f'IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r}))),"Check: pixels blank or text",'
+                            f'IF(OR(B{r}<=0,C{r}<=0),"Check: 0 pixels",IF(TRIM(A{r})="","Check: no file name","OK"))))')
+        bad = f'OR(${st_c}{r}<>"OK",{minchk}<>"OK")'
+        im[f"D{r}"] = f'=IF(${st_c}{r}<>"OK","",MAX(B{r},C{r}))'
+        im[f"E{r}"] = f'=IF(${st_c}{r}<>"OK","",MIN(B{r},C{r}))'
+        im[f"F{r}"] = (f'=IF({bad},"",ROUNDDOWN(E{r}/{mindpi},1)&" x "&ROUNDDOWN(D{r}/{mindpi},1)&" in")')
+        area = f"{a_first}{r}:{a_last}{r}"
+        im[f"G{r}"] = (f'=IF(F{r}="","",IF(MAX({area})=0,"None",'
+                       f"INDEX('Print sizes'!$A$5:$A${s_last},MATCH(MAX({area}),{area},0))))")
+        for j in range(ns):
+            s = 5 + j
+            lc, dc, cc, ac = (col_l(c0 + j) for c0 in (lab0, dpi0, crop0, area0))
+            sh, lo = f"'Print sizes'!$D${s}", f"'Print sizes'!$E${s}"
+            im[f"{dc}{r}"] = (f"=IF(OR(${st_c}{r}<>\"OK\",{minchk}<>\"OK\",'Print sizes'!$G${s}<>\"OK\"),\"\","
+                              f"MIN($D{r}/{lo},$E{r}/{sh}))")
+            im[f"{cc}{r}"] = f'=IF({dc}{r}="","",1-({sh}*{lo}*{dc}{r}^2)/($D{r}*$E{r}))'
+            im[f"{ac}{r}"] = f"=IF({dc}{r}=\"\",\"\",IF(ROUND({dc}{r},6)>={mindpi},'Print sizes'!$F${s},0))"
+            im[f"{lc}{r}"] = (f'=IF({dc}{r}="","",IF(ROUND({dc}{r},6)>={mindpi},"OK"&IF({cc}{r}>=0.005,'
+                              f'" (crops "&TEXT({cc}{r},"0%")&")",""),"Too small: "&INT({dc}{r})&" DPI"))')
+            im[f"{dc}{r}"].number_format = "0.0"
+            im[f"{cc}{r}"].number_format = "0.0%"
+            im[f"{ac}{r}"].number_format = "0.0##"
+            for c in (lc, dc, cc, ac):
+                im[f"{c}{r}"].fill = FORMULA_FILL
+                im[f"{c}{r}"].alignment = Alignment(horizontal="right", wrap_text=(c == lc))
+        im[f"D{r}"].number_format = im[f"E{r}"].number_format = "#,##0"
+        for col in ("D", "E", "F", "G", st_c):
+            im[f"{col}{r}"].fill = FORMULA_FILL
+            im[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        im[f"{st_c}{r}"].alignment = Alignment(horizontal="left", indent=1)
+    images = [("wildflowers-print.jpg", 3600, 5400), ("cabin-landscape.jpg", 6000, 4800),
+              ("square-logo.png", 3000, 3000), ("phone-photo.jpg", 3024, 4032), ("small-scan.png", 1200, 1500),
+              ("botanical-set-04.jpg", 4961, 7016)]
+    for i, row in enumerate(images):
+        for col, v in zip("ABC", row):
+            im[f"{col}{5 + i}"] = v
+    labels = f"H5:{col_l(lab0 + ns - 1)}104"
+    im.conditional_formatting.add(labels, FormulaRule(formula=['LEFT(H5,3)="Too"'], fill=CHECK_ORANGE))
+    im.conditional_formatting.add(labels, FormulaRule(formula=['LEFT(H5,2)="OK"'], fill=DONE_FILL))
+    im.conditional_formatting.add("G5:G104", FormulaRule(formula=['$G5="None"'], fill=CHECK_ORANGE))
+    im.conditional_formatting.add(f"{st_c}5:{st_c}104", FormulaRule(formula=[f'LEFT(${st_c}5,5)="Check"'],
+                                                                     fill=ALERT_FILL))
+    im.column_dimensions.group(col_l(dpi0), col_l(area0 + ns - 1), hidden=True, outline_level=1)
+    im.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Check If an Image Has Enough Pixels for a Print Size",
+        "",
+        "1. Print sizes tab: type the minimum DPI you want in B1 (yellow; 300 is the sample, use the number your print lab's guide gives) and your print sizes in inches in A5:C20 (yellow, up to 16). Either side can come first.",
+        "2. Images tab: one file per row (yellow, rows 5 to 104): file name, width and height in pixels (from the file's properties or your editor's image size box). The six files are fictional.",
+        "3. Long px and Short px, D5 and E5: =MAX(B5,C5) and =MIN(B5,C5). The print sizes are sorted the same way, so a portrait photo and a landscape photo of the same size give the same result.",
+        "4. Largest print at min DPI, F5: =ROUNDDOWN(E5/'Print sizes'!$B$1,1)&\" x \"&ROUNDDOWN(D5/'Print sizes'!$B$1,1)&\" in\" (3600 x 5400 px at 300 DPI is 12 x 18 in).",
+        "5. Effective DPI for each size (helper columns, grouped and hidden to the right; click the + above the columns to show them): =MIN(long px / long in, short px / short in). That is the DPI you get when the print is filled edge to edge.",
+        "6. Crop share: =1-(short in * long in * DPI^2)/(long px * short px), the share of the image that does not fit the print's shape and is cut off. It says how much is cut, not where.",
+        "7. Size columns (H onward): =IF(ROUND(DPI,6)>=min,\"OK\"&IF(crop>=0.005,\" (crops \"&TEXT(crop,\"0%\")&\")\",\"\"),\"Too small: \"&INT(DPI)&\" DPI\"). ROUND(,6) is a guard so exactly 300 DPI counts as OK. INT rounds the DPI down on purpose (272.7 shows as 272 DPI).",
+        "8. Largest listed size that prints, G5: INDEX/MATCH on the largest area that is OK, or None when no size has enough pixels.",
+        "9. Status: Check: pixels blank or text, Check: 0 pixels, Check: no file name. Print sizes Status: Check: no size name, Check: side blank or text, Check: side 0 or less, Check: name twice. CHECK (Print sizes J11) is OK when the minimum DPI is a number above 0 and no size or image row shows Check.",
+        "10. DPI here means pixels per printed inch. The DPI number saved inside an image file does not change how many pixels it has; only the pixel count matters for this check.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    im.print_title_rows = ps.print_title_rows = "4:4"
+    im.print_area = f"A1:{st_c}104"
+    wb.save(OUT / "tidy-tabs-print-size-dpi-checker.xlsx")
+
+
+def maintenance_due_tracker():
+    wb = Workbook()
+    eq = wb.active
+    eq.title = "Equipment"
+    eq["A1"], eq["B1"] = "As-of date", date(2026, 11, 23)
+    eq["A2"], eq["B2"] = "Due soon (days)", 14
+    eq["C1"] = ("Type the date you update the readings (yellow, MM/DD/YYYY). The sheet does not use TODAY, so the "
+                "days left stay the same on paper.")
+    eq["C2"] = "Rows due within this many days show Due soon. Fictional equipment and readings."
+    for c in ("A1", "A2"):
+        eq[c].font = Font(bold=True)
+    for c in ("B1", "B2"):
+        eq[c].fill = INPUT_FILL
+        eq[c].alignment = Alignment(horizontal="right")
+    eq["B1"].number_format = US_DATE
+    eq["B2"].number_format = "0"
+    eq["C1"].font = eq["C2"].font = Font(italic=True)
+    _head_row(eq, 4, ["Item and task", "Every N months", "Every N units", "Last service date",
+                      "Reading at last service", "Latest reading", "Latest reading date", "Due by months",
+                      "Units per day", "Due by usage", "Due date", "Limit that hits first", "Days left", "Status"],
+              [30, 11, 9, 11, 10, 10, 11, 11, 8, 11, 11, 9, 7, 30], height=46)
+    items = [("Delivery van: oil change", 6, 5000, date(2026, 7, 10), 48210, 51890, date(2026, 11, 20)),
+             ("Kiln: element check (firings)", 12, 200, date(2026, 3, 2), 1140, 1302, date(2026, 11, 21)),
+             ("Espresso machine: descale (shots)", 3, 1500, date(2026, 9, 15), 20500, 21480, date(2026, 11, 22)),
+             ("Sewing machine: service (hours)", 12, 400, date(2025, 12, 1), 3100, 3360, date(2026, 11, 18)),
+             ("Box truck: tires", 24, None, date(2025, 1, 31), None, None, None),
+             ("Delivery van: tire rotation", 6, 7500, date(2026, 5, 31), 46000, 51890, date(2026, 11, 20)),
+             ("Walk-in cooler: coil cleaning", 3, None, date(2026, 8, 15), None, None, None)]
+    for r in range(5, 55):
+        for col in "ABCDEFG":
+            eq[f"{col}{r}"].fill = INPUT_FILL
+        eq[f"A{r}"].alignment = Alignment(indent=1)
+        for col in "DG":
+            eq[f"{col}{r}"].number_format = US_DATE
+        for col in "BCEF":
+            eq[f"{col}{r}"].number_format = "#,##0"
+        eq[f"H{r}"] = f'=IF(OR(B{r}="",NOT(ISNUMBER(B{r})),NOT(ISNUMBER(D{r}))),"",EDATE(D{r},B{r}))'
+        eq[f"I{r}"] = (f'=IF(OR(C{r}="",NOT(ISNUMBER(D{r})),NOT(ISNUMBER(E{r})),NOT(ISNUMBER(F{r})),'
+                       f'NOT(ISNUMBER(G{r}))),"",IF(G{r}<=D{r},"",(F{r}-E{r})/(G{r}-D{r})))')
+        eq[f"J{r}"] = (f'=IF(OR(I{r}="",NOT(ISNUMBER(C{r}))),"",IF(F{r}>=E{r}+C{r},G{r},'
+                       f'IF(I{r}<=0,"",G{r}+INT((E{r}+C{r}-F{r})/I{r}))))')
+        eq[f"K{r}"] = f'=IF(AND(H{r}="",J{r}=""),"",MIN(H{r},J{r}))'
+        eq[f"L{r}"] = f'=IF(K{r}="","",IF(AND(J{r}<>"",J{r}<H{r}),"Usage","Months"))'
+        eq[f"M{r}"] = f'=IF(OR(K{r}="",NOT(ISNUMBER($B$1))),"",K{r}-$B$1)'
+        eq[f"N{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",C{r}="",D{r}="",E{r}="",F{r}="",G{r}=""),"",'
+                       f'IF(TRIM(A{r})="","Check: no item name",'
+                       f'IF(NOT(ISNUMBER(D{r})),"Check: last service date blank or text",'
+                       f'IF(AND(B{r}="",C{r}=""),"Check: no months or units",'
+                       f'IF(AND(B{r}<>"",OR(NOT(ISNUMBER(B{r})),B{r}<=0)),"Check: months not a number above 0",'
+                       f'IF(AND(C{r}<>"",OR(NOT(ISNUMBER(C{r})),C{r}<=0)),"Check: units not a number above 0",'
+                       f'IF(AND(C{r}<>"",OR(NOT(ISNUMBER(E{r})),NOT(ISNUMBER(F{r})),NOT(ISNUMBER(G{r})))),'
+                       f'"Check: readings blank or text",'
+                       f'IF(AND(C{r}<>"",F{r}<E{r}),"Check: reading lower than last service",'
+                       f'IF(AND(C{r}<>"",G{r}<D{r}),"Check: reading date before service date",'
+                       f'IF(NOT(ISNUMBER($B$1)),"Check: as-of date",'
+                       f'IF(K{r}="","No due date yet",'
+                       f'IF(M{r}<0,"Overdue",IF(M{r}<=$B$2,"Due soon","OK")))))))))))))')
+        for col in "HJK":
+            eq[f"{col}{r}"].number_format = US_DATE
+        eq[f"I{r}"].number_format = "0.00"
+        eq[f"M{r}"].number_format = "0"
+        for col in "HIJKLMN":
+            eq[f"{col}{r}"].fill = FORMULA_FILL
+            eq[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(items):
+        for col, v in zip("ABCDEFG", row):
+            if v is not None:
+                eq[f"{col}{5 + i}"] = v
+    eq.column_dimensions["O"].width = 3
+    eq.column_dimensions["P"].width = 30
+    eq.column_dimensions["Q"].width = 9
+    _summary_block(eq, "P", "Q", [
+        (4, "As-of date and due-soon days", '=IF(AND(ISNUMBER(B1),B1>=1,ISNUMBER(B2),B2>=0),"OK","Check")', "General"),
+        (5, "Items listed", '=SUMPRODUCT(--(N5:N54<>""))', "0"),
+        (6, "Overdue", '=COUNTIF(N5:N54,"Overdue")', "0"),
+        (7, "Due soon", '=COUNTIF(N5:N54,"Due soon")', "0"),
+        (8, "Rows showing Check", '=SUMPRODUCT(--(LEFT(N5:N54,5)="Check"))', "0"),
+        (9, "Typed below row 54 (not read)", "=COUNTA(A55:G1000)", "0"),
+        (10, "CHECK", '=IF(AND(Q4="OK",Q5>0,Q8=0,Q9=0),"OK","Check")', "General"),
+    ])
+    eq.conditional_formatting.add("N5:N54", FormulaRule(formula=['LEFT($N5,5)="Check"'], fill=ALERT_FILL))
+    eq.conditional_formatting.add("N5:N54", FormulaRule(formula=['$N5="Overdue"'], fill=CHECK_ORANGE))
+    eq.conditional_formatting.add("N5:N54", FormulaRule(formula=['$N5="Due soon"'],
+                                                        fill=PatternFill("solid", fgColor="DDEBF7")))
+    eq.conditional_formatting.add("Q4", FormulaRule(formula=['$Q$4<>"OK"'], fill=ALERT_FILL))
+    eq.conditional_formatting.add("Q10", FormulaRule(formula=['$Q$10<>"OK"'], fill=ALERT_FILL))
+    eq.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Maintenance Due by Months or Miles, Whichever Comes First",
+        "",
+        "1. Type the as-of date in B1 (yellow, the day you write down the readings; the sheet does not use TODAY) and how many days count as Due soon in B2.",
+        "2. One task per row (yellow, rows 5 to 54): what it is, the month limit and/or the usage limit (miles, hours, firings, shots: any unit), the last service date and reading, and the latest reading with its date. Leave a limit blank if the task has only one. The intervals come from your owner's manual or the maker; the sample rows are fictional.",
+        "3. Due by months, H5: =EDATE(D5,B5), the same day N months later. A service on 01/31 plus 1 month is due 02/28 (EDATE uses the last day of a shorter month).",
+        "4. Units per day, I5: =(F5-E5)/(G5-D5), the use since the last service divided by the days since. Due by usage, J5: =G5+INT((E5+C5-F5)/I5), the reading date plus the units left divided by units per day. If the reading is already past the limit, J5 is the reading date. INT rounds down, so the usage date is a day early rather than late.",
+        "5. Due date, K5: =MIN(H5,J5), whichever comes first. MIN skips a blank limit. Limit that hits first, L5: Months or Usage.",
+        "6. Days left, M5: =K5-$B$1 (shown as a number of days, not a date). Status: Overdue (below 0), Due soon (0 to the days in B2), OK.",
+        "7. The usage date is a straight-line estimate from the use so far. It moves when the van is driven more or less; update the latest reading and the as-of date to refresh it.",
+        "8. Check: no item name, Check: last service date blank or text, Check: no months or units, Check: months not a number above 0, Check: units not a number above 0, Check: readings blank or text (a usage limit needs both readings and the reading date), Check: reading lower than last service (an odometer typo), Check: reading date before service date. No due date yet: a usage-only task with no use since the service.",
+        "9. This is a reminder list. It gives no recommended intervals and does not replace the maker's schedule. It is not a mileage log for taxes.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    eq.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-maintenance-due-tracker.xlsx")
+
+
+def dsum_criteria_box_report():
+    wb = Workbook()
+    rp = wb.active
+    rp.title = "Report"
+    sl = wb.create_sheet("Sales")
+    sl["A1"] = ("One sale per row (yellow, rows 5 to 504). Keep the header row 4 as it is: the criteria box on the "
+                "Report tab uses these labels. Fictional sales.")
+    sl["A2"] = "Dates as real dates (MM/DD/YYYY) and amounts as numbers; Status flags text."
+    sl["A1"].font = sl["A2"].font = Font(italic=True)
+    _head_row(sl, 4, ["Date", "Channel", "Product", "State", "Amount", "Status"], [12, 18, 14, 8, 11, 34], height=24)
+    sales = [(date(2026, 10, 3), "Etsy", "Candle", "MA", 28.00), (date(2026, 10, 4), "Market", "Soap", "MA", 12.00),
+             (date(2026, 10, 11), "Etsy Wholesale", "Candle", "NY", 240.00),
+             (date(2026, 10, 18), "Market", "Candle", "MA", 56.00), (date(2026, 11, 1), "Etsy", "Soap", "CA", 18.50),
+             (date(2026, 11, 2), "Website", "Candle", "NJ", 42.00), (date(2026, 11, 8), "Market", "Candle", "MA", 84.00),
+             (date(2026, 11, 9), "Etsy", "Candle", "TX", 28.00), (date(2026, 11, 15), "Website", "Gift box", "NY", 65.00),
+             (date(2026, 11, 20), "etsy", "Candle", "MA", 30.00)]
+    for r in range(5, 505):
+        for col in "ABCDE":
+            sl[f"{col}{r}"].fill = INPUT_FILL
+        sl[f"A{r}"].number_format = US_DATE
+        sl[f"E{r}"].number_format = USD
+        for col in "BC":
+            sl[f"{col}{r}"].alignment = Alignment(indent=1)
+        sl[f"F{r}"] = (f'=IF(COUNTA(A{r}:E{r})=0,"",IF(NOT(ISNUMBER(A{r})),"Check: date blank or text",'
+                       f'IF(NOT(ISNUMBER(E{r})),"Check: amount blank or text",'
+                       f'IF(OR(TRIM(B{r})="",TRIM(C{r})="",TRIM(D{r})=""),"Check: channel, product or state blank",'
+                       f'IF(OR(LEN(B{r})<>LEN(TRIM(B{r})),LEN(C{r})<>LEN(TRIM(C{r})),LEN(D{r})<>LEN(TRIM(D{r}))),'
+                       f'"Check: extra spaces","OK")))))')
+        sl[f"F{r}"].fill = FORMULA_FILL
+        sl[f"F{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(sales):
+        for col, v in zip("ABCDE", row):
+            sl[f"{col}{5 + i}"] = v
+    sl.column_dimensions["G"].width = 3
+    sl.column_dimensions["H"].width = 30
+    sl.column_dimensions["I"].width = 12
+    _summary_block(sl, "H", "I", [
+        (4, "Sales rows listed", '=SUMPRODUCT(--(F5:F504<>""))', "0"),
+        (5, "Total of all amounts", "=SUM(E5:E504)", USD),
+        (6, "Rows showing Check", '=SUMPRODUCT(--(LEFT(F5:F504,5)="Check"))', "0"),
+        (7, "Amounts typed as text", "=SUMPRODUCT(--ISTEXT(E5:E504))", "0"),
+        (8, "Typed below row 504 (not read)", "=COUNTA(A505:E1000)", "0"),
+    ])
+    sl.conditional_formatting.add("F5:F504", FormulaRule(formula=['LEFT($F5,5)="Check"'], fill=ALERT_FILL))
+    sl.freeze_panes = "A5"
+
+    rp["A1"] = ("Criteria box (yellow, A4:G6): conditions on one row must all be true (AND); each extra row is another "
+                "way to match (OR). A blank cell means any value. Fictional sales.")
+    rp["A2"] = ("For an exact text match type =\"=Etsy\" (the cell shows =Etsy). Row 3 labels must match the Sales "
+                "headers exactly. The results use rows 4 down to the last filled row.")
+    rp["A1"].font = rp["A2"].font = Font(italic=True)
+    _head_row(rp, 3, ["Date", "Date", "Channel", "Product", "State", "Amount", "Amount"], [13, 13, 14, 12, 8, 10, 10],
+              height=24)
+    for r in range(4, 7):
+        for col in "ABCDEFG":
+            rp[f"{col}{r}"].fill = INPUT_FILL
+            rp[f"{col}{r}"].alignment = Alignment(horizontal="center")
+    rp["C4"] = '="=Etsy"'
+    for col in "ABCDEFG":
+        c = rp[f"{col}7"]
+        c.value = (f'=IF({col}3="","",IF(COUNTIF(Sales!$A$4:$E$4,{col}3)=0,"Check: not a Sales label",'
+                   f'IF(LEN({col}3)<>LEN(TRIM({col}3)),"Check: extra space","OK")))')
+        c.fill = FORMULA_FILL
+        c.alignment = Alignment(horizontal="center", wrap_text=True)
+        c.font = Font(size=9)
+    rp.row_dimensions[7].height = 30
+    rp.column_dimensions["H"].width = 3
+    rp.column_dimensions["I"].width = 44
+    rp.column_dimensions["J"].width = 12
+    box = "$A$3:INDEX($A$4:$G$6,$J$3,7)"
+    db = "Sales!$A$4:$E$504"
+    crit = []
+    for col, field in (("A", "A"), ("B", "A"), ("C", "B"), ("D", "C"), ("E", "D"), ("F", "E"), ("G", "E")):
+        crit.append(f"Sales!${field}$5:${field}$504,IF({col}4=\"\",\"<>\",{col}4)")
+    _summary_block(rp, "I", "J", [
+        (3, "Criteria rows used (4 to the last filled row)",
+         "=IF(COUNTA(A6:G6)>0,3,IF(COUNTA(A5:G5)>0,2,1))", "0"),
+        (4, "Total (DSUM)", f'=DSUM({db},"Amount",{box})', USD),
+        (5, "Number of sales (DCOUNT)", f'=DCOUNT({db},"Amount",{box})', "0"),
+        (6, "Average sale (DAVERAGE)", f'=IFERROR(DAVERAGE({db},"Amount",{box}),"")', USD),
+        (7, "Largest sale (DMAX)", f'=IF(J5=0,"",DMAX({db},"Amount",{box}))', USD),
+        (8, "Smallest sale (DMIN)", f'=IF(J5=0,"",DMIN({db},"Amount",{box}))', USD),
+        (9, "Conditions typed in the box (must be 1 or more)", "=COUNTA(A4:G6)", "0"),
+        (10, "SUMIFS cross-check (one criteria row only)",
+         f'=IF($J$3<>1,"",SUMIFS(Sales!$E$5:$E$504,{",".join(crit)}))', USD),
+        (11, "Difference (DSUM minus SUMIFS)", '=IF(OR(J10="",ISERROR(J4)),"",ROUND(J4-J10,2))', USD),
+        (12, "Labels not found on Sales", '=SUMPRODUCT(--(LEFT(A7:G7,5)="Check"))', "0"),
+        (13, "Blank criteria rows inside the box", "=(COUNTA(A4:G4)=0)*(J3>=2)+(COUNTA(A5:G5)=0)*(J3>=3)", "0"),
+        (14, "Sales rows showing Check", "=Sales!I6", "0"),
+        (15, "CHECK", '=IF(ISERROR(J4),"Check",IF(AND(J9>0,J12=0,J13=0,J14=0,OR(J11="",J11=0)),"OK","Check"))', "General"),
+    ])
+    rp.conditional_formatting.add("A7:G7", FormulaRule(formula=['LEFT(A7,5)="Check"'], fill=ALERT_FILL))
+    rp.conditional_formatting.add("J15", FormulaRule(formula=['$J$15<>"OK"'], fill=ALERT_FILL))
+    rp["A9"] = "How to type conditions (in the column the condition is about)"
+    rp["A9"].font = Font(bold=True)
+    tips = [
+        "Channel is exactly Etsy: type =\"=Etsy\" (the cell then shows =Etsy). Recommended for text.",
+        "Plain Etsy (no =): LibreOffice Calc matched whole cells only (Etsy and etsy).",
+        "Excel's help says text typed without = matches cells that begin with it (Etsy Wholesale too).",
+        "Channel starts with Etsy: Etsy* (also matches Etsy Wholesale). ? stands for one character.",
+        "Channel is not Market: <>Market",
+        "Amount over $50.00: >50 in an Amount column.",
+        "Amount from $20.00 to $29.00: >=20 in one Amount column and <=29 in the other, on the same row.",
+        "Dates in November 2026: =\">=\"&DATE(2026,11,1) in one Date column and =\"<=\"&DATE(2026,11,30) in the other.",
+        "Etsy OR Market: =\"=Etsy\" on row 4 and =\"=Market\" on row 5 (same column). Same row = AND, next row = OR.",
+    ]
+    for i, t in enumerate(tips):
+        rp[f"A{10 + i}"] = t
+        rp[f"A{10 + i}"].font = Font(italic=True)
+    rp.freeze_panes = "A4"
+    notes_sheet(wb, [
+        "Tidy Tabs: Total Sales With a Criteria Box (DSUM and DCOUNT)",
+        "",
+        "1. Sales tab: one sale per row (yellow, rows 5 to 504): date, channel, product, state, amount. Keep the labels in row 4. The 10 sales ($603.50 in all) are fictional.",
+        "2. Report tab: the criteria box is A3:G6. Row 3 holds the labels (Date twice and Amount twice, so you can type a from and a to value), rows 4 to 6 hold your conditions (yellow). Conditions on one row must all be true (AND); each extra row is another way to match (OR). A blank cell means any value.",
+        "3. Total, J4: =DSUM(Sales!$A$4:$E$504,\"Amount\",$A$3:INDEX($A$4:$G$6,$J$3,7)). The first range is the table with its header row, \"Amount\" is the column to add, and the last range is the criteria box. In a simple sheet you can write the box as $A$3:$G$4.",
+        "4. Rows used, J3: =IF(COUNTA(A6:G6)>0,3,IF(COUNTA(A5:G5)>0,2,1)). The box is cut off after the last row you filled, so an empty row at the bottom is never part of it. Do not leave a blank row between filled rows (J13 counts them).",
+        "5. Count, J5: DCOUNT (counts the sales whose Amount is a number). Average, J6: DAVERAGE in IFERROR (no match gives #DIV/0! without it). Largest and smallest, J7 and J8: DMAX and DMIN.",
+        "6. Text conditions: type =\"=Etsy\" for exactly Etsy. In LibreOffice Calc a plain Etsy matched only cells that are Etsy (any case), but Microsoft's help for criteria ranges says text without = matches anything that begins with it, so Etsy Wholesale may count too in Excel. Etsy* means begins with Etsy; <>Market means anything but Market.",
+        "7. Dates: =\">=\"&DATE(2026,11,1) works the same in every language setting; >=11/01/2026 typed as text worked in our LibreOffice run (US date order).",
+        "8. SUMIFS cross-check, J10: the same conditions from row 4 with SUMIFS. When only row 4 is used and every sale has all fields filled, it should equal the DSUM total (J11 = $0.00). A difference means the box matched something you did not expect.",
+        "9. Label checks (row 7): each label must match a Sales header. A label such as Amt gives #VALUE! in the results. Type at least one condition (J9): with the whole box empty, LibreOffice Calc returned $0.00 here, not the total of all sales.",
+        "10. Status on the Sales tab: Check: date blank or text, Check: amount blank or text (DSUM skips a text amount), Check: channel, product or state blank, Check: extra spaces.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    sl.print_title_rows = "4:4"
+    rp.print_title_rows = None
+    wb.save(OUT / "tidy-tabs-dsum-criteria-box-report.xlsx")
+
+
+def season_from_date():
+    wb = Workbook()
+    se = wb.active
+    se.title = "Seasons"
+    dt_ws = wb.create_sheet("Dates")
+    se["A1"] = ("One row per season start (yellow, rows 5 to 16), sorted by month and day. Each season runs until the "
+                "next start; the last one wraps into January. Fictional seasons and rates.")
+    se["A2"] = ("Dates before the first start (here 01/01 to 01/05) belong to the last season of the year, the one "
+                "that crosses December 31.")
+    se["A1"].font = se["A2"].font = Font(italic=True)
+    _head_row(se, 4, ["Start month (1-12)", "Start day", "Season name", "Rate $", "Key (month*100+day)", "Status"],
+              [9, 7, 18, 10, 13, 34], height=46)
+    seasons = [(1, 6, "Off-season", 129), (4, 1, "Spring", 159), (6, 15, "Peak", 219), (9, 2, "Shoulder", 169),
+               (11, 1, "Off-season", 129), (12, 15, "Holiday", 249)]
+    for r in range(5, 17):
+        for col in "ABCD":
+            se[f"{col}{r}"].fill = INPUT_FILL
+        se[f"D{r}"].number_format = USD
+        se[f"C{r}"].alignment = Alignment(indent=1)
+        se[f"E{r}"] = f'=IF(OR(NOT(ISNUMBER(A{r})),NOT(ISNUMBER(B{r}))),"",A{r}*100+B{r})'
+        order = (f'IF(E{r - 1}="","Check: row above is blank or not valid",'
+                 f'IF(E{r}<E{r - 1},"Check: sort by start","OK"))' if r > 5 else '"OK"')
+        se[f"F{r}"] = (f'=IF(AND(A{r}="",B{r}="",TRIM(C{r})="",D{r}=""),"",'
+                       f'IF(OR(NOT(ISNUMBER(A{r})),NOT(ISNUMBER(B{r}))),"Check: month or day blank or text",'
+                       f'IF(OR(A{r}<1,A{r}>12,A{r}<>INT(A{r}),B{r}<1,B{r}<>INT(B{r})),'
+                       f'"Check: month 1-12, day a whole number",'
+                       f'IF(B{r}>DAY(DATE(2024,A{r}+1,0)),"Check: day not valid for the month",'
+                       f'IF(TRIM(C{r})="","Check: no season name",IF(NOT(ISNUMBER(D{r})),"Check: rate blank or text",'
+                       f'IF(COUNTIF($E$5:$E$16,E{r})>1,"Check: same start twice",{order})))))))')
+        se[f"E{r}"].number_format = "0"
+        for col in "EF":
+            se[f"{col}{r}"].fill = FORMULA_FILL
+            se[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(seasons):
+        for col, v in zip("ABCD", row):
+            se[f"{col}{5 + i}"] = v
+    se.column_dimensions["G"].width = 3
+    se.column_dimensions["H"].width = 30
+    se.column_dimensions["I"].width = 9
+    _summary_block(se, "H", "I", [
+        (4, "Seasons listed", "=COUNT(E5:E16)", "0"),
+        (5, "Rows showing Check", '=SUMPRODUCT(--(LEFT(F5:F16,5)="Check"))', "0"),
+        (6, "Typed below row 16 (not read)", "=COUNTA(A17:D1000)", "0"),
+        (7, "CHECK", '=IF(AND(I4>0,I5=0,I6=0),"OK","Check")', "General"),
+    ])
+    se.conditional_formatting.add("F5:F16", FormulaRule(formula=['LEFT($F5,5)="Check"'], fill=ALERT_FILL))
+    se.conditional_formatting.add("I7", FormulaRule(formula=['$I$7<>"OK"'], fill=ALERT_FILL))
+    se.freeze_panes = "A5"
+
+    dt_ws["A1"] = ("One date per row (yellow, rows 5 to 504, MM/DD/YYYY): each night of a stay, or each order date. "
+                   "Season and rate come from the Seasons tab. Fictional dates.")
+    dt_ws["A2"] = "Key (B) = MONTH*100+DAY, so 12/15/2026 is 1215 and 01/02/2027 is 102: the year drops out."
+    dt_ws["A1"].font = dt_ws["A2"].font = Font(italic=True)
+    _head_row(dt_ws, 4, ["Date", "Key (month*100+day)", "Season", "Rate $", "Status"], [12, 13, 18, 10, 30],
+              height=46)
+    dates = [date(2026, 1, 2), date(2026, 1, 5), date(2026, 1, 6), date(2026, 3, 31), date(2026, 4, 1),
+             date(2026, 6, 14), date(2026, 6, 15), date(2026, 9, 1), date(2026, 9, 2), date(2026, 10, 31),
+             date(2026, 11, 1), date(2026, 12, 14), date(2026, 12, 15), date(2026, 12, 31), date(2027, 1, 1),
+             date(2028, 2, 29), date(2027, 7, 4)]
+    keys, names, rates = "Seasons!$E$5:$E$16", "Seasons!$C$5:$C$16", "Seasons!$D$5:$D$16"
+    for r in range(5, 505):
+        dt_ws[f"A{r}"].fill = INPUT_FILL
+        dt_ws[f"A{r}"].number_format = US_DATE
+        dt_ws[f"B{r}"] = f'=IF(OR(A{r}="",NOT(ISNUMBER(A{r}))),"",MONTH(A{r})*100+DAY(A{r}))'
+        for col, rng in (("C", names), ("D", rates)):
+            dt_ws[f"{col}{r}"] = (f'=IF(OR(B{r}="",Seasons!$I$7<>"OK"),"",IF(B{r}<MIN({keys}),'
+                                  f'INDEX({rng},COUNT({keys})),INDEX({rng},MATCH(B{r},{keys},1))))')
+        dt_ws[f"E{r}"] = (f'=IF(A{r}="","",IF(NOT(ISNUMBER(A{r})),"Check: date is text",'
+                          f'IF(Seasons!$I$7<>"OK","Check: fix the Seasons tab","OK")))')
+        dt_ws[f"B{r}"].number_format = "0"
+        dt_ws[f"D{r}"].number_format = USD
+        for col in "BCDE":
+            dt_ws[f"{col}{r}"].fill = FORMULA_FILL
+            dt_ws[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        dt_ws[f"C{r}"].alignment = Alignment(indent=1)
+    for i, d in enumerate(dates):
+        dt_ws[f"A{5 + i}"] = d
+    dt_ws.column_dimensions["F"].width = 3
+    dt_ws.column_dimensions["G"].width = 30
+    dt_ws.column_dimensions["H"].width = 12
+    _summary_block(dt_ws, "G", "H", [
+        (4, "Dates listed", '=SUMPRODUCT(--(E5:E504<>""))', "0"),
+        (5, "Total of the rates", "=SUM(D5:D504)", USD),
+        (6, "Rows showing Check", '=SUMPRODUCT(--(LEFT(E5:E504,5)="Check"))', "0"),
+        (7, "Seasons tab CHECK", "=Seasons!I7", "General"),
+        (8, "Typed below row 504 (not read)", "=COUNTA(A505:A1000)", "0"),
+        (9, "CHECK", '=IF(AND(H4>0,H6=0,H7="OK",H8=0),"OK","Check")', "General"),
+    ])
+    dt_ws.conditional_formatting.add("E5:E504", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    dt_ws.conditional_formatting.add("H9", FormulaRule(formula=['$H$9<>"OK"'], fill=ALERT_FILL))
+    dt_ws.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Assign a Season and Rate to Any Date (Even Seasons That Cross New Year's)",
+        "",
+        "1. Seasons tab: one row per season start (yellow, rows 5 to 16, up to 12): start month, start day, season name and rate. Sort the rows by start month and day. Each season runs until the next one starts. The six seasons and rates are fictional; use your own.",
+        "2. Key, Seasons E5: =A5*100+B5 turns a start into one number: December 15 is 1215, April 1 is 401. Dates B5 does the same for any date: =MONTH(A5)*100+DAY(A5), so 01/02/2026 and 01/02/2027 both give 102 and the year no longer matters.",
+        "3. Season, Dates C5: =IF(B5<MIN(Seasons!$E$5:$E$16),INDEX(Seasons!$C$5:$C$16,COUNT(Seasons!$E$5:$E$16)),INDEX(Seasons!$C$5:$C$16,MATCH(B5,Seasons!$E$5:$E$16,1))). MATCH with 1 finds the last start on or before the date. A date before the first start (01/01 to 01/05 here) belongs to the last season on the list, the one that crosses December 31. Rate, D5: the same on column D.",
+        "4. Without that first IF, dates from 01/01 to 01/05 give #N/A. A test such as AND(date>=DATE(YEAR(date),12,15),date<=DATE(YEAR(date),1,5)) is never true, because no date is after December 15 and before January 5 of the same year.",
+        "5. The Seasons list must be sorted. Status shows Check: sort by start when a start is earlier than the one above it, and the Dates tab stays blank until the Seasons CHECK (I7) is OK. Other checks: month or day blank or text, month 1-12 and a whole day, day not valid for the month (such as 4/31), no season name, rate blank or text, same start twice.",
+        "6. If your first season starts on 01/01, no date wraps. February 29 works as a date and as a start.",
+        "7. One date per row: for a stay of several nights, list each night on its own row so a stay that crosses into a new season gets each night's own rate.",
+        "8. Dates Status: Check: date is text (retype it as a date), Check: fix the Seasons tab.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    se.print_title_rows = dt_ws.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-season-from-date.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -20255,4 +20904,9 @@ if __name__ == "__main__":
     random_coupon_codes()
     production_queue_finish_dates()
     bought_together_pairs()
+    invoices_add_up_to_payment()
+    print_size_dpi_checker()
+    maintenance_due_tracker()
+    dsum_criteria_box_report()
+    season_from_date()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

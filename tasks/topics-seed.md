@@ -278,3 +278,10 @@
 - How to Generate Random Coupon Codes in Excel and Google Sheets - `2026-11-22-team-03-generate-random-unique-coupon-codes-randbetween-mid-excel-google-sheets`
 - How to Estimate When Each Order Will Be Finished From Your Daily Capacity in Excel and Google Sheets - `2026-11-22-team-04-production-queue-finish-dates-from-daily-capacity-workday-roundup-excel-google-sheets`
 - How to Find Which Products Are Bought Together Most Often in Excel and Google Sheets - `2026-11-22-team-05-products-frequently-bought-together-pair-counts-countifs-sumproduct-index-excel-google-sheets`
+
+## 2026-11-23 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-23.md)
+- How to Find Which Invoices Add Up to a Payment in Excel and Google Sheets - `2026-11-23-team-01-find-which-invoices-add-up-to-a-payment-amount-mod-int-sumproduct-excel-google-sheets`
+- How to Check If an Image Has Enough Pixels for a Print Size (300 DPI) in Excel and Google Sheets - `2026-11-23-team-02-check-image-pixels-for-print-size-300-dpi-crop-percent-min-max-excel-google-sheets`
+- How to Track Maintenance Due by Months or Miles, Whichever Comes First, in Excel and Google Sheets - `2026-11-23-team-03-maintenance-due-date-by-months-or-miles-whichever-comes-first-edate-min-excel-google-sheets`
+- How to Total Sales With a Criteria Box (DSUM and DCOUNT) in Excel and Google Sheets - `2026-11-23-team-04-total-sales-with-criteria-box-and-or-conditions-dsum-dcount-excel-google-sheets`
+- How to Assign a Season and Rate to Any Date (Even Seasons That Cross New Year's) in Excel and Google Sheets - `2026-11-23-team-05-assign-season-and-rate-to-any-date-seasons-crossing-new-year-month-day-match-excel-google-sheets`

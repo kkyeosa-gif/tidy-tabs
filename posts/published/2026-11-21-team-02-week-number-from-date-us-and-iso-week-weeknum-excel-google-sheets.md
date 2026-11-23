@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DgEJ-zoEZJj
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-get-week-number-from-date-us-and.html
 title: How to Get the Week Number From a Date (US and ISO Weeks) in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 26 workbooks and 130,052 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

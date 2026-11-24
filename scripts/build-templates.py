@@ -20667,6 +20667,591 @@ def season_from_date():
     wb.save(OUT / "tidy-tabs-season-from-date.xlsx")
 
 
+def hourly_rental_daily_max():
+    wb = Workbook()
+    bk = wb.active
+    bk.title = "Bookings"
+    settings = [
+        ("Hourly rate", 35, USD, "What you charge per hour (yellow). Fictional rates and bookings."),
+        ("Maximum per 24 hours", 200, USD, "The most one 24-hour block can cost. Blocks count from the start time."),
+        ("Billing step (minutes)", 30, "0", "Time after the full 24-hour blocks is rounded up to this step."),
+        ("Grace minutes after full 24 hours", 10, "0", "Left-over time up to this many minutes is not billed."),
+        ("Minimum hours", 2, "0.##", "Shortest time charged for a booking (0 = no minimum)."),
+    ]
+    for i, (label, v, fmt, note) in enumerate(settings, start=1):
+        bk[f"A{i}"], bk[f"B{i}"], bk[f"C{i}"] = label, v, note
+        bk[f"A{i}"].font = Font(bold=True)
+        bk[f"B{i}"].fill = INPUT_FILL
+        bk[f"B{i}"].number_format = fmt
+        bk[f"B{i}"].alignment = Alignment(horizontal="right")
+        bk[f"C{i}"].font = Font(italic=True)
+    _head_row(bk, 7, ["Customer", "Start date-time", "End date-time", "Minutes", "Full 24-hour blocks",
+                      "Minutes left over", "Hours billed for the left over", "Charge", "Status"],
+              [30, 20, 20, 9, 9, 9, 10, 11, 32], height=62)
+    D = datetime
+    bookings = [("Rivera Family Photos", D(2026, 11, 2, 9, 0), D(2026, 11, 2, 13, 30)),
+                ("Northside Bakery Co.", D(2026, 11, 3, 9, 0), D(2026, 11, 3, 13, 40)),
+                ("Lena Park Headshots", D(2026, 11, 4, 8, 0), D(2026, 11, 4, 17, 0)),
+                ("Oak & Ember Catering", D(2026, 11, 5, 18, 0), D(2026, 11, 6, 10, 0)),
+                ("Tri-County Wedding Expo", D(2026, 11, 6, 9, 0), D(2026, 11, 8, 11, 15)),
+                ("J. Alvarez Studio", D(2026, 11, 9, 10, 0), D(2026, 11, 9, 11, 0)),
+                ("Hillside Pop-up Market", D(2026, 11, 10, 9, 0), D(2026, 11, 11, 9, 0)),
+                ("Maya Chen Portraits", D(2026, 11, 12, 7, 15), D(2026, 11, 12, 13, 25)),
+                ("Green Fork Meal Prep", D(2026, 11, 13, 9, 10), D(2026, 11, 13, 13, 40))]
+    for r in range(8, 208):
+        for col in "ABC":
+            bk[f"{col}{r}"].fill = INPUT_FILL
+        bk[f"A{r}"].alignment = Alignment(indent=1)
+        bk[f"B{r}"].number_format = bk[f"C{r}"].number_format = US_DATETIME
+        bk[f"D{r}"] = (f'=IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r})),$L$7<>"OK"),"",'
+                       f'IF(C{r}<=B{r},"",ROUND((C{r}-B{r})*1440,0)))')
+        bk[f"E{r}"] = f'=IF(D{r}="","",INT(D{r}/1440))'
+        bk[f"F{r}"] = f'=IF(D{r}="","",D{r}-E{r}*1440)'
+        bk[f"G{r}"] = f'=IF(D{r}="","",IF(F{r}<=$B$4,0,CEILING(F{r},$B$3)/60))'
+        bk[f"H{r}"] = f'=IF(D{r}="","",ROUND(MAX($B$5*$B$1,E{r}*$B$2+MIN(G{r}*$B$1,$B$2)),2))'
+        bk[f"I{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",C{r}=""),"",'
+                       f'IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r}))),"Check: start or end blank or text",'
+                       f'IF(C{r}<=B{r},"Check: end is not after start",'
+                       f'IF(TRIM(A{r})="","Check: no customer name",'
+                       f'IF($L$7<>"OK","Check: settings (B1:B5)",'
+                       f'IF(H{r}<ROUND((E{r}*24+G{r})*$B$1,2),"Capped",'
+                       f'IF(H{r}>ROUND(E{r}*$B$2+MIN(G{r}*$B$1,$B$2),2),"Minimum","OK")))))))')
+        bk[f"D{r}"].number_format = "#,##0"
+        bk[f"E{r}"].number_format = bk[f"F{r}"].number_format = "0"
+        bk[f"G{r}"].number_format = "0.0#"
+        bk[f"H{r}"].number_format = USD
+        for col in "DEFGHI":
+            bk[f"{col}{r}"].fill = FORMULA_FILL
+            bk[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(bookings):
+        for col, v in zip("ABC", row):
+            bk[f"{col}{8 + i}"] = v
+    bk.column_dimensions["J"].width = 3
+    bk.column_dimensions["K"].width = 30
+    bk.column_dimensions["L"].width = 12
+    _summary_block(bk, "K", "L", [
+        (7, "Settings (B1:B5)",
+         '=IF(AND(ISNUMBER(B1),ISNUMBER(B2),ISNUMBER(B3),ISNUMBER(B4),ISNUMBER(B5)),'
+         'IF(AND(B1>0,B2>0,B3>=1,B3<=1440,B3=INT(B3),B4>=0,B4<1440,B5>=0,B5*B1<=B2),"OK","Check"),"Check")',
+         "General"),
+        (8, "Bookings listed", '=SUMPRODUCT(--(I8:I207<>""))', "0"),
+        (9, "Total charged", "=SUM(H8:H207)", USD),
+        (10, "Bookings capped", '=COUNTIF(I8:I207,"Capped")', "0"),
+        (11, "Bookings at the minimum", '=COUNTIF(I8:I207,"Minimum")', "0"),
+        (12, "Rows showing Check", '=SUMPRODUCT(--(LEFT(I8:I207,5)="Check"))', "0"),
+        (13, "Typed below row 207 (not read)", "=COUNTA(A208:C1000)", "0"),
+        (14, "CHECK", '=IF(AND(L7="OK",L8>0,L12=0,L13=0),"OK","Check")', "General"),
+    ])
+    bk.conditional_formatting.add("I8:I207", FormulaRule(formula=['LEFT($I8,5)="Check"'], fill=ALERT_FILL))
+    bk.conditional_formatting.add("I8:I207", FormulaRule(formula=['$I8="Capped"'],
+                                                         fill=PatternFill("solid", fgColor="DDEBF7")))
+    bk.conditional_formatting.add("I8:I207", FormulaRule(formula=['$I8="Minimum"'], fill=CHECK_ORANGE))
+    bk.conditional_formatting.add("L7", FormulaRule(formula=['$L$7<>"OK"'], fill=ALERT_FILL))
+    bk.conditional_formatting.add("L14", FormulaRule(formula=['$L$14<>"OK"'], fill=ALERT_FILL))
+    bk.freeze_panes = "B8"
+    notes_sheet(wb, [
+        "Tidy Tabs: Charge an Hourly Rental Rate With a Daily Maximum",
+        "",
+        "1. Settings (yellow, B1:B5): hourly rate, the maximum for each 24 hours, the billing step in minutes, the grace minutes after the last full 24 hours, and the minimum hours. The sample settings and bookings are fictional; they are not advice on what to charge.",
+        "2. One booking per row (yellow, rows 8 to 207): customer, start and end as date and time (MM/DD/YYYY h:mm AM/PM). A date with no time counts as midnight.",
+        "3. Minutes, D8: =ROUND((C8-B8)*1440,0) counts whole minutes first. Date-times are fractions of a day, so (end-start)*24 can land a hair above a whole hour; rounding that up can bill one step too many. In our LibreOffice Calc check, =ROUNDUP((C8-B8)*24*2,0)/2 and =CEILING((C8-B8)*24,0.5) both billed 1.5 hours for 10:00 AM to 11:00 AM.",
+        "4. Full 24-hour blocks, E8: =INT(D8/1440). Minutes left over, F8: =D8-E8*1440. The blocks count from the start time, not by calendar day.",
+        "5. Hours billed for the left over, G8: =IF(F8<=$B$4,0,CEILING(F8,$B$3)/60). Up to the grace minutes are free; anything more is rounded up to the billing step.",
+        "6. Charge, H8: =ROUND(MAX($B$5*$B$1,E8*$B$2+MIN(G8*$B$1,$B$2)),2). Each full block costs the maximum, the left over costs hours x rate but never more than the maximum, and the minimum hours x rate is the least any booking pays.",
+        "7. Status: Capped (the maximum lowered the charge), Minimum (the minimum raised it), OK, or Check: start or end blank or text, Check: end is not after start, Check: no customer name, Check: settings (B1:B5). Settings need a rate and maximum above 0, a whole-number step from 1 to 1440, grace from 0 to 1439 and a minimum charge no higher than the maximum.",
+        "8. A cap per calendar day (midnight to midnight) is a different rule and needs a different sheet. Deposits, damage, cancellation fees and taxes are not part of this sheet.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    bk.print_title_rows = "7:7"
+    wb.save(OUT / "tidy-tabs-hourly-rental-daily-max.xlsx")
+
+
+PACK_MIX_MAX = 2000
+
+
+def cheapest_pack_mix():
+    wb = Workbook()
+    od = wb.active
+    od.title = "Order"
+    mx = wb.create_sheet("Mixes")
+    last = 5 + PACK_MIX_MAX
+    od["A1"], od["B1"] = "Units needed", 95
+    od["A1"].font = Font(bold=True)
+    od["B1"].fill = INPUT_FILL
+    od["B1"].number_format = "#,##0"
+    od["C1"] = "How many you need (yellow, a whole number). The sheet tries every mix and shows the cheapest."
+    od["A2"] = ("Up to 3 pack sizes in any order (yellow, rows 5 to 7); the smallest pack fills the rest. "
+                "Supplier, packs and prices are fictional.")
+    od["C1"].font = od["A2"].font = Font(italic=True)
+    widths = [26, 10, 11, 11, 34]
+    _head_row(od, 4, ["Pack name", "Units per pack", "Price per pack", "Price per unit", "Status"], widths, height=32)
+    packs = [("48-jar case", 48, 52.00), ("12-jar case", 12, 15.00), ("Single jar", 1, 1.80)]
+    for r in range(5, 8):
+        for col in "ABC":
+            od[f"{col}{r}"].fill = INPUT_FILL
+        od[f"A{r}"].alignment = Alignment(indent=1)
+        od[f"B{r}"].number_format = "#,##0"
+        od[f"C{r}"].number_format = od[f"D{r}"].number_format = USD
+        od[f"D{r}"] = (f'=IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r}))),"",'
+                       f'IF(OR(B{r}<=0,C{r}<=0),"",C{r}/B{r}))')
+        od[f"E{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",C{r}=""),"",'
+                       f'IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r}))),"Check: units or price blank or text",'
+                       f'IF(OR(B{r}<1,B{r}<>INT(B{r})),"Check: units must be a whole number",'
+                       f'IF(C{r}<=0,"Check: price must be above 0",'
+                       f'IF(TRIM(A{r})="","Check: no pack name",'
+                       f'IF(COUNTIF($B$5:$B$7,B{r})>1,"Check: same units as another pack","OK"))))))')
+        for col in "DE":
+            od[f"{col}{r}"].fill = FORMULA_FILL
+            od[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(packs):
+        for col, v in zip("ABC", row):
+            od[f"{col}{5 + i}"] = v
+    od["A9"] = "Packs sorted by size (the Mixes tab uses these; nothing to type)"
+    od["A9"].font = Font(bold=True)
+    _head_row(od, 10, ["Role", "Units per pack", "Price per pack", "Counts tried", "Biggest-first count"],
+              widths, height=32)
+    od["A11"] = "Large"
+    od["A12"] = '=IF($H$4=2,"Medium (none: 2 packs)","Medium")'
+    od["A13"] = "Smallest (fills the rest)"
+    od["B11"] = '=IF($H$7<>"OK","",LARGE($B$5:$B$7,1))'
+    od["B12"] = '=IF($H$7<>"OK","",IF($H$4=3,LARGE($B$5:$B$7,2),0))'
+    od["B13"] = '=IF($H$7<>"OK","",SMALL($B$5:$B$7,1))'
+    od["C11"] = '=IF(B11="","",INDEX($C$5:$C$7,MATCH(B11,$B$5:$B$7,0)))'
+    od["C12"] = '=IF(B12="","",IF(B12=0,0,INDEX($C$5:$C$7,MATCH(B12,$B$5:$B$7,0))))'
+    od["C13"] = '=IF(B13="","",INDEX($C$5:$C$7,MATCH(B13,$B$5:$B$7,0)))'
+    od["D11"] = '=IF(OR(B11="",$H$6<>"OK"),"",ROUNDUP($B$1/B11,0)+1)'
+    od["D12"] = '=IF(OR(B12="",$H$6<>"OK"),"",IF(B12=0,1,ROUNDUP($B$1/B12,0)+1))'
+    od["D13"] = '=IF(B13="","","the rest")'
+    od["E11"] = '=IF(OR(B11="",$H$6<>"OK"),"",INT($B$1/B11))'
+    od["E12"] = '=IF(OR(B12="",$H$6<>"OK"),"",IF(B12=0,0,INT(($B$1-E11*B11)/B12)))'
+    od["E13"] = '=IF(OR(B13="",$H$6<>"OK"),"",MAX(0,ROUNDUP(($B$1-E11*B11-E12*B12)/B13,0)))'
+    for r in range(11, 14):
+        for col in "ABCDE":
+            od[f"{col}{r}"].fill = FORMULA_FILL
+            od[f"{col}{r}"].alignment = Alignment(horizontal="right")
+        od[f"A{r}"].alignment = Alignment(indent=1)
+        od[f"B{r}"].number_format = od[f"D{r}"].number_format = od[f"E{r}"].number_format = "#,##0"
+        od[f"C{r}"].number_format = USD
+    od.column_dimensions["F"].width = 3
+    od.column_dimensions["G"].width = 36
+    od.column_dimensions["H"].width = 12
+    ok = '$H$9<>"OK"'
+    pos = "$H$20+1"
+    _summary_block(od, "G", "H", [
+        (4, "Packs listed (2 or 3)", '=SUMPRODUCT(--(E5:E7<>""))', "0"),
+        (5, "Pack rows showing Check", '=SUMPRODUCT(--(LEFT(E5:E7,5)="Check"))', "0"),
+        (6, "Units needed (B1)", '=IF(ISNUMBER(B1),IF(AND(B1>=1,B1=INT(B1)),"OK","Check"),"Check")', "General"),
+        (7, "Packs ready", '=IF(AND(H4>=2,H5=0),"OK","Check")', "General"),
+        (8, f"Mixes to try ({PACK_MIX_MAX:,} at most)", '=IF(AND(H6="OK",H7="OK"),D11*D12,"")', "#,##0"),
+        (9, "CHECK", f'=IF(AND(H6="OK",H7="OK"),IF(H8<={PACK_MIX_MAX},"OK","Check: too many mixes"),"Check")',
+         "General"),
+        (11, "Cheapest total", f'=IF({ok},"",Mixes!$E$4)', USD),
+        (12, "Large packs", f'=IF({ok},"",INDEX(Mixes!$B$6:$B${last},{pos}))', "#,##0"),
+        (13, "Medium packs", f'=IF({ok},"",INDEX(Mixes!$C$6:$C${last},{pos}))', "#,##0"),
+        (14, "Smallest packs", f'=IF({ok},"",INDEX(Mixes!$D$6:$D${last},{pos}))', "#,##0"),
+        (15, "Units bought", f'=IF({ok},"",INDEX(Mixes!$F$6:$F${last},{pos}))', "#,##0"),
+        (16, "Extra units", f'=IF({ok},"",H15-$B$1)', "#,##0"),
+        (17, "Cost per unit needed", f'=IF({ok},"",H11/$B$1)', USD),
+        (18, "Biggest-first total",
+         f'=IF({ok},"",ROUND(E11*C11+E12*C12+E13*C13,2))', USD),
+        (19, "Biggest-first costs more by", f'=IF({ok},"",ROUND(H18-H11,2))', USD),
+        (20, "Mix # chosen (Mixes tab)",
+         f'=IF({ok},"",INDEX(Mixes!$A$6:$A${last},MATCH(1,Mixes!$J$6:$J${last},0)))', "#,##0"),
+    ])
+    od["G10"] = "Result"
+    od["G10"].font = Font(bold=True, size=12)
+    od.conditional_formatting.add("E5:E7", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    for c in ("H6", "H7", "H9"):
+        od.conditional_formatting.add(c, FormulaRule(formula=[f'${c[0]}${c[1:]}<>"OK"'], fill=ALERT_FILL))
+    od.conditional_formatting.add("H11", FormulaRule(formula=['$H$11<>""'], fill=DONE_FILL))
+    od.freeze_panes = "A5"
+
+    mx["A1"] = "Every mix of large and medium pack counts, one per row (nothing to type)."
+    mx["A2"] = "Large = INT(mix/Order!D12), Medium = MOD(mix,Order!D12); the smallest pack covers the rest (ROUNDUP)."
+    mx["A3"] = "Ties: lowest cost, then fewest units bought, then fewest packs, then the first row (row 4: lowest values)."
+    mx["A1"].font = mx["A2"].font = mx["A3"].font = Font(italic=True)
+    mx["A4"] = "Lowest"
+    mx["A4"].font = Font(bold=True)
+    mx["E4"] = f"=MIN(E6:E{last})"
+    mx["H4"] = f"=MIN(H6:H{last})"
+    mx["I4"] = f"=MIN(I6:I{last})"
+    mx["E4"].number_format = USD
+    mx["H4"].number_format = mx["I4"].number_format = "#,##0"
+    for c in ("E4", "H4", "I4"):
+        mx[c].fill = FORMULA_FILL
+    _head_row(mx, 5, ["Mix #", "Large packs", "Medium packs", "Smallest packs", "Cost", "Units bought",
+                      "Packs in all", "Units if lowest cost", "Packs if lowest cost and fewest units", "Chosen (1)"],
+              [9, 9, 9, 9, 11, 9, 9, 10, 12, 9], height=62)
+    for r in range(6, last + 1):
+        mx[f"A{r}"] = f'=IF(OR(Order!$H$9<>"OK",ROWS(A$6:A{r})>Order!$H$8),"",ROWS(A$6:A{r})-1)'
+        mx[f"B{r}"] = f'=IF($A{r}="","",INT($A{r}/Order!$D$12))'
+        mx[f"C{r}"] = f'=IF($A{r}="","",MOD($A{r},Order!$D$12))'
+        mx[f"D{r}"] = (f'=IF($A{r}="","",MAX(0,ROUNDUP((Order!$B$1-B{r}*Order!$B$11-C{r}*Order!$B$12)'
+                       f'/Order!$B$13,0)))')
+        mx[f"E{r}"] = f'=IF($A{r}="","",ROUND(B{r}*Order!$C$11+C{r}*Order!$C$12+D{r}*Order!$C$13,2))'
+        mx[f"F{r}"] = f'=IF($A{r}="","",B{r}*Order!$B$11+C{r}*Order!$B$12+D{r}*Order!$B$13)'
+        mx[f"G{r}"] = f'=IF($A{r}="","",B{r}+C{r}+D{r})'
+        mx[f"H{r}"] = f'=IF($A{r}="","",IF(E{r}=$E$4,F{r},""))'
+        mx[f"I{r}"] = f'=IF(H{r}="","",IF(H{r}=$H$4,G{r},""))'
+        mx[f"J{r}"] = f'=IF(I{r}="","",IF(I{r}=$I$4,1,""))'
+        mx[f"E{r}"].number_format = USD
+    mx.conditional_formatting.add(f"A6:J{last}", FormulaRule(formula=['$J6=1'], fill=DONE_FILL))
+    mx.freeze_panes = "B6"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find the Cheapest Mix of Pack Sizes to Buy",
+        "",
+        "1. Order tab: type how many units you need in B1 and up to three pack sizes in A5:C7 (yellow): a name, the units in each pack and the price of one pack. Any order works; the sheet sorts them in rows 11 to 13. With only two packs, leave the third row empty. The supplier, packs and prices are fictional.",
+        "2. Mixes tab (nothing to type): one row per mix. The large-pack count runs from 0 to enough large packs on their own (D11 = ROUNDUP(need/large,0)+1 counts), and so does the medium count (D12). Mix # A6 counts 0, 1, 2 ... up to D11 x D12 - 1.",
+        "3. Large packs, B6: =INT($A6/Order!$D$12). Medium packs, C6: =MOD($A6,Order!$D$12). Together they walk through every pair of counts, like an odometer whose last wheel has D12 positions.",
+        "4. Smallest packs, D6: =MAX(0,ROUNDUP((need-large count x large units-medium count x medium units)/smallest units,0)), the fewest small packs that cover what is still missing. Cost, E6: =ROUND(large count x large price + medium count x medium price + small count x small price,2).",
+        "5. Cheapest total, Order H11: =Mixes!E4, where E4 is =MIN(E6:E2005). Ties: when two mixes cost the same, the sheet picks the one with the fewest units bought (fewest extra), then the fewest packs, then the first row (columns H to J on the Mixes tab). Mix # chosen (H20) uses MATCH(1,Mixes!J6:J2005,0).",
+        "6. Biggest-first (column E, rows 11 to 13): as many large packs as fit, then as many medium packs as fit, then smallest packs for the rest. It is what most people do by hand. H19 shows how much more it costs than the cheapest mix (0 when it is already the cheapest).",
+        "7. Checks: units needed must be a whole number 1 or more; each pack needs units (a whole number), a price above 0 and a name; two packs with the same units show Check. Up to 2,000 mixes: a larger need with small packs shows Check: too many mixes in H9 and no result, never a wrong one.",
+        "8. Minimum order rules, shipping and discounts on the whole order are not part of this sheet. The Mixes tab prints its first 27 mixes (print area A1:J32); the whole list stays on screen.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    od.print_title_rows = None
+    mx.print_title_rows = "5:5"
+    mx.print_area = "A1:J32"
+    mx.page_setup.fitToHeight = 1
+    wb.save(OUT / "tidy-tabs-cheapest-pack-mix.xlsx")
+
+
+AB_LIMIT = 1000000
+
+
+def ab_test_significance():
+    wb = Workbook()
+    ts = wb.active
+    ts.title = "Tests"
+    settings = [("Confidence level", 0.95, "0%", "95% means p-value 0.05 or less counts as likely real (yellow)."),
+                ("Power for visits needed", 0.80, "0%", "Used only by column N (how many visits a test needs)."),
+                ("Fewest orders per version", 10, "0", "Below this, Status says Caution: few orders. A caution, not a rule.")]
+    for i, (label, v, fmt, note) in enumerate(settings, start=1):
+        ts[f"A{i}"], ts[f"B{i}"], ts[f"C{i}"] = label, v, note
+        ts[f"A{i}"].font = Font(bold=True)
+        ts[f"B{i}"].fill = INPUT_FILL
+        ts[f"B{i}"].number_format = fmt
+        ts[f"B{i}"].alignment = Alignment(horizontal="right")
+        ts[f"C{i}"].font = Font(italic=True)
+    _head_row(ts, 5, ["Test name", "Visits A", "Orders A", "Visits B", "Orders B", "Rate A", "Rate B",
+                      "Lift (B vs A)", "Pooled rate", "Standard error", "z", "p-value (two-tailed)", "Result",
+                      "Visits needed per version", "Status"],
+              [34, 9, 8, 9, 8, 8, 8, 8, 8, 9, 7, 9, 25, 14, 32], height=46)
+    tests = [("Listing photo: flat lay vs lifestyle", 1840, 37, 1910, 58),
+             ("Price: $24.00 vs $26.00", 1200, 30, 1180, 36),
+             ("Newsletter subject line", 400, 8, 420, 15),
+             ("Free shipping banner", 950, 19, 960, 19),
+             ("Shop photos: old vs new (one year)", 52000, 500, 50000, 570)]
+    for r in range(6, 56):
+        for col in "ABCDE":
+            ts[f"{col}{r}"].fill = INPUT_FILL
+        ts[f"A{r}"].alignment = Alignment(indent=1)
+        for col in "BCDE":
+            ts[f"{col}{r}"].number_format = "#,##0"
+        ts[f"F{r}"] = f'=IF(OR($O{r}="",LEFT($O{r},5)="Check"),"",C{r}/B{r})'
+        ts[f"G{r}"] = f'=IF(F{r}="","",E{r}/D{r})'
+        ts[f"H{r}"] = f'=IF(F{r}="","",IF(F{r}=0,"",G{r}/F{r}-1))'
+        ts[f"I{r}"] = f'=IF(F{r}="","",(C{r}+E{r})/(B{r}+D{r}))'
+        ts[f"J{r}"] = f'=IF(F{r}="","",SQRT(I{r}*(1-I{r})*(1/B{r}+1/D{r})))'
+        ts[f"K{r}"] = f'=IF(F{r}="","",(G{r}-F{r})/J{r})'
+        ts[f"L{r}"] = f'=IF(F{r}="","",2*(1-NORMSDIST(ABS(K{r}))))'
+        ts[f"M{r}"] = f'=IF(F{r}="","",IF(L{r}<=1-$B$1,"Likely a real difference","Not enough evidence yet"))'
+        need = (f"(NORMSINV(1-(1-$B$1)/2)*SQRT(2*((F{r}+G{r})/2)*(1-(F{r}+G{r})/2))"
+                f"+NORMSINV($B$2)*SQRT(F{r}*(1-F{r})+G{r}*(1-G{r})))^2/(G{r}-F{r})^2")
+        ts[f"N{r}"] = (f'=IF(F{r}="","",IF(G{r}=F{r},"Rates are equal",IF({need}>{AB_LIMIT},'
+                       f'"Over {AB_LIMIT:,}",ROUNDUP({need},0))))')
+        ts[f"O{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",C{r}="",D{r}="",E{r}=""),"",'
+                       f'IF(OR(NOT(ISNUMBER(B{r})),NOT(ISNUMBER(C{r})),NOT(ISNUMBER(D{r})),NOT(ISNUMBER(E{r}))),'
+                       f'"Check: visits or orders blank or text",'
+                       f'IF(OR(B{r}<0,C{r}<0,D{r}<0,E{r}<0,B{r}<>INT(B{r}),C{r}<>INT(C{r}),D{r}<>INT(D{r}),'
+                       f'E{r}<>INT(E{r})),"Check: counts must be whole numbers",'
+                       f'IF(OR(B{r}=0,D{r}=0),"Check: 0 visits",'
+                       f'IF(OR(C{r}>B{r},E{r}>D{r}),"Check: more orders than visits",'
+                       f'IF(C{r}+E{r}=0,"Check: no orders in either version",'
+                       f'IF(C{r}+E{r}=B{r}+D{r},"Check: every visit ordered",'
+                       f'IF(TRIM(A{r})="","Check: no test name",'
+                       f'IF($R$5<>"OK","Check: settings (B1:B3)",'
+                       f'IF(MIN(C{r},E{r})<$B$3,"Caution: few orders","OK"))))))))))')
+        for col in "FGI":
+            ts[f"{col}{r}"].number_format = "0.00%"
+        ts[f"H{r}"].number_format = "0.0%"
+        ts[f"J{r}"].number_format = "0.0000"
+        ts[f"K{r}"].number_format = "0.000"
+        ts[f"L{r}"].number_format = "0.0000"
+        ts[f"N{r}"].number_format = "#,##0"
+        for col in "FGHIJKLMNO":
+            ts[f"{col}{r}"].fill = FORMULA_FILL
+            ts[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, row in enumerate(tests):
+        for col, v in zip("ABCDE", row):
+            ts[f"{col}{6 + i}"] = v
+    ts.column_dimensions["P"].width = 3
+    ts.column_dimensions["Q"].width = 30
+    ts.column_dimensions["R"].width = 9
+    _summary_block(ts, "Q", "R", [
+        (5, "Settings (B1:B3)", '=IF(AND(ISNUMBER(B1),ISNUMBER(B2),ISNUMBER(B3)),'
+                                'IF(AND(B1>0,B1<1,B2>0,B2<1,B3>=0),"OK","Check"),"Check")', "General"),
+        (6, "Tests listed", '=SUMPRODUCT(--(O6:O55<>""))', "0"),
+        (7, "Likely a real difference", '=COUNTIF(M6:M55,"Likely a real difference")', "0"),
+        (8, "Not enough evidence yet", '=COUNTIF(M6:M55,"Not enough evidence yet")', "0"),
+        (9, "Caution: few orders", '=COUNTIF(O6:O55,"Caution: few orders")', "0"),
+        (10, "Rows showing Check", '=SUMPRODUCT(--(LEFT(O6:O55,5)="Check"))', "0"),
+        (11, "Typed below row 55 (not read)", "=COUNTA(A56:E1000)", "0"),
+        (12, "CHECK", '=IF(AND(R5="OK",R6>0,R10=0,R11=0),"OK","Check")', "General"),
+    ])
+    ts.conditional_formatting.add("O6:O55", FormulaRule(formula=['LEFT($O6,5)="Check"'], fill=ALERT_FILL))
+    ts.conditional_formatting.add("O6:O55", FormulaRule(formula=['LEFT($O6,7)="Caution"'], fill=CHECK_ORANGE))
+    ts.conditional_formatting.add("M6:M55", FormulaRule(formula=['$M6="Likely a real difference"'], fill=DONE_FILL))
+    ts.conditional_formatting.add("R5", FormulaRule(formula=['$R$5<>"OK"'], fill=ALERT_FILL))
+    ts.conditional_formatting.add("R12", FormulaRule(formula=['$R$12<>"OK"'], fill=ALERT_FILL))
+    ts.freeze_panes = "B6"
+    notes_sheet(wb, [
+        "Tidy Tabs: Check If an A/B Test Result Is Significant",
+        "",
+        "1. Settings (yellow): confidence level in B1 (95%), power for the visits-needed column in B2 (80%), and the fewest orders per version before the sheet stops showing a caution in B3 (10). The tests on the sheet are fictional.",
+        "2. One test per row (yellow, rows 6 to 55): a name, then visits and orders for version A and version B. Use whole counts from your own shop stats or newsletter reports.",
+        "3. Rates, F6 and G6: =C6/B6 and =E6/D6. Lift, H6: =G6/F6-1 (B compared with A; blank when A has no orders).",
+        "4. Pooled rate, I6: =(C6+E6)/(B6+D6), all orders over all visits. Standard error, J6: =SQRT(I6*(1-I6)*(1/B6+1/D6)). z, K6: =(G6-F6)/J6.",
+        "5. p-value, L6: =2*(1-NORMSDIST(ABS(K6))). This is two-tailed: it asks whether A and B differ in either direction. A one-tailed p-value is half of it; this sheet does not use one.",
+        "6. Result, M6: Likely a real difference when the p-value is at or below 1 minus the confidence level (0.05 at 95%), otherwise Not enough evidence yet. Not enough evidence is not proof that A and B are the same.",
+        "7. Visits needed per version, N6: about how many visits each version needs to detect a difference as large as the one you saw, at the confidence in B1 and the power in B2 (normal approximation; uses NORMSINV). Over 1,000,000 or Rates are equal means the two rates are too close to tell apart with a test of practical size.",
+        "8. Status: Caution: few orders (fewer than B3 in either version), or Check: visits or orders blank or text, Check: counts must be whole numbers, Check: 0 visits, Check: more orders than visits (often orders typed in the visits column), Check: no orders in either version (the formulas would divide by 0), Check: every visit ordered, Check: no test name, Check: settings (B1:B3). Rows with Check show no result.",
+        "9. Decide how long the test runs before you start and read the result at the end. Checking every day and stopping the first time p dips under 0.05 makes chance results look real. This test is for counts (orders out of visits), not for revenue per visitor.",
+        "10. NORMSDIST and NORMSINV are the older names of NORM.S.DIST and NORM.S.INV; they are used so the file works in older versions too.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ts.print_title_rows = "5:5"
+    wb.save(OUT / "tidy-tabs-ab-test-significance.xlsx")
+
+
+REPLACE_PAIRS = 20
+REPLACE_TEXT_ROWS = 300
+
+
+def replace_words_from_list():
+    from openpyxl.utils import get_column_letter as col_l
+    wb = Workbook()
+    rp = wb.active
+    rp.title = "Replacements"
+    tx = wb.create_sheet("Text")
+    n, last_p = REPLACE_PAIRS, 4 + REPLACE_PAIRS
+    last_t = 4 + REPLACE_TEXT_ROWS
+    rp["A1"] = ("One pair per row (yellow, rows 5 to 24): the word to find and what to put in its place. Pairs run "
+                "top to bottom. Fictional product titles.")
+    rp["A2"] = ("Whole words only (words separated by spaces). Find is case-sensitive: Lg and lg are different "
+                "pairs. A blank Replace with deletes the word.")
+    rp["A1"].font = rp["A2"].font = Font(italic=True)
+    _head_row(rp, 4, ["Find", "Replace with", "Status"], [16, 22, 44], height=24)
+    pairs = [("Lg", "Large"), ("Sm", "Small"), ("Med", "Medium"), ("w/", "with"), ("Lav", "Lavender"),
+             ("Vnl", "Vanilla"), ("oz.", "oz"), ("pk", "pack")]
+    for r in range(5, last_p + 1):
+        rp[f"A{r}"].fill = rp[f"B{r}"].fill = INPUT_FILL
+        rp[f"A{r}"].number_format = rp[f"B{r}"].number_format = "@"
+        later = (f'IF(SUMPRODUCT(($A${r + 1}:$A${last_p}<>"")*ISNUMBER(FIND(" "&$A${r + 1}:$A${last_p}&" ",'
+                 f'" "&B{r}&" ")))>0,"Caution: a later pair changes this replacement",' if r < last_p else "")
+        rp[f"C{r}"] = (f'=IF(AND(A{r}="",B{r}=""),"",IF(A{r}="","Check: find is blank",'
+                       f'IF(LEN(A{r})<>LEN(SUBSTITUTE(A{r}," ","")),"Check: find has a space (one word only)",'
+                       f'IF(SUMPRODUCT(--EXACT($A$5:$A${last_p},A{r}))>1,"Check: same find twice",'
+                       f'{later}IF(B{r}="","OK (deletes the word)","OK")'
+                       f'{")" if r < last_p else ""}))))')
+        rp[f"C{r}"].fill = FORMULA_FILL
+        rp[f"C{r}"].alignment = Alignment(horizontal="right")
+    for i, (f, t) in enumerate(pairs):
+        rp[f"A{5 + i}"], rp[f"B{5 + i}"] = f, t
+    rp.column_dimensions["D"].width = 3
+    rp.column_dimensions["E"].width = 30
+    rp.column_dimensions["F"].width = 9
+    _summary_block(rp, "E", "F", [
+        (4, "Pairs used", f'=SUMPRODUCT(--(A5:A{last_p}<>""))', "0"),
+        (5, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(C5:C{last_p},5)="Check"))', "0"),
+        (6, "Rows with a caution", f'=SUMPRODUCT(--(LEFT(C5:C{last_p},7)="Caution"))', "0"),
+        (7, f"Typed below row {last_p} (not used)", f"=COUNTA(A{last_p + 1}:B1000)", "0"),
+        (8, "CHECK", '=IF(AND(F4>0,F5=0,F7=0),"OK","Check")', "General"),
+    ])
+    rp.conditional_formatting.add(f"C5:C{last_p}", FormulaRule(formula=['LEFT($C5,5)="Check"'], fill=ALERT_FILL))
+    rp.conditional_formatting.add(f"C5:C{last_p}", FormulaRule(formula=['LEFT($C5,7)="Caution"'], fill=CHECK_ORANGE))
+    rp.conditional_formatting.add("F8", FormulaRule(formula=['$F$8<>"OK"'], fill=ALERT_FILL))
+    rp.freeze_panes = "A5"
+
+    tx["A1"] = (f"Paste or type the text in column A (yellow, rows 5 to {last_t}). Column B is the cleaned text. "
+                "Helper columns C to W are grouped and hidden (click + above the columns to show them).")
+    tx["A2"] = "Changed? says Yes when the cleaned text differs from the original. Fictional product titles."
+    tx["A1"].font = tx["A2"].font = Font(italic=True)
+    first_h, last_h = "D", col_l(3 + n)
+    heads = ["Original", "Cleaned", "Padded (spaces doubled)"] + [f"After pair {k}" for k in range(1, n + 1)] + [
+        "Changed?", "Pairs applied"]
+    _head_row(tx, 4, heads, [42, 46, 30] + [30] * n + [10, 9], height=32)
+    chg_c, cnt_c = col_l(4 + n), col_l(5 + n)
+    titles = ["Soy Candle Lg Lav w/ Wood Wick", "Smoky Sm Candle 8 oz.", "Vnl Bean Soy Candle Med",
+              "Beeswax Tea Lights 12 pk", "Lav Soap Bar w/ Oatmeal", "Sm Lav Tin Candle",
+              "Gift Set Lg w/ 3 Sm Candles", "Tea Light Lav (Lg)", "Smoky Vnl Wax Melts 3 oz.",
+              "Cedar Wood Wick Candle"]
+    finds, repls = f"Replacements!$A$5:$A${last_p}", f"Replacements!$B$5:$B${last_p}"
+    for r in range(5, last_t + 1):
+        tx[f"A{r}"].fill = INPUT_FILL
+        tx[f"B{r}"] = f'=IF(A{r}="","",TRIM({last_h}{r}))'
+        tx[f"C{r}"] = f'=IF(A{r}="","",SUBSTITUTE(" "&A{r}&" "," ","  "))'
+        for k in range(1, n + 1):
+            col, prev = col_l(3 + k), col_l(2 + k)
+            idx = f"COLUMNS(${first_h}{r}:{col}{r})"
+            tx[f"{col}{r}"] = (f'=IF(INDEX({finds},{idx})="",{prev}{r},SUBSTITUTE({prev}{r},'
+                               f'" "&INDEX({finds},{idx})&" "," "&INDEX({repls},{idx})&" "))')
+        tx[f"{chg_c}{r}"] = f'=IF(A{r}="","",IF(EXACT(A{r},B{r}),"","Yes"))'
+        tx[f"{cnt_c}{r}"] = (f'=IF(A{r}="","",SUMPRODUCT(--NOT(EXACT(C{r}:{col_l(2 + n)}{r},'
+                             f'{first_h}{r}:{last_h}{r}))))')
+        for c in ["B", "C"] + [col_l(3 + k) for k in range(1, n + 1)] + [chg_c, cnt_c]:
+            tx[f"{c}{r}"].fill = FORMULA_FILL
+        tx[f"{chg_c}{r}"].alignment = tx[f"{cnt_c}{r}"].alignment = Alignment(horizontal="right")
+    for i, t in enumerate(titles):
+        tx[f"A{5 + i}"] = t
+    tx.column_dimensions.group("C", last_h, hidden=True, outline_level=1)
+    sp, lab, val = col_l(6 + n), col_l(7 + n), col_l(8 + n)
+    tx.column_dimensions[sp].width = 3
+    tx.column_dimensions[lab].width = 30
+    tx.column_dimensions[val].width = 9
+    _summary_block(tx, lab, val, [
+        (4, "Rows with text", f'=SUMPRODUCT(--(A5:A{last_t}<>""))', "0"),
+        (5, "Rows changed", f'=COUNTIF({chg_c}5:{chg_c}{last_t},"Yes")', "0"),
+        (6, "Replacements tab CHECK", "=Replacements!F8", "General"),
+        (7, f"Typed below row {last_t} (not read)", f"=COUNTA(A{last_t + 1}:A1000)", "0"),
+        (8, "CHECK", f'=IF(AND({val}4>0,{val}6="OK",{val}7=0),"OK","Check")', "General"),
+    ])
+    tx.conditional_formatting.add(f"{chg_c}5:{chg_c}{last_t}", FormulaRule(formula=[f'${chg_c}5="Yes"'],
+                                                                         fill=DONE_FILL))
+    tx.conditional_formatting.add(f"{val}8", FormulaRule(formula=[f'${val}$8<>"OK"'], fill=ALERT_FILL))
+    tx.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find and Replace Multiple Words at Once From a List",
+        "",
+        "1. Replacements tab: one find-and-replace pair per row (yellow, A5:B24, up to 20). Find is one word; Replace with can be several words or blank (blank deletes the word). The 8 pairs and 10 product titles are fictional.",
+        "2. Text tab: paste your titles or descriptions in column A (yellow, rows 5 to 304). Column B shows the cleaned text; Changed? says Yes when it differs from column A.",
+        "3. Padded, C5: =SUBSTITUTE(\" \"&A5&\" \",\" \",\"  \") adds a space at both ends and doubles every space. Each word now has its own space on each side, so \" Lg \" matches the word Lg but not the Lg inside another word, and two of the same word in a row both match.",
+        "4. One helper column per pair, D5 to W5: =IF(INDEX(Replacements!$A$5:$A$24,COLUMNS($D5:D5))=\"\",C5,SUBSTITUTE(C5,\" \"&INDEX(Replacements!$A$5:$A$24,COLUMNS($D5:D5))&\" \",\" \"&INDEX(Replacements!$B$5:$B$24,COLUMNS($D5:D5))&\" \")). COLUMNS($D5:D5) is 1 in column D, 2 in E and so on, so the same formula fills right and reads pair 1, 2, 3 ... from the list. A blank pair row passes the text on unchanged.",
+        "5. Cleaned, B5: =TRIM(W5) removes the padding and turns the doubled spaces back into single spaces.",
+        "6. Why not one long nested SUBSTITUTE: plain SUBSTITUTE(A5,\"Sm\",\"Small\") also changes letters inside words, so Smoky becomes Smalloky.",
+        "7. What is not matched: a word touching punctuation (Lg, or (Lg) is not the word Lg) and a different case (lg is not Lg). Add pairs such as (Lg) and lg, or remove the punctuation first.",
+        "8. Order matters: pairs run top to bottom, so a replacement that contains a later find is changed again. Example: Lg to Large above Large to XL turns Lg into XL. Status shows Caution: a later pair changes this replacement; move the later pair above it if that is not what you want.",
+        "9. Status checks: Check: find is blank, Check: find has a space (one word only), Check: same find twice. A number in column A comes back as text in column B.",
+        "10. 20 pairs means 20 helper columns. For more pairs, insert columns before Changed? and fill the formula right, and widen the ranges A5:A24 and B5:B24.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    rp.print_title_rows = tx.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-replace-words-from-list.xlsx")
+
+
+def find_transposed_digits():
+    wb = Workbook()
+    en = wb.active
+    en.title = "Entries"
+    en["A1"], en["B1"] = "Deposit (should total)", 1223.04
+    en["A2"], en["B2"] = "Log total", "=SUM(B6:B505)"
+    en["A3"], en["B3"] = "Gap in cents", '=IF(ISNUMBER(B1),ROUND((B1-B2)*100,0),"")'
+    en["A4"], en["B4"] = "Divisible by 9?", '=IF(B3="","",IF(B3=0,"Totals match",IF(MOD(ABS(B3),9)=0,"Yes","No")))'
+    en["C1"] = "The bank deposit or statement amount (yellow). Fictional market log and deposit."
+    en["C2"] = "SUM of B6:B505. Text amounts are not in this total (Status shows them)."
+    en["C3"] = "B1 minus B2 in cents. Positive: the log is short. Negative: the log is too high."
+    en["C4"] = "Yes is a clue for swapped digits, not proof. Check each listed entry against the receipt."
+    for i in range(1, 5):
+        en[f"A{i}"].font = Font(bold=True)
+        en[f"B{i}"].alignment = Alignment(horizontal="right")
+        en[f"C{i}"].font = Font(italic=True)
+    en["B1"].fill = INPUT_FILL
+    for c in ("B2", "B3", "B4"):
+        en[c].fill = FORMULA_FILL
+    en["B1"].number_format = en["B2"].number_format = USD
+    en["B3"].number_format = "#,##0"
+    _head_row(en, 5, ["Date", "Amount", "Cents", "Digits", "Length", "Swap 1-2", "Swap 2-3", "Swap 3-4", "Swap 4-5",
+                      "Swap 5-6", "Possible swap (should be)", "Possible slide (should be)",
+                      "Extra entry", "Wrong sign (should be)", "Status"],
+              [24, 12, 8, 9, 7, 9, 9, 9, 9, 9, 16, 16, 13, 16, 32], height=46)
+    entries = [42.00, 18.50, 78.50, 126.00, 33.75, 9.00, 64.25, 250.00, 15.00, 87.40, 45.60, 112.80, 29.99, 301.25]
+    days = [date(2026, 11, 14)] * 7 + [date(2026, 11, 15)] * 7
+    gap_ok = 'OR(C{r}="",$B$3="",$B$3=0)'
+    for r in range(6, 506):
+        en[f"A{r}"].fill = en[f"B{r}"].fill = INPUT_FILL
+        en[f"A{r}"].number_format = US_DATE
+        en[f"B{r}"].number_format = USD
+        en[f"C{r}"] = f'=IF($O{r}<>"OK","",ROUND(ABS(B{r})*100,0))'
+        en[f"D{r}"] = f'=IF(C{r}="","",TEXT(C{r},"000000"))'
+        en[f"E{r}"] = f'=IF(C{r}="","",LEN(C{r}))'
+        for k, col in enumerate("FGHIJ", start=1):
+            en[f"{col}{r}"] = (f'=IF(C{r}="","",IF(OR({k}<7-$E{r},AND({k}=7-$E{r},MID($D{r},{k + 1},1)="0")),"",'
+                               f'(MID($D{r},{k + 1},1)-MID($D{r},{k},1))*9*10^{5 - k}*SIGN($B{r})))')
+            en[f"{col}{r}"].number_format = "#,##0"
+        g = gap_ok.format(r=r)
+        en[f"K{r}"] = (f'=IF({g},"",IF(COUNTIF(F{r}:J{r},$B$3)>0,'
+                       f'"Maybe "&TEXT(B{r}+$B$3/100,"$#,##0.00"),""))')
+        en[f"L{r}"] = (f'=IF({g},"",IF($B$3=9*ROUND(B{r}*100,0),"Maybe "&TEXT(B{r}*10,"$#,##0.00"),'
+                       f'IF($B$3*10=-9*ROUND(B{r}*100,0),"Maybe "&TEXT(B{r}/10,"$#,##0.00"),"")))')
+        en[f"M{r}"] = (f'=IF({g},"",IF($B$3=-ROUND(B{r}*100,0),'
+                       f'IF(COUNTIF($B$6:$B$505,B{r})>1,"Typed twice?","Extra entry?"),""))')
+        en[f"N{r}"] = f'=IF({g},"",IF($B$3=-2*ROUND(B{r}*100,0),"Maybe "&TEXT(-B{r},"$#,##0.00"),""))'
+        en[f"O{r}"] = (f'=IF(AND(A{r}="",B{r}=""),"",IF(B{r}="","Check: no amount",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: amount is text (not in the total)",'
+                       f'IF(ROUND(B{r},2)<>B{r},"Check: more than 2 decimals",'
+                       f'IF(ABS(B{r})>=10000,"Check: $10,000.00 or more (not checked)","OK")))))')
+        en[f"C{r}"].number_format = "0"
+        en[f"E{r}"].number_format = "0"
+        for col in "CDEFGHIJKLMNO":
+            en[f"{col}{r}"].fill = FORMULA_FILL
+            en[f"{col}{r}"].alignment = Alignment(horizontal="right")
+    for i, (d, a) in enumerate(zip(days, entries)):
+        en[f"A{6 + i}"], en[f"B{6 + i}"] = d, a
+    en.column_dimensions.group("F", "J", hidden=True, outline_level=1)
+    en.column_dimensions["P"].width = 3
+    en.column_dimensions["Q"].width = 40
+    en.column_dimensions["R"].width = 30
+    _summary_block(en, "Q", "R", [
+        (5, "Entries with an amount", "=COUNT(B6:B505)", "0"),
+        (6, "Amounts typed as text (not in the total)", "=SUMPRODUCT(--ISTEXT(B6:B505))", "0"),
+        (7, "Possible swaps", '=COUNTIF(K6:K505,"Maybe*")', "0"),
+        (8, "Possible slides", '=COUNTIF(L6:L505,"Maybe*")', "0"),
+        (9, "Extra entry or typed twice", '=COUNTIF(M6:M505,"?*")', "0"),
+        (10, "Wrong sign", '=COUNTIF(N6:N505,"Maybe*")', "0"),
+        (11, "Result", '=IF(B3="","Type the deposit in B1",IF(B3=0,"Totals match",IF(SUM(R7:R10)=0,'
+                       '"No single entry explains the gap",SUM(R7:R10)&" possible fixes to recheck")))', "General"),
+        (12, "Rows showing Check", '=SUMPRODUCT(--(LEFT(O6:O505,5)="Check"))', "0"),
+        (13, "Typed below row 505 (not read)", "=COUNTA(A506:B1000)", "0"),
+        (14, "CHECK", '=IF(AND(ISNUMBER(B1),R5>0,R6=0,R12=0,R13=0),"OK","Check")', "General"),
+    ])
+    en.conditional_formatting.add("O6:O505", FormulaRule(formula=['LEFT($O6,5)="Check"'], fill=ALERT_FILL))
+    en.conditional_formatting.add("K6:N505", FormulaRule(formula=['K6<>""'], fill=CHECK_ORANGE))
+    en.conditional_formatting.add("R14", FormulaRule(formula=['$R$14<>"OK"'], fill=ALERT_FILL))
+    en.freeze_panes = "C6"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find Transposed Digits When Totals Don't Match",
+        "",
+        "1. Type the amount the log should total in B1 (yellow): the bank deposit or the statement line. List the log entries in A6:B505 (yellow): date and amount, refunds as negative amounts. The market log and deposit are fictional.",
+        "2. B2 adds the log, B3 is the gap in cents: =ROUND((B1-B2)*100,0). B4: =MOD(ABS(B3),9)=0 shows Yes when the gap divides by 9. Two swapped neighboring digits always change a total by a multiple of 9, so Yes is a clue, not proof.",
+        "3. Cents, C6: =ROUND(ABS(B6)*100,0). Digits, D6: =TEXT(C6,\"000000\") writes the cents as 6 digits with leading zeros (78.50 is 007850). Length, E6: =LEN(C6) is how many real digits there are.",
+        "4. Swap columns F to J (grouped and hidden; click + to show them): the change a swap of digits k and k+1 would make, =(MID(D6,k+1,1)-MID(D6,k,1))*9*10^(5-k)*SIGN(B6). Swapping 7 and 8 in 78.50 changes it by 9.00 (900 cents). Pairs that involve a padding zero are left blank, and so is a swap that would put a 0 in front.",
+        "5. Possible swap, K6: when one of the swap changes equals the gap, it shows the amount the entry would be with those digits swapped back (Maybe $87.50).",
+        "6. Possible slide, L6: the decimal point moved one place (25.00 typed as 250.00, or 250.00 typed as 25.00). Extra entry, M6: the gap is minus this amount (Typed twice? when the same amount is in the log more than once). Wrong sign, N6: a refund typed as a sale or the other way around (the gap is minus 2 x the amount).",
+        "7. Several entries can match the same gap (four in the sample). Check each one against the receipt or the card report; do not change an entry just because it is listed.",
+        "8. Not found: swaps of digits that are not next to each other, a missing entry, or two mistakes at once. The Result (R11) then says No single entry explains the gap.",
+        "9. Status: Check: amount is text (not in the total), Check: no amount, Check: more than 2 decimals, Check: $10,000.00 or more (not checked; the digit columns handle up to $9,999.99).",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    en.print_title_rows = "5:5"
+    wb.save(OUT / "tidy-tabs-find-transposed-digits.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -20909,4 +21494,9 @@ if __name__ == "__main__":
     maintenance_due_tracker()
     dsum_criteria_box_report()
     season_from_date()
+    hourly_rental_daily_max()
+    cheapest_pack_mix()
+    ab_test_significance()
+    replace_words_from_list()
+    find_transposed_digits()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

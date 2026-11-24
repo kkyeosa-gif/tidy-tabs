@@ -285,3 +285,10 @@
 - How to Track Maintenance Due by Months or Miles, Whichever Comes First, in Excel and Google Sheets - `2026-11-23-team-03-maintenance-due-date-by-months-or-miles-whichever-comes-first-edate-min-excel-google-sheets`
 - How to Total Sales With a Criteria Box (DSUM and DCOUNT) in Excel and Google Sheets - `2026-11-23-team-04-total-sales-with-criteria-box-and-or-conditions-dsum-dcount-excel-google-sheets`
 - How to Assign a Season and Rate to Any Date (Even Seasons That Cross New Year's) in Excel and Google Sheets - `2026-11-23-team-05-assign-season-and-rate-to-any-date-seasons-crossing-new-year-month-day-match-excel-google-sheets`
+
+## 2026-11-24 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-24.md)
+- How to Charge an Hourly Rental Rate With a Daily Maximum in Excel and Google Sheets - `2026-11-24-team-01-hourly-rental-fee-with-daily-maximum-and-minimum-hours-int-ceiling-min-excel-google-sheets`
+- How to Find the Cheapest Mix of Pack Sizes to Buy in Excel and Google Sheets - `2026-11-24-team-02-cheapest-mix-of-pack-sizes-to-buy-at-least-a-quantity-int-mod-roundup-min-excel-google-sheets`
+- How to Tell If an A/B Test Result Is Real (Conversion Rate Significance) in Excel and Google Sheets - `2026-11-24-team-03-ab-test-two-listing-versions-conversion-rate-significance-normsdist-sqrt-excel-google-sheets`
+- How to Find and Replace Multiple Words at Once From a List in Excel and Google Sheets - `2026-11-24-team-04-find-and-replace-multiple-words-from-a-list-whole-word-substitute-trim-excel-google-sheets`
+- How to Find a Transposed Number When Your Totals Are Off by an Amount Divisible by 9 in Excel and Google Sheets - `2026-11-24-team-05-find-transposed-digits-when-totals-dont-match-divisible-by-9-mid-mod-excel-google-sheets`

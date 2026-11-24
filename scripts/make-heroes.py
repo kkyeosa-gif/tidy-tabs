@@ -1107,7 +1107,47 @@ def heroes_2026_11_23_05():
                 "Dates", hide_cols="EFGH", name="seasondates"))
 
 
+T_1124 = "templates/"
+D_1124 = "images/2026-11-24-team-0%d-%s/"
+
+
+def heroes_2026_11_24_01():
+    src = T_1124 + "tidy-tabs-hourly-rental-daily-max.xlsx"
+    save(D_1124 % (1, "hourly-rental-fee-with-daily-maximum-and-minimum-hours-int-ceiling-min-excel-google-sheets") + "hourly-rental-daily-max-template.png",
+         render(short_sheet_copy(src, "Bookings", 16, "rent"), "Bookings", name="rent"))
+
+
+def heroes_2026_11_24_02():
+    src = T_1124 + "tidy-tabs-cheapest-pack-mix.xlsx"
+    save(D_1124 % (2, "cheapest-mix-of-pack-sizes-to-buy-at-least-a-quantity-int-mod-roundup-min-excel-google-sheets") + "cheapest-pack-mix-template.png",
+         render(src, "Order", hide_cols="E", name="packs"),
+         render(short_sheet_copy(src, "Mixes", 24, "mixes"), "Mixes", name="mixes"))
+
+
+def heroes_2026_11_24_03():
+    src = T_1124 + "tidy-tabs-ab-test-significance.xlsx"
+    save(D_1124 % (3, "ab-test-two-listing-versions-conversion-rate-significance-normsdist-sqrt-excel-google-sheets") + "ab-test-significance-template.png",
+         render(short_sheet_copy(src, "Tests", 10, "ab"), "Tests", hide_cols="IJPQR", name="ab"))
+
+
+def heroes_2026_11_24_04():
+    src = T_1124 + "tidy-tabs-replace-words-from-list.xlsx"
+    save(D_1124 % (4, "find-and-replace-multiple-words-from-a-list-whole-word-substitute-trim-excel-google-sheets") + "replace-words-from-list-template.png",
+         render(short_sheet_copy(src, "Text", 14, "repl"), "Text", name="repl"))
+
+
+def heroes_2026_11_24_05():
+    src = T_1124 + "tidy-tabs-find-transposed-digits.xlsx"
+    save(D_1124 % (5, "find-transposed-digits-when-totals-dont-match-divisible-by-9-mid-mod-excel-google-sheets") + "find-transposed-digits-template.png",
+         render(short_sheet_copy(src, "Entries", 19, "trans"), "Entries", hide_cols="CDEPQR", name="trans"))
+
+
 def main():
+    if "--only-2026-11-24" in sys.argv:
+        for n in "12345":
+            if not any(a.startswith("--only-2026-11-24-0") for a in sys.argv) or f"--only-2026-11-24-0{n}" in sys.argv:
+                globals()[f"heroes_2026_11_24_0{n}"]()
+        return
     if "--only-2026-11-23" in sys.argv:
         for n in "12345":
             if not any(a.startswith("--only-2026-11-23-0") for a in sys.argv) or f"--only-2026-11-23-0{n}" in sys.argv:

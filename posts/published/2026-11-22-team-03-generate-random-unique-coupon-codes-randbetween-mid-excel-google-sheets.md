@@ -1,4 +1,6 @@
 ---
+threads_url: https://www.threads.com/@tin_ylab/post/DgIB_mZG3SS
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-generate-random-coupon-codes-in.html
 title: How to Generate Random Coupon Codes in Excel and Google Sheets
 labels: excel-formulas, small-business, text-functions
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 33 workbooks and 83,094 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Codes are random, so the test checked format, length, allowed characters and the duplicate counts, not fixed codes. Not tested in Excel or Google Sheets.

@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-get-season-and-rate-from-date-in.html
 title: How to Get the Season and Rate From a Date in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 22 workbooks and 44,748 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-use-dsum-with-multiple-criteria.html
 title: How to Use DSUM With Multiple Criteria (AND and OR) in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 36 workbooks and 18,900 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Criteria text matching and blank criteria rows were checked in LibreOffice Calc only; Excel's rule is quoted from Microsoft's help page. Not tested in Excel or Google Sheets.

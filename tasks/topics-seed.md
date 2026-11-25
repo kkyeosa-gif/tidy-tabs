@@ -292,3 +292,10 @@
 - How to Tell If an A/B Test Result Is Real (Conversion Rate Significance) in Excel and Google Sheets - `2026-11-24-team-03-ab-test-two-listing-versions-conversion-rate-significance-normsdist-sqrt-excel-google-sheets`
 - How to Find and Replace Multiple Words at Once From a List in Excel and Google Sheets - `2026-11-24-team-04-find-and-replace-multiple-words-from-a-list-whole-word-substitute-trim-excel-google-sheets`
 - How to Find a Transposed Number When Your Totals Are Off by an Amount Divisible by 9 in Excel and Google Sheets - `2026-11-24-team-05-find-transposed-digits-when-totals-dont-match-divisible-by-9-mid-mod-excel-google-sheets`
+
+## 2026-11-25 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-25.md)
+- How to Compare Black Friday Sales to Last Year's Black Friday (Not the Same Date) in Excel and Google Sheets - `2026-11-25-team-01-compare-black-friday-weekend-sales-to-last-year-same-sale-day-thanksgiving-weekday-sumifs-excel-google-sheets`
+- How to Keep a Petty Cash Log and Work Out the Replenishment in Excel and Google Sheets - `2026-11-25-team-02-petty-cash-log-with-running-balance-and-replenishment-by-category-sumifs-countif-excel-google-sheets`
+- How to Track Purchase Orders With Partial Deliveries in Excel and Google Sheets - `2026-11-25-team-03-purchase-order-tracker-partial-deliveries-open-quantity-supplier-on-time-rate-sumifs-sumproduct-excel-google-sheets`
+- How to Count Stockout Days and Estimate Lost Sales in Excel and Google Sheets - `2026-11-25-team-04-stockout-days-and-estimated-lost-sales-from-daily-inventory-log-countifs-sumifs-excel-google-sheets`
+- How to Get the 4-4-5 Fiscal Week and Period for Any Date in Excel and Google Sheets - `2026-11-25-team-05-retail-4-4-5-fiscal-calendar-week-period-quarter-from-date-int-match-excel-google-sheets`

@@ -1142,7 +1142,46 @@ def heroes_2026_11_24_05():
          render(short_sheet_copy(src, "Entries", 19, "trans"), "Entries", hide_cols="CDEPQR", name="trans"))
 
 
+T_1125 = "templates/"
+D_1125 = "images/2026-11-25-team-0%d-%s/"
+
+
+def heroes_2026_11_25_01():
+    src = T_1125 + "tidy-tabs-black-friday-vs-last-year.xlsx"
+    save(D_1125 % (1, "compare-black-friday-weekend-sales-to-last-year-same-sale-day-thanksgiving-weekday-sumifs-excel-google-sheets") + "black-friday-vs-last-year-template.png",
+         render(short_sheet_copy(src, "Compare", 22, "bf"), "Compare", name="bf"))
+
+
+def heroes_2026_11_25_02():
+    src = T_1125 + "tidy-tabs-petty-cash-log.xlsx"
+    save(D_1125 % (2, "petty-cash-log-with-running-balance-and-replenishment-by-category-sumifs-countif-excel-google-sheets") + "petty-cash-replenishment-template.png",
+         render(short_sheet_copy(src, "Replenish", 20, "pc"), "Replenish", name="pc"))
+
+
+def heroes_2026_11_25_03():
+    src = T_1125 + "tidy-tabs-purchase-order-tracker.xlsx"
+    save(D_1125 % (3, "purchase-order-tracker-partial-deliveries-open-quantity-supplier-on-time-rate-sumifs-sumproduct-excel-google-sheets") + "purchase-order-tracker-template.png",
+         render(short_sheet_copy(src, "PO lines", 11, "po"), "PO lines", hide_cols="EFNQRS", name="po"))
+
+
+def heroes_2026_11_25_04():
+    src = T_1125 + "tidy-tabs-stockout-lost-sales.xlsx"
+    save(D_1125 % (4, "stockout-days-and-estimated-lost-sales-from-daily-inventory-log-countifs-sumifs-excel-google-sheets") + "stockout-lost-sales-template.png",
+         render(short_sheet_copy(src, "Summary", 7, "so"), "Summary", hide_cols="OPQ", name="so"))
+
+
+def heroes_2026_11_25_05():
+    src = T_1125 + "tidy-tabs-4-4-5-fiscal-calendar.xlsx"
+    save(D_1125 % (5, "retail-4-4-5-fiscal-calendar-week-period-quarter-from-date-int-match-excel-google-sheets") + "4-4-5-fiscal-calendar-template.png",
+         render(short_sheet_copy(src, "Dates", 20, "fy"), "Dates", hide_cols="BLMN", name="fy"))
+
+
 def main():
+    if "--only-2026-11-25" in sys.argv:
+        for n in "12345":
+            if not any(a.startswith("--only-2026-11-25-0") for a in sys.argv) or f"--only-2026-11-25-0{n}" in sys.argv:
+                globals()[f"heroes_2026_11_25_0{n}"]()
+        return
     if "--only-2026-11-24" in sys.argv:
         for n in "12345":
             if not any(a.startswith("--only-2026-11-24-0") for a in sys.argv) or f"--only-2026-11-24-0{n}" in sys.argv:

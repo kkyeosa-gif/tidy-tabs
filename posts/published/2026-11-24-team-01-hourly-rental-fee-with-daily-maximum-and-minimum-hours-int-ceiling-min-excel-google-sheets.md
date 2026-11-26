@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-charge-hourly-rental-rate-with.html
 title: How to Charge an Hourly Rental Rate With a Daily Maximum in Excel and Google Sheets
 labels: excel-formulas, small-business, pricing
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 36 workbooks and 43,488 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets. The raw-hours rounding error was measured in LibreOffice Calc only (3,000 random bookings).

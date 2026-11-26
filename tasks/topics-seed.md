@@ -299,3 +299,10 @@
 - How to Track Purchase Orders With Partial Deliveries in Excel and Google Sheets - `2026-11-25-team-03-purchase-order-tracker-partial-deliveries-open-quantity-supplier-on-time-rate-sumifs-sumproduct-excel-google-sheets`
 - How to Count Stockout Days and Estimate Lost Sales in Excel and Google Sheets - `2026-11-25-team-04-stockout-days-and-estimated-lost-sales-from-daily-inventory-log-countifs-sumifs-excel-google-sheets`
 - How to Get the 4-4-5 Fiscal Week and Period for Any Date in Excel and Google Sheets - `2026-11-25-team-05-retail-4-4-5-fiscal-calendar-week-period-quarter-from-date-int-match-excel-google-sheets`
+
+## 2026-11-26 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 템플릿은 LibreOffice 24.2.7.2 로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-26.md)
+- How to Calculate a Spend-and-Save Discount and the Amount to the Next Tier in Excel and Google Sheets - `2026-11-26-team-01-spend-and-save-tiered-discount-amount-to-reach-next-tier-countif-index-excel-google-sheets`
+- How to Make a Holiday Hours Schedule That Shows If You Are Open in Excel and Google Sheets - `2026-11-26-team-02-holiday-hours-schedule-open-or-closed-at-a-date-and-time-weekday-index-match-excel-google-sheets`
+- How to Calculate Average Daily Balance From a Transaction List in Excel and Google Sheets - `2026-11-26-team-03-average-daily-balance-from-transaction-list-end-of-day-balance-sumifs-excel-google-sheets`
+- How to Make a Year-at-a-Glance Daily Sales Heatmap in Excel and Google Sheets - `2026-11-26-team-04-year-at-a-glance-daily-sales-heatmap-calendar-grid-sumifs-color-scale-excel-google-sheets`
+- How to Split Sales Change vs Last Year Into Price and Volume in Excel and Google Sheets - `2026-11-26-team-05-sales-change-vs-last-year-price-effect-and-volume-effect-by-product-sumifs-excel-google-sheets`

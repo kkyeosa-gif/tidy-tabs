@@ -1176,7 +1176,47 @@ def heroes_2026_11_25_05():
          render(short_sheet_copy(src, "Dates", 20, "fy"), "Dates", hide_cols="BLMN", name="fy"))
 
 
+T_1126 = "templates/"
+D_1126 = "images/2026-11-26-team-0%d-%s/"
+
+
+def heroes_2026_11_26_01():
+    src = T_1126 + "tidy-tabs-spend-and-save-tiers.xlsx"
+    save(D_1126 % (1, "spend-and-save-tiered-discount-amount-to-reach-next-tier-countif-index-excel-google-sheets") + "spend-and-save-tiered-discount-template.png",
+         render(short_sheet_copy(src, "Orders", 19, "ss"), "Orders", hide_cols="I", name="ss"))
+
+
+def heroes_2026_11_26_02():
+    src = T_1126 + "tidy-tabs-holiday-hours-schedule.xlsx"
+    save(D_1126 % (2, "holiday-hours-schedule-open-or-closed-at-a-date-and-time-weekday-index-match-excel-google-sheets") + "holiday-hours-schedule-template.png",
+         render(short_sheet_copy(src, "Schedule", 30, "hh"), "Schedule", hide_cols="H", name="hh"),
+         render(short_sheet_copy(src, "Check a time", 18, "hc"), "Check a time", hide_cols="IJ", name="hc"))
+
+
+def heroes_2026_11_26_03():
+    src = T_1126 + "tidy-tabs-average-daily-balance.xlsx"
+    save(D_1126 % (3, "average-daily-balance-from-transaction-list-end-of-day-balance-sumifs-excel-google-sheets") + "average-daily-balance-template.png",
+         render(short_sheet_copy(src, "Daily", 37, "adb"), "Daily", hide_cols="C", name="adb"))
+
+
+def heroes_2026_11_26_04():
+    src = T_1126 + "tidy-tabs-daily-sales-year-heatmap.xlsx"
+    save(D_1126 % (4, "year-at-a-glance-daily-sales-heatmap-calendar-grid-sumifs-color-scale-excel-google-sheets") + "daily-sales-year-heatmap-template.png",
+         render(short_sheet_copy(src, "Year grid", 16, "heat"), "Year grid", hide_cols=["AK", "AL", "AM", "AN"], name="heat"))
+
+
+def heroes_2026_11_26_05():
+    src = T_1126 + "tidy-tabs-sales-change-price-volume.xlsx"
+    save(D_1126 % (5, "sales-change-vs-last-year-price-effect-and-volume-effect-by-product-sumifs-excel-google-sheets") + "sales-change-price-volume-template.png",
+         render(short_sheet_copy(src, "Compare", 21, "pv"), "Compare", name="pv"))
+
+
 def main():
+    if "--only-2026-11-26" in sys.argv:
+        for n in "12345":
+            if not any(a.startswith("--only-2026-11-26-0") for a in sys.argv) or f"--only-2026-11-26-0{n}" in sys.argv:
+                globals()[f"heroes_2026_11_26_0{n}"]()
+        return
     if "--only-2026-11-25" in sys.argv:
         for n in "12345":
             if not any(a.startswith("--only-2026-11-25-0") for a in sys.argv) or f"--only-2026-11-25-0{n}" in sys.argv:

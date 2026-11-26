@@ -73,7 +73,14 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run publish-clock.yml --repo "$GITHUB_REPOSITORY" --ref main
+        run: |
+          # A single HTTP 500 here broke the chain on 2026-11-25 (lost the
+          # 13:00 PT slot until the backup cron restarted it). Retry.
+          for i in 1 2 3 4 5 6; do
+            gh workflow run publish-clock.yml --repo "$GITHUB_REPOSITORY" --ref main && exit 0
+            sleep $((i * 20))
+          done
+          exit 1
 
       - name: Alert on problems
         if: failure()

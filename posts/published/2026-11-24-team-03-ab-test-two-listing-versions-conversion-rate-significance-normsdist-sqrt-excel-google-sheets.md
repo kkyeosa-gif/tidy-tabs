@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-check-if-ab-test-result-is.html
 title: How to Check If an A/B Test Result Is Significant in Excel and Google Sheets
 labels: excel-formulas, small-business, etsy-sellers
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 23 workbooks and 11,684 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets. NORMSDIST and NORMSINV results were checked against Python's math.erf and NormalDist only.

@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-find-transposed-digits-when.html
 title: How to Find Transposed Digits When Totals Don't Match in Excel and Google Sheets
 labels: excel-formulas, small-business, bookkeeping
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model on the sample log, six sample deposits, refund, size, text and blank edge cases, and 48 random logs of 20 to 499 entries with one planted error each (the planted entry was listed in all 48). Not tested in Excel or Google Sheets.

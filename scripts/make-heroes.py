@@ -1211,7 +1211,46 @@ def heroes_2026_11_26_05():
          render(short_sheet_copy(src, "Compare", 21, "pv"), "Compare", name="pv"))
 
 
+T_1128 = "templates/"
+D_1128 = "images/2026-11-28-team-0%d-%s/"
+
+
+def heroes_2026_11_28_01():
+    src = T_1128 + "tidy-tabs-december-daily-sales-targets.xlsx"
+    save(D_1128 % (1, "december-daily-sales-targets-from-monthly-goal-weighted-by-weekday-ahead-or-behind-weekday-index-sumifs-excel-google-sheets") + "december-daily-sales-targets-template.png",
+         render(short_sheet_copy(src, "Targets", 36, "dst"), "Targets", hide_cols="DI", name="dst"))
+
+
+def heroes_2026_11_28_02():
+    src = T_1128 + "tidy-tabs-year-end-sales-projection.xlsx"
+    save(D_1128 % (2, "project-year-end-sales-from-year-to-date-run-rate-vs-last-year-pattern-sumifs-date-excel-google-sheets") + "year-end-sales-projection-template.png",
+         render(short_sheet_copy(src, "Projection", 24, "yep"), "Projection", name="yep"))
+
+
+def heroes_2026_11_28_03():
+    src = T_1128 + "tidy-tabs-unbilled-hours-by-client.xlsx"
+    save(D_1128 % (3, "unbilled-hours-and-amount-by-client-blank-invoice-number-sumifs-sumproduct-excel-google-sheets") + "unbilled-hours-by-client-template.png",
+         render(compact_copy(src, "Clients", 15, "unb", labels={"A2": "Older than (days)"}), "Clients", name="unb"))
+
+
+def heroes_2026_11_28_04():
+    src = T_1128 + "tidy-tabs-processing-time-percentile.xlsx"
+    save(D_1128 % (4, "set-order-processing-time-from-90th-percentile-business-days-networkdays-percentile-excel-google-sheets") + "processing-time-percentile-template.png",
+         render(short_sheet_copy(src, "Promise", 23, "pt"), "Promise", name="pt"))
+
+
+def heroes_2026_11_28_05():
+    src = T_1128 + "tidy-tabs-recurring-charges-finder.xlsx"
+    save(D_1128 % (5, "find-recurring-charges-and-subscriptions-in-bank-export-distinct-months-countifs-sumif-excel-google-sheets") + "recurring-charges-finder-template.png",
+         render(compact_copy(src, "Recurring", 18, "rc", hide_rows=[1, 2, 3, 4, 5]), "Recurring", hide_cols="C", name="rc"))
+
+
 def main():
+    if "--only-2026-11-28" in sys.argv:
+        for n in "12345":
+            if not any(a.startswith("--only-2026-11-28-0") for a in sys.argv) or f"--only-2026-11-28-0{n}" in sys.argv:
+                globals()[f"heroes_2026_11_28_0{n}"]()
+        return
     if "--only-2026-11-26" in sys.argv:
         for n in "12345":
             if not any(a.startswith("--only-2026-11-26-0") for a in sys.argv) or f"--only-2026-11-26-0{n}" in sys.argv:

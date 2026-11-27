@@ -306,3 +306,10 @@
 - How to Calculate Average Daily Balance From a Transaction List in Excel and Google Sheets - `2026-11-26-team-03-average-daily-balance-from-transaction-list-end-of-day-balance-sumifs-excel-google-sheets`
 - How to Make a Year-at-a-Glance Daily Sales Heatmap in Excel and Google Sheets - `2026-11-26-team-04-year-at-a-glance-daily-sales-heatmap-calendar-grid-sumifs-color-scale-excel-google-sheets`
 - How to Split Sales Change vs Last Year Into Price and Volume in Excel and Google Sheets - `2026-11-26-team-05-sales-change-vs-last-year-price-effect-and-volume-effect-by-product-sumifs-excel-google-sheets`
+
+## 2026-11-28 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-28.md)
+- How to Set Daily Sales Targets From a Monthly Goal by Day of the Week in Excel and Google Sheets - `2026-11-28-team-01-december-daily-sales-targets-from-monthly-goal-weighted-by-weekday-ahead-or-behind-weekday-index-sumifs-excel-google-sheets`
+- How to Project Year-End Sales From Year-to-Date Sales in Excel and Google Sheets - `2026-11-28-team-02-project-year-end-sales-from-year-to-date-run-rate-vs-last-year-pattern-sumifs-date-excel-google-sheets`
+- How to Find Unbilled Hours by Client Before Year End in Excel and Google Sheets - `2026-11-28-team-03-unbilled-hours-and-amount-by-client-blank-invoice-number-sumifs-sumproduct-excel-google-sheets`
+- How to Set an Order Processing Time You Can Keep in Excel and Google Sheets - `2026-11-28-team-04-set-order-processing-time-from-90th-percentile-business-days-networkdays-percentile-excel-google-sheets`
+- How to Find Recurring Charges and Subscriptions in a Bank Export in Excel and Google Sheets - `2026-11-28-team-05-find-recurring-charges-and-subscriptions-in-bank-export-distinct-months-countifs-sumif-excel-google-sheets`

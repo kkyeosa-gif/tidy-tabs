@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-get-4-4-5-fiscal-week-and-period.html
 title: How to Get the 4-4-5 Fiscal Week and Period for Any Date in Excel and Google Sheets
 labels: excel-formulas, small-business, dates
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 64 workbooks and 647,616 cell comparisons, 0 mismatches, plus the edge cases listed in the post (every day from 01/29/2023 to 01/29/2028 for 4-4-5, 4-5-4 and 5-4-4). Not tested in Excel or Google Sheets.

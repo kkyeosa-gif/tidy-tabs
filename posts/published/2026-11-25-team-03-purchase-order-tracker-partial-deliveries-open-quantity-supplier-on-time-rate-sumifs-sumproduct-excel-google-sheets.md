@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-track-purchase-orders-with.html
 title: How to Track Purchase Orders With Partial Deliveries in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 215 workbooks and 871,180 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets. The COUNTIFS(range,"<>") counting problem was reproduced in LibreOffice Calc only.

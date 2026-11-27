@@ -22952,6 +22952,900 @@ def price_volume_change():
     wb.save(OUT / "tidy-tabs-sales-change-price-volume.xlsx")
 
 
+
+DST_LOG_LAST = 1004
+DST_WEEKDAY_FMT = "ddd mm/dd/yyyy"
+
+
+def _settings_rows(ws, rows, note_col="C"):
+    """Bold label in A, yellow input in B, italic note. rows: (row, label, value, number format, note)."""
+    for r, label, v, fmt, note in rows:
+        ws[f"A{r}"], ws[f"B{r}"] = label, v
+        ws[f"{note_col}{r}"] = note
+        ws[f"A{r}"].font = Font(bold=True)
+        ws[f"B{r}"].fill = INPUT_FILL
+        ws[f"B{r}"].number_format = fmt
+        ws[f"B{r}"].alignment = Alignment(horizontal="right")
+        ws[f"{note_col}{r}"].font = Font(italic=True)
+
+
+def december_daily_sales_targets():
+    wb = Workbook()
+    tg = wb.active
+    tg.title = "Targets"
+    lg = wb.create_sheet("Sales log")
+    ll = DST_LOG_LAST
+    la, lb, ld = (f"'Sales log'!${c}$5:${c}${ll}" for c in "ABD")
+    _settings_rows(tg, [
+        (1, "Month starts", date(2026, 12, 1), US_DATE, "The first day of the month (yellow). Any month works."),
+        (2, "Monthly goal", 9000.00, USD, "The sales goal for the whole month. The targets below add up to it."),
+        (3, "Sales counted through", date(2026, 12, 12), US_DATE,
+         "Type the last day to compare (no TODAY). Days after it get the still-needed amount."),
+    ])
+    _head_row(tg, 4, ["Date", "Override weight", "Weight", "Cumulative weight", "Cumulative target", "Daily target",
+                      "Actual sales", "Actual to date", "Cumulative still needed", "Still needed per day"],
+              [20, 10, 8, 11, 12, 11, 11, 11, 12, 11], height=46)
+    w = "$M$5:$M$11"
+    for r in range(5, 36):
+        tg[f"A{r}"] = '=IF($P$4<>"OK","",$B$1)' if r == 5 else \
+            f'=IF(A{r - 1}="","",IF(DAY(A{r - 1}+1)=1,"",A{r - 1}+1))'
+        tg[f"C{r}"] = f'=IF(A{r}="","",IF(B{r}<>"",B{r},INDEX({w},WEEKDAY(A{r}))))'
+        tg[f"D{r}"] = f'=IF(A{r}="","",SUM($C$5:C{r}))'
+        tg[f"E{r}"] = f'=IF(OR(A{r}="",$P$5<>"OK"),"",ROUND($B$2*D{r}/$D$36,2))'
+        tg[f"F{r}"] = f'=IF(E{r}="","",ROUND(E{r}-N(E{r - 1}),2))'
+        tg[f"G{r}"] = f'=IF(A{r}="","",SUMIFS({lb},{la},A{r},{ld},"OK"))'
+        tg[f"H{r}"] = f'=IF(OR(A{r}="",A{r}>$B$3),"",SUM($G$5:G{r}))'
+        tg[f"I{r}"] = (f'=IF(OR(A{r}="",A{r}<=$B$3,$P$5<>"OK",N($P$16)<=0),"",'
+                       f'ROUND($P$15*SUMIFS($C$5:$C$35,$A$5:$A$35,">"&$B$3,$A$5:$A$35,"<="&A{r})/$P$16,2))')
+        tg[f"J{r}"] = f'=IF(I{r}="","",ROUND(I{r}-N(I{r - 1}),2))'
+        tg[f"A{r}"].number_format = DST_WEEKDAY_FMT
+        tg[f"B{r}"].fill = INPUT_FILL
+        tg[f"B{r}"].number_format = tg[f"C{r}"].number_format = tg[f"D{r}"].number_format = "0.0#"
+        for col in "EFGHIJ":
+            tg[f"{col}{r}"].number_format = USD
+        _fill_cells(tg, "ACDEFGHIJ", [r], FORMULA_FILL)
+        tg[f"B{r}"].alignment = Alignment(horizontal="right")
+    for d_, v in ((date(2026, 12, 19), 3.5), (date(2026, 12, 24), 1.0), (date(2026, 12, 25), 0),
+                  (date(2026, 12, 31), 0.8)):
+        tg[f"B{5 + d_.day - 1}"] = v
+    tg["A36"] = "Month total"
+    tg["D36"] = "=SUM(C5:C35)"
+    for col in "FGJ":
+        tg[f"{col}36"] = f"=SUM({col}5:{col}35)"
+        tg[f"{col}36"].number_format = USD
+    tg["D36"].number_format = "0.0#"
+    for col in "ADFGJ":
+        tg[f"{col}36"].font = Font(bold=True)
+    _fill_cells(tg, "DFGJ", [36], FORMULA_FILL)
+    tg.column_dimensions["K"].width = 3
+    for c_, t_ in (("L4", "Weekday"), ("M4", "Weight")):
+        tg[c_] = t_
+        tg[c_].fill, tg[c_].font = HEADER_FILL, HEADER_FONT
+        tg[c_].alignment = Alignment(vertical="center", wrap_text=True)
+    tg.column_dimensions["L"].width = 11
+    tg.column_dimensions["M"].width = 8
+    for i, (day, v) in enumerate(zip(["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+                                     [1.5, 0, 1, 1, 1.2, 1.8, 2.5])):
+        tg[f"L{5 + i}"], tg[f"M{5 + i}"] = day, v
+        tg[f"M{5 + i}"].fill = INPUT_FILL
+        tg[f"M{5 + i}"].number_format = "0.0#"
+    tg["L12"] = "0 = closed"
+    tg["L12"].font = Font(italic=True)
+    tg.column_dimensions["N"].width = 3
+    tg.column_dimensions["O"].width = 40
+    tg.column_dimensions["P"].width = 13
+    _summary_block(tg, "O", "P", [
+        (4, "Settings (B1:B3)",
+         '=IF(AND(ISNUMBER(B1),ISNUMBER(B2),ISNUMBER(B3)),IF(AND(B1=INT(B1),B1>=1,B2>=0,B3=INT(B3)),'
+         'IF(DAY(B1)=1,"OK","Check"),"Check"),"Check")', "General"),
+        (5, "Weights (M5:M11 and overrides)",
+         '=IF(P4<>"OK","Check",IF(AND(COUNT(M5:M11)=7,MIN(M5:M11)>=0,'
+         'SUMPRODUCT((A5:A35<>"")*ISTEXT(C5:C35))=0,MIN(C5:C35)>=0,D36>0),"OK","Check"))', "General"),
+        (6, "Days in the month", '=IF(P4<>"OK","",DATE(YEAR(B1),MONTH(B1)+1,1)-B1)', "0"),
+        (7, "Open days (weight above 0)", '=COUNTIF(C5:C35,">0")', "0"),
+        (8, "Closed days (weight 0)", "=COUNTIF(C5:C35,0)", "0"),
+        (9, "Even split per day (for contrast)", '=IF(P4<>"OK","",ROUND(B2/P6,2))', USD),
+        (10, "Even split per open day (for contrast)", '=IF(OR(P4<>"OK",P7=0),"",ROUND(B2/P7,2))', USD),
+        (11, "Target to date (through B3)",
+         '=IF(P5<>"OK","",IF(B3<B1,0,INDEX(E5:E35,MIN(B3-B1+1,P6))))', USD),
+        (12, "Sold to date (through B3)", f'=IF(P4<>"OK","",SUMIFS({lb},{ld},"OK",{la},"<="&B3))', USD),
+        (13, "Ahead (+) or behind (-)", '=IF(P11="","",ROUND(P12-P11,2))', USD),
+        (14, "Ahead or behind, % of target to date", '=IF(OR(P11="",N(P11)=0),"",P13/P11)', "0.0%"),
+        (15, "Still needed for the month", '=IF(P4<>"OK","",MAX(0,ROUND(B2-P12,2)))', USD),
+        (16, "Weight left after B3", '=IF(P5<>"OK","",SUMIFS(C5:C35,A5:A35,">"&B3))', "0.0#"),
+        (17, "Days left after B3", '=IF(P4<>"OK","",COUNTIF(A5:A35,">"&B3))', "0"),
+        (18, "Sum of still needed per day", "=J36", USD),
+        (19, "Sales log CHECK", "='Sales log'!G9", "General"),
+        (20, "CHECK",
+         '=IF(AND(P4="OK",P5="OK",P19="OK"),IF(AND(ROUND(F36-B2,2)=0,ROUND(J36-IF(N(P16)>0,P15,0),2)=0,'
+         'ROUND(G36-\'Sales log\'!G5,2)=0),"OK","Check"),"Check")', "General"),
+    ])
+    tg.conditional_formatting.add("H5:H35", FormulaRule(formula=['AND($H5<>"",$E5<>"",$H5<$E5)'], fill=CHECK_ORANGE))
+    tg.conditional_formatting.add("H5:H35", FormulaRule(formula=['AND($H5<>"",$E5<>"",$H5>=$E5)'], fill=DONE_FILL))
+    tg.conditional_formatting.add("C5:C35", FormulaRule(formula=['AND($A5<>"",$C5=0)'], fill=CHECK_ORANGE))
+    tg.conditional_formatting.add("P13", FormulaRule(formula=['AND($P$13<>"",$P$13<0)'], fill=CHECK_ORANGE))
+    tg.conditional_formatting.add("P13", FormulaRule(formula=['AND($P$13<>"",$P$13>=0)'], fill=DONE_FILL))
+    for c_ in ("P4", "P5", "P20"):
+        tg.conditional_formatting.add(c_, FormulaRule(formula=[f'$P${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    tg.freeze_panes = "B5"
+
+    lg["A1"] = (f"One row per sale or per day's sales (yellow, rows 5 to {ll}): date and amount. Only dates in the "
+                "month on the Targets tab count. Fictional sales.")
+    lg["A2"] = "Dates only (no time): a date with a time would not match a day on the Targets tab."
+    lg["A1"].font = lg["A2"].font = Font(italic=True)
+    _head_row(lg, 4, ["Date", "Amount", "Note", "Status"], [12, 12, 30, 32], height=32)
+    sales = [(date(2026, 11, 28), 455.60, "Small Business Saturday (November)"),
+             (date(2026, 12, 1), 212.40, ""), (date(2026, 12, 2), 188.15, ""), (date(2026, 12, 3), 244.90, ""),
+             (date(2026, 12, 4), 301.25, ""), (date(2026, 12, 4), 96.50, "Gift card sale"),
+             (date(2026, 12, 5), 512.75, ""), (date(2026, 12, 5), 140.00, "Pop-up table"),
+             (date(2026, 12, 6), 301.10, ""), (date(2026, 12, 8), 168.30, ""), (date(2026, 12, 9), 205.60, ""),
+             (date(2026, 12, 10), 251.45, ""), (date(2026, 12, 11), 402.80, ""),
+             (date(2026, 12, 12), 498.35, ""), (date(2026, 12, 12), 181.20, "Pop-up table")]
+    for r in range(5, ll + 1):
+        for col in "ABC":
+            lg[f"{col}{r}"].fill = INPUT_FILL
+        lg[f"A{r}"].number_format = US_DATE
+        lg[f"B{r}"].number_format = USD
+        lg[f"D{r}"] = (f'=IF(AND(A{r}="",B{r}="",TRIM(C{r})=""),"",'
+                       f'IF(NOT(ISNUMBER(A{r})),"Check: date blank or text",'
+                       f'IF(A{r}<>INT(A{r}),"Check: date has a time",'
+                       f'IF(B{r}="","Check: no amount",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: amount is text",'
+                       f'IF(Targets!$P$4<>"OK","Check: Targets settings",'
+                       f'IF(OR(A{r}<Targets!$B$1,A{r}>=Targets!$B$1+Targets!$P$6),"Outside the month (not counted)",'
+                       f'"OK")))))))')
+        _fill_cells(lg, "D", [r], FORMULA_FILL)
+    for i, row in enumerate(sales):
+        for col, v in zip("ABC", row):
+            if v != "":
+                lg[f"{col}{5 + i}"] = v
+    lg.column_dimensions["E"].width = 3
+    lg.column_dimensions["F"].width = 30
+    lg.column_dimensions["G"].width = 12
+    _summary_block(lg, "F", "G", [
+        (4, "Rows OK", f'=COUNTIF(D5:D{ll},"OK")', "0"),
+        (5, "Total of OK rows", f'=SUMIFS(B5:B{ll},D5:D{ll},"OK")', USD),
+        (6, "Outside the month", f'=COUNTIF(D5:D{ll},"Outside*")', "0"),
+        (7, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(D5:D{ll},5)="Check"))', "0"),
+        (8, f"Typed below row {ll} (not read)", f"=COUNTA(A{ll + 1}:C3000)", "0"),
+        (9, "CHECK", '=IF(AND(G7=0,G8=0),"OK","Check")', "General"),
+    ])
+    lg.conditional_formatting.add(f"D5:D{ll}", FormulaRule(formula=['LEFT($D5,5)="Check"'], fill=ALERT_FILL))
+    lg.conditional_formatting.add(f"D5:D{ll}", FormulaRule(formula=['LEFT($D5,7)="Outside"'], fill=CHECK_ORANGE))
+    lg.conditional_formatting.add("G9", FormulaRule(formula=['$G$9<>"OK"'], fill=ALERT_FILL))
+    lg.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Daily Sales Targets From a Monthly Goal, Weighted by Weekday",
+        "",
+        "1. Targets tab, B1:B3 (yellow): the first day of the month, the monthly goal, and the last day of sales to compare (type it; the sheet does not use TODAY). The sample is a fictional shop's December 2026.",
+        "2. Weekday weights, M5:M11 (yellow, Sunday to Saturday): how busy each weekday is compared with the others. 0 means closed (Monday in the sample). Use your own guess or last year's sales by weekday. The weights do not have to add up to anything.",
+        "3. Override weight, column B (yellow): type a weight for one date to replace its weekday weight, such as 3.5 for a busy Saturday before Christmas, 1 for Christmas Eve or 0 for a day you are closed. Leave it blank to use the weekday.",
+        "4. Weight, C5: =IF(B5<>\"\",B5,INDEX($M$5:$M$11,WEEKDAY(A5))). WEEKDAY gives 1 for Sunday to 7 for Saturday, the order of M5:M11. Cumulative weight, D5: =SUM($C$5:C5).",
+        "5. Cumulative target, E5: =ROUND($B$2*D5/$D$36,2), the goal times the share of the month's weight used up by that day (D36 is the month's total weight). Daily target, F5: =ROUND(E5-N(E4),2), today's running total minus yesterday's.",
+        "6. Rounding the running total, not each day, keeps the daily targets adding up to the goal to the cent (F36 = B2). Rounding each day on its own can leave the month a few cents off.",
+        "7. Sales log tab: date and amount of each sale or each day's total. Actual sales, G5: =SUMIFS of the Sales log for that date. Actual to date (H) is green when it is at or above the cumulative target and orange when it is below.",
+        "8. Summary O4:P20: target to date, sold to date, ahead or behind in dollars and percent, and the still-needed amount. P9 and P10 show an even split (goal / days) for contrast only.",
+        "9. Still needed, I and J: what is left of the goal after B3 spread over the days after B3 by the same weights and the same running-total rounding, so the days add up to the amount still needed. If the goal is already beaten it is $0.00 a day.",
+        "10. Checks: B1 must be the first of a month, B3 a date; weights must be numbers 0 or above with at least one above 0. The Sales log Status flags text, a date with a time (it would not match any day) and sales outside the month. CHECK also confirms the targets add up to the goal and the grid matches the log.",
+        "11. The targets are a plan for spreading the goal, not a forecast. What goal to set is up to you.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    tg.print_title_rows = "4:4"
+    tg.page_setup.fitToHeight = 1
+    lg.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-december-daily-sales-targets.xlsx")
+
+
+YEP_LOG_LAST = 5004
+
+
+def year_end_sales_projection():
+    import random
+    wb = Workbook()
+    pj = wb.active
+    pj.title = "Projection"
+    lg = wb.create_sheet("Sales log")
+    ll = YEP_LOG_LAST
+    la, lb, ld = (f"'Sales log'!${c}$5:${c}${ll}" for c in "ABD")
+    ok = "$B$27"
+    _settings_rows(pj, [
+        (1, "Sales counted through (as of)", date(2026, 11, 25), US_DATE,
+         "Type the last day of sales to count (yellow; no TODAY)."),
+        (2, "Annual goal (optional)", 48000.00, USD, "Leave blank to skip the goal lines."),
+        (3, "Same date last year (optional)", None, US_DATE,
+         "Blank = same month and day last year. Type a date to compare with another day."),
+    ], note_col="D")
+    calc = [
+        (4, "Same date last year", f'=IF({ok}<>"OK","",IF(B3<>"",B3,DATE(YEAR(B1)-1,MONTH(B1),DAY(B1))))', US_DATE,
+         "Same month and day, one year back. For 02/29 this gives 03/01 of last year."),
+        (5, "Sales this year to date", f'=IF({ok}<>"OK","",SUMIFS({lb},{ld},"OK",{la},">="&B6,{la},"<"&B1+1))', USD,
+         "Sales log, 01/01 of this year through B1 (a sale with a time on B1 counts)."),
+        (6, "This year starts", f'=IF({ok}<>"OK","",DATE(YEAR(B1),1,1))', US_DATE, ""),
+        (7, "Last year to the same date",
+         f'=IF({ok}<>"OK","",SUMIFS({lb},{ld},"OK",{la},">="&DATE(YEAR(B1)-1,1,1),{la},"<"&B4+1))', USD,
+         "01/01 of last year through B4."),
+        (8, "Last year, full year",
+         f'=IF({ok}<>"OK","",SUMIFS({lb},{ld},"OK",{la},">="&DATE(YEAR(B1)-1,1,1),{la},"<"&B6))', USD,
+         "01/01 to 12/31 of last year."),
+        (9, "Share of last year made by the same date", '=IF(OR(B8="",N(B8)<=0),"",ROUND(B7/B8,4))', "0.00%",
+         "B7 / B8, rounded for display; the projection uses B7 and B8 themselves."),
+        (10, "Days so far this year", '=IF(B6="","",B1-B6+1)', "0", "Calendar days from 01/01 through B1."),
+        (11, "Days in this year", '=IF(B6="","",DATE(YEAR(B1),12,31)-B6+1)', "0", "365, or 366 in a leap year."),
+        (12, "Share of the year gone", '=IF(B6="","",ROUND(B10/B11,4))', "0.00%", ""),
+    ]
+    for r, label, f, fmt, note in calc:
+        pj[f"A{r}"], pj[f"B{r}"], pj[f"D{r}"] = label, f, note
+        pj[f"A{r}"].font = Font(bold=True)
+        pj[f"B{r}"].number_format = fmt
+        pj[f"D{r}"].font = Font(italic=True)
+        _fill_cells(pj, "B", [r], FORMULA_FILL)
+    _head_row(pj, 14, ["Year-end projection", "Last year's pattern", "Straight-line run rate", "How it is figured"],
+              [44, 16, 16, 66], height=32)
+    proj = [
+        (15, "Projected total for the year",
+         '=IF(B6="","",IF(N(B8)<=0,"No sales last year",IF(N(B7)<=0,"No sales last year by this date",'
+         'ROUND(B5*B8/B7,2))))',
+         '=IF(B6="","",ROUND(B5/B10*B11,2))',
+         "Pattern: B5 x B8 / B7 (this year so far / last year's share). Run rate: B5 / B10 x B11."),
+        (16, "Ahead (+) or short (-) of the goal", '=IF(OR(NOT(ISNUMBER(B15)),B2=""),"",ROUND(B15-$B$2,2))',
+         '=IF(OR(NOT(ISNUMBER(C15)),$B$2=""),"",ROUND(C15-$B$2,2))', "Projected total minus the goal in B2."),
+        (17, "Expected for the rest of the year", '=IF(NOT(ISNUMBER(B15)),"",ROUND(B15-$B$5,2))',
+         '=IF(NOT(ISNUMBER(C15)),"",ROUND(C15-$B$5,2))', "Projected total minus sales so far."),
+        (18, "Expected per remaining day", '=IF(OR(B17="",N($B$22)=0),"",ROUND(B17/$B$22,2))',
+         '=IF(OR(C17="",N($B$22)=0),"",ROUND(C17/$B$22,2))', "Divided by the days left in B22."),
+    ]
+    for r, label, fb, fc, note in proj:
+        pj[f"A{r}"], pj[f"B{r}"], pj[f"C{r}"], pj[f"D{r}"] = label, fb, fc, note
+        pj[f"A{r}"].font = Font(bold=True)
+        pj[f"B{r}"].number_format = pj[f"C{r}"].number_format = USD
+        pj[f"D{r}"].font = Font(italic=True)
+        _fill_cells(pj, "BC", [r], FORMULA_FILL)
+    _head_row(pj, 20, ["To reach the goal", "Amount", "", "How it is figured"], [44, 16, 16, 66], height=32)
+    goal = [
+        (21, "Still needed to reach the goal", '=IF(OR(B6="",B2=""),"",MAX(0,ROUND(B2-B5,2)))', USD,
+         "Goal minus sales so far ($0.00 once the goal is reached)."),
+        (22, "Days left in the year", '=IF(B6="","",B11-B10)', "0", "Calendar days after B1 through 12/31."),
+        (23, "Needed per remaining day", '=IF(OR(B21="",N(B22)=0),"",ROUND(B21/B22,2))', USD, ""),
+        (24, "Last year after the same date", '=IF(B6="","",ROUND(B8-B7,2))', USD,
+         "What the same stretch of last year sold (B8 - B7), to compare with B21."),
+    ]
+    for r, label, f, fmt, note in goal:
+        pj[f"A{r}"], pj[f"B{r}"], pj[f"D{r}"] = label, f, note
+        pj[f"A{r}"].font = Font(bold=True)
+        pj[f"B{r}"].number_format = fmt
+        pj[f"D{r}"].font = Font(italic=True)
+        _fill_cells(pj, "B", [r], FORMULA_FILL)
+    _head_row(pj, 26, ["Checks", "Result", "", ""], [44, 16, 16, 66], height=24)
+    checks = [
+        (27, "Settings (B1:B3)",
+         '=IF(NOT(ISNUMBER(B1)),"Check",IF(OR(B1<>INT(B1),B1<367),"Check",IF(AND(B2<>"",NOT(ISNUMBER(B2))),"Check",'
+         'IF(N(B2)<0,"Check",IF(B3="","OK",IF(NOT(ISNUMBER(B3)),"Check",IF(B3<>INT(B3),"Check",'
+         'IF(YEAR(B3)<>YEAR(B1)-1,"Check","OK"))))))))', "General",
+         "B1 a whole date; B2 blank or a number; B3 blank or a date in last year."),
+        (28, "First date in the Sales log", f'=IF(COUNT({la})=0,"",MIN({la}))', US_DATE, ""),
+        (29, "Log covers last year from its first week",
+         '=IF(B27<>"OK","Check",IF(B28="","Check: log is empty",IF(B28<=DATE(YEAR(B1)-1,1,7),"OK",'
+         '"Check: log starts after 01/07 of last year")))', "General",
+         "A log that starts later makes last year's share too high and the projection too low."),
+        (30, "Same date last year", '=IF(B27<>"OK","",IF(B3<>"","Typed in B3",IF(MONTH(B4)<>MONTH(B1),'
+         '"Moved to 03/01 (no 02/29 last year)","Same month and day")))', "General",
+         "Type 02/28 in B3 if you would rather compare 02/29 with 02/28."),
+        (31, "Sales log CHECK", "='Sales log'!G9", "General", ""),
+        (32, "CHECK", '=IF(AND(B27="OK",B29="OK",B31="OK",ISNUMBER(B15)),"OK","Check")', "General",
+         "Also Check when there are no sales last year to compare."),
+    ]
+    for r, label, f, fmt, note in checks:
+        pj[f"A{r}"], pj[f"B{r}"], pj[f"D{r}"] = label, f, note
+        pj[f"A{r}"].font = Font(bold=True)
+        pj[f"B{r}"].number_format = fmt
+        pj[f"D{r}"].font = Font(italic=True)
+        _fill_cells(pj, "B", [r], FORMULA_FILL)
+    pj["B30"].alignment = Alignment(horizontal="left")
+    pj.conditional_formatting.add("B15", FormulaRule(formula=['ISNUMBER($B$15)'], fill=DONE_FILL))
+    for c_ in ("B16", "C16"):
+        pj.conditional_formatting.add(c_, FormulaRule(formula=[f'AND(ISNUMBER({c_}),{c_}<0)'], fill=CHECK_ORANGE))
+        pj.conditional_formatting.add(c_, FormulaRule(formula=[f'AND(ISNUMBER({c_}),{c_}>=0)'], fill=DONE_FILL))
+    pj.conditional_formatting.add("B30", FormulaRule(formula=['LEFT($B$30,5)="Moved"'], fill=CHECK_ORANGE))
+    for c_ in ("B27", "B29", "B32"):
+        pj.conditional_formatting.add(c_, FormulaRule(formula=[f'$B${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    pj.column_dimensions["D"].width = 66
+
+    lg["A1"] = (f"One row per sale or per day (yellow, rows 5 to {ll}): date and amount, from 01/01 of last year "
+                "through the as-of date. Fictional gift shop sales.")
+    lg["A2"] = "Rows before last year or after the as-of date are not counted. A date with a time counts on its day."
+    lg["A1"].font = lg["A2"].font = Font(italic=True)
+    _head_row(lg, 4, ["Date", "Amount", "Note", "Status"], [12, 12, 24, 34], height=32)
+    rnd = random.Random(28)
+    season = {1: .55, 2: .6, 3: .75, 4: .85, 5: 1.0, 6: .95, 7: .9, 8: .9, 9: .95, 10: 1.1, 11: 1.6, 12: 2.1}
+    log = []
+    d_ = date(2025, 1, 1)
+    while d_ <= date(2026, 11, 25):
+        if d_.weekday() != 0:
+            base = 120 * season[d_.month] * (1.5 if d_.weekday() >= 5 else 1.0) * (1.08 if d_.year == 2026 else 1.0)
+            log.append((d_, round(base * rnd.uniform(.7, 1.3), 2)))
+        d_ += timedelta(days=1)
+    for r in range(5, ll + 1):
+        for col in "ABC":
+            lg[f"{col}{r}"].fill = INPUT_FILL
+        lg[f"A{r}"].number_format = US_DATE
+        lg[f"B{r}"].number_format = USD
+        lg[f"D{r}"] = (f'=IF(AND(A{r}="",B{r}="",TRIM(C{r})=""),"",'
+                       f'IF(NOT(ISNUMBER(A{r})),"Check: date blank or text",'
+                       f'IF(B{r}="","Check: no amount",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: amount is text",'
+                       f'IF(Projection!$B$27<>"OK","Check: Projection settings",'
+                       f'IF(A{r}<DATE(YEAR(Projection!$B$1)-1,1,1),"Before last year (not counted)",'
+                       f'IF(A{r}>=Projection!$B$1+1,"After the as-of date (not counted)","OK")))))))')
+        _fill_cells(lg, "D", [r], FORMULA_FILL)
+    for i, (dd, amt) in enumerate(log):
+        lg[f"A{5 + i}"], lg[f"B{5 + i}"] = dd, amt
+    lg.column_dimensions["E"].width = 3
+    lg.column_dimensions["F"].width = 34
+    lg.column_dimensions["G"].width = 13
+    _summary_block(lg, "F", "G", [
+        (4, "Rows OK", f'=COUNTIF(D5:D{ll},"OK")', "#,##0"),
+        (5, "Total of OK rows", f'=SUMIFS(B5:B{ll},D5:D{ll},"OK")', USD),
+        (6, "Not counted (before last year or after B1)",
+         f'=COUNTIF(D5:D{ll},"Before*")+COUNTIF(D5:D{ll},"After*")', "#,##0"),
+        (7, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(D5:D{ll},5)="Check"))', "0"),
+        (8, f"Typed below row {ll} (not read)", f"=COUNTA(A{ll + 1}:C7000)", "0"),
+        (9, "CHECK", '=IF(AND(G7=0,G8=0),"OK","Check")', "General"),
+    ])
+    lg.conditional_formatting.add(f"D5:D{ll}", FormulaRule(formula=['LEFT($D5,5)="Check"'], fill=ALERT_FILL))
+    lg.conditional_formatting.add(f"D5:D{ll}", FormulaRule(formula=['OR(LEFT($D5,6)="Before",LEFT($D5,5)="After")'],
+                                                           fill=CHECK_ORANGE))
+    lg.conditional_formatting.add("G9", FormulaRule(formula=['$G$9<>"OK"'], fill=ALERT_FILL))
+    lg.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Year-End Sales Projection From Year-to-Date Sales",
+        "",
+        "1. Sales log tab, A5:B5004 (yellow): the date and amount of each sale (or each day's total) from 01/01 of last year through the as-of date. The sample is a fictional gift shop, 01/01/2025 to 11/25/2026, closed Mondays.",
+        "2. Projection tab, B1: the last day of sales to count (type it; the sheet does not use TODAY). B2: your annual goal, or leave it blank. B3: leave blank to compare with the same month and day last year.",
+        "3. Sales this year to date, B5: =SUMIFS of the log from 01/01 of this year through B1. Same date last year, B4: =DATE(YEAR(B1)-1,MONTH(B1),DAY(B1)). Last year to that date (B7) and last year's full total (B8) are SUMIFS on the same log.",
+        "4. Last year's pattern, B15: =ROUND(B5*B8/B7,2). It divides this year's sales so far by the share of last year's sales that had come in by the same date (B9). It assumes this year keeps last year's seasonal shape.",
+        "5. Straight-line run rate, C15: =ROUND(B5/B10*B11,2), sales so far divided by the days so far and multiplied by the days in the year. It treats every day of the year alike, so a shop whose best month is December comes out low.",
+        "6. Rows 16 to 18: each projection against the goal, what it expects for the rest of the year, and per remaining day. Rows 21 to 24: what is still needed to reach the goal, per remaining day, and what the same stretch of last year sold.",
+        "7. A holiday that moves (Black Friday was 11/28/2025 and 11/27/2026) shifts last year's share by a few days around it. 02/29 has no match last year, so B4 shows 03/01 (B30 says Moved); type 02/28 in B3 if you prefer.",
+        "8. Checks: B29 wants the log to start in the first week of last year (if it starts later, last year's share is too high and the projection too low). No sales last year, or none by the same date, shows a message instead of a projection and CHECK says Check.",
+        "9. Sales log Status: Check: date blank or text, Check: no amount, Check: amount is text, Before last year (not counted), After the as-of date (not counted).",
+        "10. Both numbers are estimates from your own past sales, not a promise. Budget and tax questions are not part of this sheet.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    pj.page_setup.fitToHeight = 1
+    pj.print_title_rows = None
+    lg.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-year-end-sales-projection.xlsx")
+
+
+UNB_LOG_LAST = 1004
+UNB_CLIENTS_LAST = 54
+
+
+def unbilled_hours_by_client():
+    wb = Workbook()
+    tl_ = wb.active
+    tl_.title = "Time log"
+    cl = wb.create_sheet("Clients")
+    ll, cr = UNB_LOG_LAST, UNB_CLIENTS_LAST
+    ta, tb, tc, td, te, tf, tg_, th = (f"'Time log'!${c}$5:${c}${ll}" for c in "ABCDEFGH")
+    names, rates = f"Clients!$A$5:$A${cr}", f"Clients!$B$5:$B${cr}"
+    tl_["A1"] = (f"One row per work session (yellow A:D, rows 5 to {ll}): date, client exactly as on the Clients tab, "
+                 "hours, and the invoice number once billed. Fictional clients.")
+    tl_["A2"] = ("Leave Invoice # empty until it is billed. A cell holding only spaces still counts as not billed "
+                 "(Looks blank? says so); a non-breaking space does not.")
+    tl_["A1"].font = tl_["A2"].font = Font(italic=True)
+    _head_row(tl_, 4, ["Date", "Client", "Hours", "Invoice #", "Amount", "Looks blank?", "Status",
+                       "Unbilled age (days)"], [12, 22, 8, 11, 11, 29, 32, 10], height=46)
+    entries = [
+        (date(2026, 9, 14), "Pine & Co. Realty", 3.5, "INV-1041"),
+        (date(2026, 9, 22), "Harbor Dental", 2.0, "INV-1042"),
+        (date(2026, 10, 2), "Lakeside Yoga", 1.5, "INV-1043"),
+        (date(2026, 10, 9), "Pine & Co. Realty", 4.0, None),
+        (date(2026, 10, 16), "Maple Street Bakery", 2.25, "INV-1044"),
+        (date(2026, 10, 21), "Harbor Dental", 3.0, None),
+        (date(2026, 10, 28), "Lakeside Yoga", 2.0, " "),
+        (date(2026, 11, 3), "Pine & Co. Realty", 1.75, None),
+        (date(2026, 11, 5), "Maple Street Bakery", 1.5, None),
+        (date(2026, 11, 6), "Cedar Hill Florist", 2.0, "INV-1046"),
+        (date(2026, 11, 10), "Harbor Dental", 4.5, "INV-1045"),
+        (date(2026, 11, 12), "Lakeside Yoga", 3.0, None),
+        (date(2026, 11, 17), "Pine & Co. Realty", 2.5, None),
+        (date(2026, 11, 19), "Harbor Dental", 1.25, None),
+        (date(2026, 11, 23), "Maple Street Bakery", 0.75, None),
+        (date(2026, 11, 24), "Lakeside Yoga", 1.0, '=""'),
+    ]
+    for r in range(5, ll + 1):
+        for col in "ABCD":
+            tl_[f"{col}{r}"].fill = INPUT_FILL
+        tl_[f"A{r}"].number_format = US_DATE
+        tl_[f"C{r}"].number_format = "0.00"
+        tl_[f"E{r}"] = f'=IF(G{r}<>"OK","",ROUND(C{r}*INDEX({rates},MATCH(B{r},{names},0)),2))'
+        tl_[f"F{r}"] = (f'=IF(LEN(D{r})=0,"",IF(TRIM(D{r})="","Yes: spaces only (not billed)",'
+                        f'IF(TRIM(SUBSTITUTE(D{r},"\u00a0"," "))="","Check: non-breaking space","")))')
+        tl_[f"G{r}"] = (f'=IF(AND(A{r}="",TRIM(B{r})="",C{r}="",LEN(D{r})=0),"",'
+                        f'IF(Clients!$K$4<>"OK","Check: Clients settings",'
+                        f'IF(NOT(ISNUMBER(A{r})),"Check: date blank or text",'
+                        f'IF(A{r}<>INT(A{r}),"Check: date has a time",'
+                        f'IF(TRIM(B{r})="","Check: no client",'
+                        f'IF(COUNTIF({names},B{r})=0,"Check: client not on the Clients tab",'
+                        f'IF(NOT(ISNUMBER(INDEX({rates},MATCH(B{r},{names},0)))),"Check: client\'s rate",'
+                        f'IF(NOT(ISNUMBER(C{r})),"Check: hours blank or text",'
+                        f'IF(C{r}<0,"Check: hours below 0",'
+                        f'IF(A{r}>Clients!$B$1,"After the as-of date (not counted)","OK"))))))))))')
+        tl_[f"H{r}"] = f'=IF(AND(G{r}="OK",TRIM(D{r})=""),Clients!$B$1-A{r},0)'
+        tl_[f"E{r}"].number_format = USD
+        tl_[f"H{r}"].number_format = "0"
+        _fill_cells(tl_, "EFGH", [r], FORMULA_FILL)
+        tl_[f"F{r}"].alignment = Alignment(horizontal="left")
+    for i, (dd, c, h, inv) in enumerate(entries):
+        r = 5 + i
+        tl_[f"A{r}"], tl_[f"B{r}"], tl_[f"C{r}"] = dd, c, h
+        if inv is not None:
+            tl_[f"D{r}"] = inv
+    tl_.column_dimensions["I"].width = 3
+    tl_.column_dimensions["J"].width = 30
+    tl_.column_dimensions["K"].width = 11
+    _summary_block(tl_, "J", "K", [
+        (4, "Rows OK", f'=COUNTIF(G5:G{ll},"OK")', "0"),
+        (5, "Hours on OK rows", f'=SUMIFS(C5:C{ll},G5:G{ll},"OK")', "0.00"),
+        (6, "After the as-of date", f'=COUNTIF(G5:G{ll},"After*")', "0"),
+        (7, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(G5:G{ll},5)="Check"))', "0"),
+        (8, f"Typed below row {ll} (not read)", f"=COUNTA(A{ll + 1}:D3000)", "0"),
+        (9, "CHECK", '=IF(AND(K7=0,K8=0),"OK","Check")', "General"),
+    ])
+    tl_.conditional_formatting.add(f"G5:G{ll}", FormulaRule(formula=['LEFT($G5,5)="Check"'], fill=ALERT_FILL))
+    tl_.conditional_formatting.add(f"G5:G{ll}", FormulaRule(formula=['LEFT($G5,5)="After"'], fill=CHECK_ORANGE))
+    tl_.conditional_formatting.add(f"F5:F{ll}", FormulaRule(formula=['LEFT($F5,5)="Check"'], fill=ALERT_FILL))
+    tl_.conditional_formatting.add(f"F5:F{ll}", FormulaRule(formula=['LEFT($F5,3)="Yes"'], fill=CHECK_ORANGE))
+    tl_.conditional_formatting.add(f"H5:H{ll}", FormulaRule(formula=['OR($G5<>"OK",TRIM($D5)<>"")'],
+                                                            font=Font(color="EDEDED")))
+    tl_.conditional_formatting.add("K9", FormulaRule(formula=['$K$9<>"OK"'], fill=ALERT_FILL))
+    tl_.freeze_panes = "A5"
+
+    _settings_rows(cl, [
+        (1, "As of", date(2026, 11, 27), US_DATE, "The day you are checking (yellow; no TODAY). Later entries are not counted."),
+        (2, "Flag unbilled entries older than (days)", 30, "0", "Column F counts unbilled entries more than this many days old."),
+    ])
+    cl.column_dimensions["A"].width = 24
+    _head_row(cl, 4, ["Client", "Rate", "Unbilled hours", "Unbilled $", "Oldest unbilled", "Older than B2 days",
+                      "Unbilled entries", "Status"], [24, 11, 10, 11, 12, 10, 9, 28], height=46)
+    cl["A1"].alignment = cl["A2"].alignment = Alignment(wrap_text=True, vertical="center")
+    cl.row_dimensions[2].height = 30
+    mask = f"({tb}=A{{r}})*(TRIM({td})=\"\")*({tg_}=\"OK\")"
+    for r in range(5, cr + 1):
+        m = mask.format(r=r)
+        cl[f"A{r}"].fill = cl[f"B{r}"].fill = INPUT_FILL
+        cl[f"B{r}"].number_format = USD
+        cl[f"C{r}"] = f'=IF(H{r}<>"OK","",SUMPRODUCT({m},{tc}))'
+        cl[f"D{r}"] = f'=IF(H{r}<>"OK","",SUMPRODUCT({m},{te}))'
+        cl[f"E{r}"] = f'=IF(OR(H{r}<>"OK",N(G{r})=0),"",$B$1-SUMPRODUCT(MAX(({tb}=A{r})*{th})))'
+        cl[f"F{r}"] = f'=IF(H{r}<>"OK","",SUMPRODUCT(({tb}=A{r})*({th}>$B$2)))'
+        cl[f"G{r}"] = f'=IF(H{r}<>"OK","",SUMPRODUCT({m}))'
+        cl[f"H{r}"] = (f'=IF(TRIM(A{r})="","",IF($K$4<>"OK","Check: settings (B1:B2)",'
+                       f'IF(COUNTIF($A$5:$A${cr},A{r})>1,"Check: client listed twice",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: rate blank or text",'
+                       f'IF(B{r}<0,"Check: rate below 0","OK")))))')
+        cl[f"C{r}"].number_format = "0.00"
+        cl[f"D{r}"].number_format = USD
+        cl[f"E{r}"].number_format = US_DATE
+        cl[f"F{r}"].number_format = cl[f"G{r}"].number_format = "0"
+        _fill_cells(cl, "CDEFGH", [r], FORMULA_FILL)
+    for i, (c, rt) in enumerate([("Pine & Co. Realty", 55.00), ("Lakeside Yoga", 60.00), ("Harbor Dental", 75.00),
+                                 ("Maple Street Bakery", 50.00), ("Cedar Hill Florist", 65.00)]):
+        cl[f"A{5 + i}"], cl[f"B{5 + i}"] = c, rt
+    cl.column_dimensions["I"].width = 3
+    cl.column_dimensions["J"].width = 44
+    cl.column_dimensions["K"].width = 12
+    _summary_block(cl, "J", "K", [
+        (4, "Settings (B1:B2)",
+         '=IF(AND(ISNUMBER(B1),ISNUMBER(B2)),IF(AND(B1=INT(B1),B2>=0,B2=INT(B2)),"OK","Check"),"Check")', "General"),
+        (5, "Unbilled hours, all clients", f"=SUM(C5:C{cr})", "0.00"),
+        (6, "Unbilled $, all clients", f"=SUM(D5:D{cr})", USD),
+        (7, "Unbilled entries", f"=SUM(G5:G{cr})", "0"),
+        (8, "Oldest unbilled entry", f'=IF(COUNT(E5:E{cr})=0,"",MIN(E5:E{cr}))', US_DATE),
+        (9, "Unbilled entries older than B2 days", f"=SUM(F5:F{cr})", "0"),
+        (10, "Invoice # cells with only spaces (not billed)", f'=COUNTIF({tf},"Yes*")', "0"),
+        (11, "Invoice # cells with a non-breaking space", f'=COUNTIF({tf},"Check*")', "0"),
+        (12, "Unbilled $ in the whole Time log", f'=SUMPRODUCT((TRIM({td})="")*({tg_}="OK"),{te})', USD),
+        (13, "Client rows showing Check", f'=SUMPRODUCT(--(LEFT(H5:H{cr},5)="Check"))', "0"),
+        (14, "Time log CHECK", "='Time log'!K9", "General"),
+        (15, "CHECK", '=IF(AND(K4="OK",K11=0,K13=0,K14="OK",ROUND(K12-K6,2)=0),"OK","Check")', "General"),
+    ])
+    cl.conditional_formatting.add(f"H5:H{cr}", FormulaRule(formula=['LEFT($H5,5)="Check"'], fill=ALERT_FILL))
+    cl.conditional_formatting.add(f"F5:F{cr}", FormulaRule(formula=['N($F5)>0'], fill=CHECK_ORANGE))
+    cl.conditional_formatting.add("K5:K6", FormulaRule(formula=['TRUE'], fill=DONE_FILL))
+    for c_ in ("K4", "K15"):
+        cl.conditional_formatting.add(c_, FormulaRule(formula=[f'$K${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    cl.conditional_formatting.add("K10:K11", FormulaRule(formula=['K10>0'], fill=CHECK_ORANGE))
+    cl.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Unbilled Hours and Dollars by Client",
+        "",
+        "1. Clients tab, A5:B54 (yellow): each client's name and hourly rate. B1: the as-of date (type it; no TODAY). B2: the age in days that counts as old (30 in the sample). The sample clients and hours are fictional.",
+        "2. Time log tab, A5:D1004 (yellow): date, client (spelled as on the Clients tab), hours, and the invoice number once the entry is billed. Leave Invoice # empty until then. Amount, E5: =ROUND(C5*INDEX(Clients!$B$5:$B$54,MATCH(B5,Clients!$A$5:$A$54,0)),2).",
+        "3. Unbilled hours, Clients C5: =SUMPRODUCT(('Time log'!$B$5:$B$1004=A5)*(TRIM('Time log'!$D$5:$D$1004)=\"\")*('Time log'!$G$5:$G$1004=\"OK\"),'Time log'!$C$5:$C$1004). TRIM(...)=\"\" treats an empty Invoice # cell, a cell holding =\"\" and a cell holding only spaces as not billed. Unbilled $, D5, is the same with the Amount column.",
+        "4. Oldest unbilled, E5: =$B$1-SUMPRODUCT(MAX(('Time log'!$B$5:$B$1004=A5)*'Time log'!$H$5:$H$1004)), the as-of date minus the largest unbilled age. Column H on the Time log is the age in days of each unbilled entry (0, shown in gray, for billed rows). It is blank for a client with nothing unbilled.",
+        "5. Older than B2 days, F5: unbilled entries more than B2 days old (an entry exactly 30 days old is not counted). Unbilled entries, G5: how many entries are unbilled.",
+        "6. Looks blank? (Time log F) says Yes: spaces only when an Invoice # cell holds only spaces, which looks empty but is not. Those rows are counted as not billed. A non-breaking space (character 160, often pasted from a web page) is not removed by TRIM, so the row counts as billed and F says Check: non-breaking space; delete the cell's contents. The test in F5 is =TRIM(SUBSTITUTE(D5,\"\u00a0\",\" \"))=\"\", where the first quoted character is a typed non-breaking space (in LibreOffice, CHAR(160) gave a different character under some system language settings, so it is not used).",
+        "7. Anything else typed in Invoice #, such as - or N/A, counts as billed. Use an empty cell for not billed.",
+        "8. Time log Status: Check: date blank or text, Check: date has a time, Check: no client, Check: client not on the Clients tab (a different spelling or a trailing space; capital letters do not matter), Check: hours blank or text, Check: hours below 0, After the as-of date (not counted). Rows that are not OK are left out of every total.",
+        "9. CHECK on the Clients tab also confirms that the per-client dollars add up to the unbilled dollars in the whole log, so an entry whose client is missing or listed twice shows up.",
+        "10. When to invoice and which year income belongs to are tax questions this sheet does not answer.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    tl_.print_title_rows = "4:4"
+    cl.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-unbilled-hours-by-client.xlsx")
+
+
+PT_ORDERS_LAST = 504
+PT_HOL_LAST = 34
+
+
+def _pt_sample_orders():
+    """Fictional orders 10/01 to 11/24/2026: (order #, order date, ship date or None)."""
+    import random
+    hol = {date(2026, 10, 12), date(2026, 11, 11), date(2026, 11, 26), date(2026, 11, 27)}
+
+    def add_bd(d_, n):
+        while d_.weekday() >= 5 or d_ in hol:
+            if n == 0:
+                return d_
+            d_ += timedelta(days=1)
+        c = 0
+        while c < n:
+            d_ += timedelta(days=1)
+            if d_.weekday() < 5 and d_ not in hol:
+                c += 1
+        return d_
+
+    rnd = random.Random(1128)
+    counts = [0] * 4 + [1] * 12 + [2] * 16 + [3] * 14 + [4] * 15 + [5] * 4 + [6] * 2 + [7]
+    rnd.shuffle(counts)
+    days = sorted(date(2026, 10, 1) + timedelta(days=rnd.randint(0, 47)) for _ in range(len(counts)))
+    out = []
+    slow = counts.index(7)
+    counts[slow], counts[-1] = counts[-1], counts[slow]
+    for i, (od, n) in enumerate(zip(days, counts)):
+        out.append([od, add_bd(od, n)])
+    # the slowest order: placed the week of 11/11 so it crosses the closed day
+    out[-1][0] = date(2026, 11, 5)
+    out[-1][1] = add_bd(date(2026, 11, 5), 7)
+    out.sort(key=lambda x: x[0])
+    out += [[date(2026, 11, 23), None], [date(2026, 11, 24), None]]
+    return [(f"#{3101 + i}", od, sd) for i, (od, sd) in enumerate(out)], sorted(hol)
+
+
+def processing_time_percentile():
+    from openpyxl.workbook.defined_name import DefinedName
+    wb = Workbook()
+    od_ = wb.active
+    od_.title = "Orders"
+    pr = wb.create_sheet("Promise")
+    ol, hl = PT_ORDERS_LAST, PT_HOL_LAST
+    od_["A1"] = (f"One row per order (yellow A:C, rows 5 to {ol}): order number, order date and ship date. Leave the "
+                 "ship date blank until it ships. Fictional orders.")
+    od_["A2"] = ("Business days = NETWORKDAYS minus 1: weekends and your closed days in G5:G34 are skipped, "
+                 "and an order shipped the next business day counts 1.")
+    od_["A1"].font = od_["A2"].font = Font(italic=True)
+    _head_row(od_, 4, ["Order #", "Order date", "Ship date", "Business days to ship", "Status"],
+              [10, 12, 12, 11, 34], height=46)
+    for r in range(5, ol + 1):
+        for col in "ABC":
+            od_[f"{col}{r}"].fill = INPUT_FILL
+        od_[f"B{r}"].number_format = od_[f"C{r}"].number_format = US_DATE
+        od_[f"D{r}"] = f'=IF(E{r}<>"OK","",MAX(0,NETWORKDAYS(INT(B{r}),INT(C{r}),Holidays)-1))'
+        od_[f"E{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",C{r}=""),"",'
+                        f'IF(OR(Promise!$B$19<>"OK",Promise!$B$20<>"OK"),"Check: Promise settings or holidays",'
+                        f'IF(NOT(ISNUMBER(B{r})),"Check: order date blank or text",'
+                        f'IF(C{r}="","Not shipped yet",'
+                        f'IF(NOT(ISNUMBER(C{r})),"Check: ship date is text",'
+                        f'IF(INT(C{r})<INT(B{r}),"Check: ship date before order date",'
+                        f'IF(OR(AND(Promise!$B$2<>"",B{r}<Promise!$B$2),AND(Promise!$B$3<>"",B{r}>=Promise!$B$3+1)),'
+                        f'"Outside the date range (not counted)","OK")))))))')
+        od_[f"D{r}"].number_format = "0"
+        _fill_cells(od_, "DE", [r], FORMULA_FILL)
+    orders, hol = _pt_sample_orders()
+    for i, (num, o, s) in enumerate(orders):
+        od_[f"A{5 + i}"], od_[f"B{5 + i}"] = num, o
+        if s:
+            od_[f"C{5 + i}"] = s
+    od_.column_dimensions["F"].width = 3
+    od_["G4"] = "Closed days (holidays)"
+    od_["G4"].fill, od_["G4"].font = HEADER_FILL, HEADER_FONT
+    od_["G4"].alignment = Alignment(vertical="center", wrap_text=True)
+    od_.column_dimensions["G"].width = 13
+    for r in range(5, hl + 1):
+        od_[f"G{r}"].fill = INPUT_FILL
+        od_[f"G{r}"].number_format = US_DATE
+    for i, h in enumerate(hol):
+        od_[f"G{5 + i}"] = h
+    wb.defined_names["Holidays"] = DefinedName("Holidays", attr_text=f"Orders!$G$5:$G${hl}")
+    od_.column_dimensions["H"].width = 3
+    od_.column_dimensions["I"].width = 30
+    od_.column_dimensions["J"].width = 9
+    _summary_block(od_, "I", "J", [
+        (4, "Shipped orders counted", f'=COUNTIF(E5:E{ol},"OK")', "0"),
+        (5, "Not shipped yet", f'=COUNTIF(E5:E{ol},"Not shipped yet")', "0"),
+        (6, "Outside the date range", f'=COUNTIF(E5:E{ol},"Outside*")', "0"),
+        (7, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(E5:E{ol},5)="Check"))', "0"),
+        (8, f"Typed below row {ol} (not read)", f"=COUNTA(A{ol + 1}:C3000)", "0"),
+        (9, "CHECK", '=IF(AND(J7=0,J8=0),"OK","Check")', "General"),
+    ])
+    od_.conditional_formatting.add(f"E5:E{ol}", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    od_.conditional_formatting.add(f"E5:E{ol}", FormulaRule(formula=['OR($E5="Not shipped yet",LEFT($E5,7)="Outside")'],
+                                                            fill=CHECK_ORANGE))
+    od_.conditional_formatting.add("J9", FormulaRule(formula=['$J$9<>"OK"'], fill=ALERT_FILL))
+    od_.freeze_panes = "A5"
+
+    d = f"Orders!$D$5:$D${ol}"
+    _settings_rows(pr, [
+        (1, "Percentile to promise", 0.9, "0%", "Type 90% (or 0.9). Not 90."),
+        (2, "Count orders from (optional)", None, US_DATE, "Order dates from this day. Blank = all."),
+        (3, "Count orders through (optional)", None, US_DATE, "Order dates through this day. Blank = all."),
+    ])
+    pr.column_dimensions["A"].width = 40
+    pr.column_dimensions["B"].width = 13
+    pr.column_dimensions["C"].width = 3
+    _head_row(pr, 5, ["Shipped orders", "Business days"], [40, 13], height=32)
+    rd = '$B$19<>"OK",$B$20<>"OK"'
+    none = '"No shipped orders"'
+    stats = [
+        (6, "Shipped orders counted", f'=IF(OR({rd}),"",COUNT({d}))', "0"),
+        (7, "Not shipped yet", f'=COUNTIF(Orders!$E$5:$E${ol},"Not shipped yet")', "0"),
+        (8, "Average", f'=IF(OR({rd}),"",IF(B6=0,{none},ROUND(AVERAGE({d}),2)))', "0.00"),
+        (9, "Median", f'=IF(OR({rd}),"",IF(B6=0,{none},MEDIAN({d})))', "0.0#"),
+        (10, "Fastest", f'=IF(OR({rd}),"",IF(B6=0,{none},MIN({d})))', "0"),
+        (11, "Slowest", f'=IF(OR({rd}),"",IF(B6=0,{none},MAX({d})))', "0"),
+        (12, "Percentile at B1", f'=IF(OR({rd}),"",IF(B6=0,{none},PERCENTILE({d},B1)))', "0.0#"),
+        (13, "Processing time to promise (rounded up)",
+         f'=IF(OR({rd}),"",IF(B6=0,{none},ROUNDUP(PERCENTILE({d},B1),0)))', '0 "business days"'),
+        (14, "Orders shipped within the promise", f'=IF(NOT(ISNUMBER(B13)),"",COUNTIF({d},"<="&B13))', "0"),
+        (15, "Share shipped within the promise", '=IF(NOT(ISNUMBER(B13)),"",B14/B6)', "0.00%"),
+        (16, "95th percentile (for comparison)", f'=IF(OR({rd}),"",IF(B6=0,{none},PERCENTILE({d},0.95)))', "0.0#"),
+    ]
+    for r, label, f, fmt in stats:
+        pr[f"A{r}"], pr[f"B{r}"] = label, f
+        pr[f"A{r}"].font = Font(bold=True)
+        pr[f"B{r}"].number_format = fmt
+        _fill_cells(pr, "B", [r], FORMULA_FILL)
+    _head_row(pr, 18, ["Checks", "Result"], [40, 13], height=24)
+    checks = [
+        (19, "Settings (B1:B3)",
+         '=IF(NOT(ISNUMBER(B1)),"Check",IF(OR(B1<0,B1>1),"Check",IF(AND(B2<>"",NOT(ISNUMBER(B2))),"Check",'
+         'IF(AND(B3<>"",NOT(ISNUMBER(B3))),"Check",IF(AND(ISNUMBER(B2),ISNUMBER(B3)),IF(B3<B2,"Check","OK"),"OK")))))'),
+        (20, f"Holidays (Orders G5:G{hl})", f'=IF(COUNTA(Orders!$G$5:$G${hl})=COUNT(Orders!$G$5:$G${hl}),"OK","Check")'),
+        (21, "Orders rows showing Check", "=Orders!J7"),
+        (22, "Orders CHECK", "=Orders!J9"),
+        (23, "CHECK", '=IF(AND(B19="OK",B20="OK",B22="OK",ISNUMBER(B13)),"OK","Check")'),
+    ]
+    for r, label, f in checks:
+        pr[f"A{r}"], pr[f"B{r}"] = label, f
+        pr[f"A{r}"].font = Font(bold=True)
+        pr[f"B{r}"].number_format = "General"
+        _fill_cells(pr, "B", [r], FORMULA_FILL)
+    for c_, t_, w_ in (("D5", "Promise (business days)", 12), ("E5", "Orders shipped within", 12),
+                       ("F5", "Share of shipped orders", 12)):
+        pr[c_] = t_
+        pr[c_].fill, pr[c_].font = HEADER_FILL, HEADER_FONT
+        pr[c_].alignment = Alignment(vertical="center", wrap_text=True)
+        pr.column_dimensions[c_[0]].width = w_
+    for i in range(11):
+        r = 6 + i
+        pr[f"D{r}"] = i
+        pr[f"E{r}"] = f'=IF(OR({rd},N($B$6)=0),"",COUNTIF({d},"<="&D{r}))'
+        pr[f"F{r}"] = f'=IF(E{r}="","",E{r}/$B$6)'
+        pr[f"D{r}"].alignment = Alignment(horizontal="right")
+        pr[f"E{r}"].number_format = "0"
+        pr[f"F{r}"].number_format = "0.00%"
+        _fill_cells(pr, "EF", [r], FORMULA_FILL)
+    pr.row_dimensions[5].height = 46
+    pr["D17"] = "0 = shipped on the order day or, for a weekend or holiday order, the next business day."
+    pr["D17"].font = Font(italic=True)
+    pr.conditional_formatting.add("B13", FormulaRule(formula=['ISNUMBER($B$13)'], fill=DONE_FILL))
+    pr.conditional_formatting.add("D6:F16", FormulaRule(formula=['AND(ISNUMBER($B$13),$D6=$B$13)'], fill=DONE_FILL))
+    for c_ in ("B19", "B20", "B23"):
+        pr.conditional_formatting.add(c_, FormulaRule(formula=[f'$B${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    notes_sheet(wb, [
+        "Tidy Tabs: Order Processing Time From the 90th Percentile",
+        "",
+        f"1. Orders tab, A5:C{ol} (yellow): order number, order date and ship date of your past orders (leave the ship date blank for orders not shipped yet). G5:G{hl}: the days you were closed (your own list; the sample has 10/12, 11/11, 11/26 and 11/27/2026). The sample orders are fictional.",
+        "2. Business days to ship, D5: =MAX(0,NETWORKDAYS(INT(B5),INT(C5),Holidays)-1). NETWORKDAYS counts the weekdays from the order date to the ship date, both included, minus your closed days; minus 1 makes an order shipped the same business day 0 and the next business day 1. A Saturday order shipped Monday is 0. INT drops any time of day.",
+        "3. Unshipped orders, rows that are not OK and orders outside the optional date range (Promise B2:B3) are left blank in column D, so PERCENTILE, AVERAGE and COUNT skip them.",
+        "4. Promise tab, B1: the percentile to promise (90%). Percentile at B1, B12: =PERCENTILE(Orders!$D$5:$D$504,B1). Processing time to promise, B13: =ROUNDUP(PERCENTILE(Orders!$D$5:$D$504,B1),0), the percentile rounded up to a whole day.",
+        "5. PERCENTILE is the inclusive kind, the same as PERCENTILE.INC (not PERCENTILE.EXC). It can land between two values (4.3 in the sample); ROUNDUP turns that into a number of days you can type into your shop.",
+        "6. The table D5:F16 shows how many past orders each promise from 0 to 10 business days would have covered: E6: =COUNTIF(Orders!$D$5:$D$504,\"<=\"&D6), share F6: =E6/$B$6. The row for the promise in B13 is green.",
+        "7. Average and median are shown for comparison: the average is too short to promise, because about half of the orders take longer.",
+        "8. This is your own handling time, order to shipment. Carrier transit time is not included, and marketplace settings and holiday delivery dates are set in your shop, not here. Past orders do not guarantee December.",
+        "9. Status: Not shipped yet, Outside the date range (not counted), Check: order date blank or text, Check: ship date is text, Check: ship date before order date, Check: Promise settings or holidays (B1 must be between 0% and 100%, so 90 shows Check; a closed day typed as text also shows Check).",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    od_.print_title_rows = "4:4"
+    pr.print_title_rows = None
+    pr.page_setup.fitToHeight = 1
+    wb.save(OUT / "tidy-tabs-processing-time-percentile.xlsx")
+
+
+RC_CHARGES_LAST = 2004
+RC_ROWS_LAST = 106
+
+
+def _rc_sample_charges():
+    tx = []
+    months = [(2025, 12)] + [(2026, k) for k in range(1, 12)]
+    for i, (y, mo) in enumerate(months):
+        tx.append((date(y, mo, 3), "CLOUDBOX STORAGE" if i % 4 else "Cloudbox Storage", 9.99))
+        tx.append((date(y, mo, 15), "PIXELPRO SUITE", 24.00 if (y, mo) < (2026, 6) else 27.00))
+        if (y, mo) <= (2026, 8):
+            tx.append((date(y, mo, 8), "MEALKIT CO", 79.00))
+        tx.append((date(y, mo, 21), "STREAMLY", 15.49))
+    tx += [
+        (date(2026, 3, 10), "SITEHOST PRO", 120.00),
+        (date(2026, 2, 6), "SQ *BAKERY", 18.50), (date(2026, 2, 20), "SQ *BAKERY", 22.75),
+        (date(2026, 7, 9), "SQ *BAKERY", 16.00),
+        (date(2026, 6, 4), "SQ *MAIN ST BAKERY", 31.20), (date(2026, 8, 13), "SQ *MAIN ST BAKERY", 27.40),
+        (date(2026, 9, 17), "SQ *MAIN ST BAKERY", 35.10), (date(2026, 10, 22), "SQ *MAIN ST BAKERY", 29.85),
+        (date(2026, 1, 12), "OFFICE MART", 63.18), (date(2026, 1, 28), "OFFICE MART", 12.47),
+        (date(2026, 4, 2), "OFFICE MART", 88.09), (date(2026, 7, 30), "OFFICE MART", 41.66),
+        (date(2026, 10, 5), "OFFICE MART", 23.90),
+    ]
+    tx.sort(key=lambda t: t[0])
+    return tx
+
+
+def recurring_charges_finder():
+    wb = Workbook()
+    ch = wb.active
+    ch.title = "Charges"
+    rc = wb.create_sheet("Recurring")
+    cl_, rl = RC_CHARGES_LAST, RC_ROWS_LAST
+    ca, cb, cc, cd, ce, cf, cg, chs, ci = (f"Charges!${c}$5:${c}${cl_}" for c in "ABCDEFGHI")
+    ch["A1"] = (f"Paste your card or bank export (yellow A:C, rows 5 to {cl_}): date, merchant and amount, charges "
+                "positive. Any order. Fictional merchants.")
+    ch["A2"] = ("Merchant names must match to be counted together (capital letters do not matter, spaces do). "
+                "Refunds (negative amounts) are not counted.")
+    ch["A1"].font = ch["A2"].font = Font(italic=True)
+    _head_row(ch, 4, ["Date", "Merchant", "Amount", "Key (for COUNTIF)", "Month", "First in month",
+                      "New merchant #", "Status", "Date (OK rows)"], [12, 24, 10, 24, 10, 8, 10, 30, 11], height=46)
+    for r in range(5, cl_ + 1):
+        for col in "ABC":
+            ch[f"{col}{r}"].fill = INPUT_FILL
+        ch[f"A{r}"].number_format = US_DATE
+        ch[f"C{r}"].number_format = USD
+        ch[f"D{r}"] = f'=IF(H{r}<>"OK","",SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(B{r},"~","~~"),"*","~*"),"?","~?"))'
+        ch[f"E{r}"] = f'=IF(H{r}<>"OK","",DATE(YEAR(A{r}),MONTH(A{r}),1))'
+        ch[f"F{r}"] = f'=IF(H{r}<>"OK","",IF(COUNTIFS($B$5:B{r},D{r},$E$5:E{r},E{r})=1,1,0))'
+        ch[f"G{r}"] = f'=IF(H{r}<>"OK","",IF(COUNTIFS($B$5:B{r},D{r},$H$5:H{r},"OK")=1,MAX($G$4:G{r - 1})+1,""))'
+        ch[f"H{r}"] = (f'=IF(AND(A{r}="",TRIM(B{r})="",C{r}=""),"",'
+                       f'IF(NOT(ISNUMBER(A{r})),"Check: date blank or text",'
+                       f'IF(TRIM(B{r})="","Check: no merchant",'
+                       f'IF(B{r}&""<>TRIM(B{r}),"Check: extra spaces in the merchant",'
+                       f'IF(NOT(ISNUMBER(C{r})),"Check: amount blank or text",'
+                       f'IF(C{r}<0,"Refund (not counted)","OK"))))))')
+        ch[f"I{r}"] = f'=IF(H{r}="OK",A{r},0)'
+        ch[f"E{r}"].number_format = "mm/yyyy"
+        ch[f"I{r}"].number_format = "mm/dd/yyyy;;"
+        for col in "FG":
+            ch[f"{col}{r}"].number_format = "0"
+        _fill_cells(ch, "DEFGHI", [r], FORMULA_FILL)
+    for i, (dd, m, a) in enumerate(_rc_sample_charges()):
+        ch[f"A{5 + i}"], ch[f"B{5 + i}"], ch[f"C{5 + i}"] = dd, m, a
+    ch.column_dimensions["J"].width = 3
+    ch.column_dimensions["K"].width = 30
+    ch.column_dimensions["L"].width = 12
+    _summary_block(ch, "K", "L", [
+        (4, "Rows OK", f'=COUNTIF(H5:H{cl_},"OK")', "#,##0"),
+        (5, "Total of OK rows", f'=SUMIFS(C5:C{cl_},H5:H{cl_},"OK")', USD),
+        (6, "Refund rows (not counted)", f'=COUNTIF(H5:H{cl_},"Refund*")', "0"),
+        (7, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(H5:H{cl_},5)="Check"))', "0"),
+        (8, f"Typed below row {cl_} (not read)", f"=COUNTA(A{cl_ + 1}:C6000)", "0"),
+        (9, "Merchants found", f"=MAX(G5:G{cl_})", "0"),
+        (10, "CHECK", '=IF(AND(L7=0,L8=0),"OK","Check")', "General"),
+    ])
+    ch.conditional_formatting.add(f"H5:H{cl_}", FormulaRule(formula=['LEFT($H5,5)="Check"'], fill=ALERT_FILL))
+    ch.conditional_formatting.add(f"H5:H{cl_}", FormulaRule(formula=['LEFT($H5,6)="Refund"'], fill=CHECK_ORANGE))
+    ch.conditional_formatting.add("L10", FormulaRule(formula=['$L$10<>"OK"'], fill=ALERT_FILL))
+    ch.freeze_panes = "A5"
+
+    for r_, label, v, fmt, note in (
+            (1, "Recurring if months at least", 3, "0", "Distinct calendar months with a charge, not the number of charges."),
+            (2, "Export ends (latest date)", f'=IF(COUNT({ca})=0,"",MAX({ca}))', US_DATE, "The last date in the export."),
+            (3, "Not seen in (days)", 45, "0", "A subscription with no charge in this many days before C2 is flagged.")):
+        rc[f"A{r_}"], rc[f"C{r_}"], rc[f"D{r_}"] = label, v, note
+        rc[f"A{r_}"].font = Font(bold=True)
+        rc[f"C{r_}"].fill = FORMULA_FILL if r_ == 2 else INPUT_FILL
+        rc[f"C{r_}"].number_format = fmt
+        rc[f"C{r_}"].alignment = Alignment(horizontal="right")
+        rc[f"D{r_}"].font = Font(italic=True)
+    _head_row(rc, 6, ["#", "Merchant", "Key", "Charges", "Months", "Total", "First date", "Last date",
+                      "First amount", "Last amount", "Type", "Price change", "Stopped?", "Yearly at last price (x 12)"],
+              [5, 24, 22, 8, 8, 11, 11, 11, 10, 10, 14, 9, 20, 12], height=46)
+    rc.column_dimensions["A"].width = 5
+    n_ = f"Charges!$G$5:$G${cl_}"
+    for r in range(7, rl + 1):
+        rc[f"A{r}"] = r - 6
+        rc[f"B{r}"] = f'=IF(A{r}>MAX({n_}),"",INDEX({cb},MATCH(A{r},{n_},0)))'
+        rc[f"C{r}"] = f'=IF(B{r}="","",INDEX({cd},MATCH(A{r},{n_},0)))'
+        rc[f"D{r}"] = f'=IF(B{r}="","",COUNTIFS({cb},C{r},{chs},"OK"))'
+        rc[f"E{r}"] = f'=IF(B{r}="","",SUMIF({cb},C{r},{cf}))'
+        rc[f"F{r}"] = f'=IF(B{r}="","",ROUND(SUMIFS({cc},{cb},C{r},{chs},"OK"),2))'
+        rc[f"G{r}"] = f'=IF(B{r}="","",$C$2-SUMPRODUCT(MAX(({cb}=B{r})*({ci}>0)*($C$2-{ci}))))'
+        rc[f"H{r}"] = f'=IF(B{r}="","",SUMPRODUCT(MAX(({cb}=B{r})*{ci})))'
+        rc[f"I{r}"] = f'=IF(B{r}="","",ROUND(SUMIFS({cc},{cb},C{r},{ca},G{r},{chs},"OK"),2))'
+        rc[f"J{r}"] = f'=IF(B{r}="","",ROUND(SUMIFS({cc},{cb},C{r},{ca},H{r},{chs},"OK"),2))'
+        rc[f"K{r}"] = (f'=IF(OR(B{r}="",$Q$15<>"OK"),"",IF(E{r}>=$C$1,IF(COUNTIFS({cb},C{r},{cc},J{r},{chs},"OK")>=2,'
+                       f'"Subscription","Repeat vendor"),IF(D{r}=1,"One-time","Occasional")))')
+        rc[f"L{r}"] = f'=IF(K{r}<>"Subscription","",IF(ROUND(J{r}-I{r},2)<>0,"Changed",""))'
+        rc[f"M{r}"] = f'=IF(K{r}<>"Subscription","",IF($C$2-H{r}>=$C$3,"Not seen in "&$C$3&"+ days",""))'
+        rc[f"N{r}"] = f'=IF(AND(K{r}="Subscription",M{r}=""),ROUND(J{r}*12,2),"")'
+        rc[f"A{r}"].alignment = Alignment(horizontal="right")
+        for col in "FIJN":
+            rc[f"{col}{r}"].number_format = USD
+        rc[f"G{r}"].number_format = rc[f"H{r}"].number_format = US_DATE
+        rc[f"D{r}"].number_format = rc[f"E{r}"].number_format = "0"
+        _fill_cells(rc, "BCDEFGHIJKLMN", [r], FORMULA_FILL)
+        for col in "BCKLM":
+            rc[f"{col}{r}"].alignment = Alignment(horizontal="left")
+    rc.column_dimensions["O"].width = 3
+    rc.column_dimensions["P"].width = 40
+    rc.column_dimensions["Q"].width = 12
+    _summary_block(rc, "P", "Q", [
+        (6, "Merchants", f"=MAX({n_})", "0"),
+        (7, "Subscriptions", f'=COUNTIF(K7:K{rl},"Subscription")', "0"),
+        (8, "Repeat vendors", f'=COUNTIF(K7:K{rl},"Repeat vendor")', "0"),
+        (9, "Occasional", f'=COUNTIF(K7:K{rl},"Occasional")', "0"),
+        (10, "One-time", f'=COUNTIF(K7:K{rl},"One-time")', "0"),
+        (11, "Subscriptions not seen lately", f'=COUNTIF(M7:M{rl},"Not seen*")', "0"),
+        (12, "Subscriptions with a price change", f'=COUNTIF(L7:L{rl},"Changed")', "0"),
+        (13, "Yearly at last prices (active subscriptions)", f"=SUM(N7:N{rl})", USD),
+        (14, "Spent on subscriptions in the export", f'=SUMIFS(F7:F{rl},K7:K{rl},"Subscription")', USD),
+        (15, "Settings (C1, C3)",
+         '=IF(AND(ISNUMBER(C1),ISNUMBER(C3)),IF(AND(C1>=1,C1=INT(C1),C3>=1),"OK","Check"),"Check")', "General"),
+        (16, f"Merchants not listed (more than {rl - 6})", f"=MAX(0,Q6-{rl - 6})", "0"),
+        (17, "Charges CHECK", "=Charges!L10", "General"),
+        (18, "CHECK", '=IF(AND(Q15="OK",Q16=0,Q17="OK"),"OK","Check")', "General"),
+    ])
+    rc.conditional_formatting.add(f"K7:K{rl}", FormulaRule(formula=['$K7="Subscription"'], fill=DONE_FILL))
+    rc.conditional_formatting.add(f"L7:M{rl}", FormulaRule(formula=['L7<>""'], fill=CHECK_ORANGE))
+    rc.conditional_formatting.add("Q13", FormulaRule(formula=['TRUE'], fill=DONE_FILL))
+    for c_ in ("Q15", "Q18"):
+        rc.conditional_formatting.add(c_, FormulaRule(formula=[f'$Q${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    rc.conditional_formatting.add("Q16", FormulaRule(formula=['$Q$16>0'], fill=ALERT_FILL))
+    rc.freeze_panes = "C7"
+    notes_sheet(wb, [
+        "Tidy Tabs: Find Recurring Charges and Subscriptions in a Bank or Card Export",
+        "",
+        f"1. Charges tab, A5:C{cl_} (yellow): paste the date, merchant and amount columns of your card or bank export, charges as positive amounts, in any order. The sample is a fictional small business card, 12/03/2025 to 11/21/2026.",
+        "2. Key, D5: =SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(B5,\"~\",\"~~\"),\"*\",\"~*\"),\"?\",\"~?\"). COUNTIF, COUNTIFS and SUMIF read * and ? in a criterion as wildcards, so an unescaped \"SQ *BAKERY\" would also count \"SQ *MAIN ST BAKERY\". The key puts a ~ in front of each *, ? and ~ so the name matches only itself.",
+        "3. First in month, F5: =IF(COUNTIFS($B$5:B5,D5,$E$5:E5,E5)=1,1,0) is 1 on the first charge of each merchant in each calendar month (E5 is the first day of the charge's month). Adding these 1s per merchant counts distinct months, not charges.",
+        "4. New merchant #, G5: numbers each merchant the first time it appears, and the Recurring tab lists them with INDEX and MATCH (no UNIQUE or FILTER needed). Up to 100 merchants are listed; more shows Check.",
+        "5. Recurring tab: Charges =COUNTIFS of the key, Months =SUMIF of First in month, Total =SUMIFS of the amounts, Last date =SUMPRODUCT(MAX((merchant=B7)*date)), First date (the export end minus the largest age), and the amounts on those dates (two charges on the same day are added together).",
+        "6. Type: Subscription when the merchant charged in at least C1 months (3) and the last amount was charged at least twice; Repeat vendor when it charged in C1 months or more with changing amounts; Occasional for 2 or more charges in fewer months; One-time for a single charge. An annual plan shows as One-time, so check those lines for yearly renewals.",
+        "7. Price change says Changed when a subscription's last amount differs from its first. Stopped? flags a subscription with no charge in the last C3 days (45) before the export end. Yearly at last price is the last amount x 12, for subscriptions that are not flagged as stopped; it assumes a monthly plan.",
+        "8. Merchant names: capital letters do not matter (Cloudbox Storage and CLOUDBOX STORAGE are one merchant), but spelling and store numbers do. A name with spaces at the start or end, or two spaces in a row, shows Check: extra spaces. Refunds (negative amounts) show Refund (not counted).",
+        "9. Banks and cards print merchant names differently, and charges through PayPal or an app store can hide the real merchant. Which charges to keep or cancel, and any tax question, are up to you.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ch.print_title_rows = "4:4"
+    rc.print_title_rows = "6:6"
+    wb.save(OUT / "tidy-tabs-recurring-charges-finder.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -23209,4 +24103,9 @@ if __name__ == "__main__":
     average_daily_balance()
     daily_sales_year_heatmap()
     price_volume_change()
+    december_daily_sales_targets()
+    year_end_sales_projection()
+    unbilled_hours_by_client()
+    processing_time_percentile()
+    recurring_charges_finder()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

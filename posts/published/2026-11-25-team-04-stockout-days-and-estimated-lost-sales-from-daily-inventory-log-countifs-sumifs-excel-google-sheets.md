@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-count-stockout-days-and-estimate.html
 title: How to Count Stockout Days and Estimate Lost Sales in Excel and Google Sheets
 labels: excel-formulas, small-business, inventory
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 207 workbooks and 2,640,699 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

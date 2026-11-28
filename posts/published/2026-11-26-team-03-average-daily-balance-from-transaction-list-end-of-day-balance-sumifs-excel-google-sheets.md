@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-calculate-average-daily-balance.html
 title: How to Calculate Average Daily Balance in Excel and Google Sheets
 labels: excel-formulas, small-business, cash-flow
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 226 workbooks and 334,480 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets.

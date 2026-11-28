@@ -1,4 +1,5 @@
 ---
+blogger_url: https://tidytabs.blogspot.com/2026/11/how-to-make-year-at-glance-daily-sales.html
 title: How to Make a Year-at-a-Glance Daily Sales Heatmap in Excel and Google Sheets
 labels: excel-formulas, small-business, sales
 tested_in: LibreOffice Calc 24.2.7.2 (Linux): template recalculated and compared with an independent Python model, 217 workbooks and 1,182,433 cell comparisons, 0 mismatches, plus the edge cases listed in the post. Not tested in Excel or Google Sheets. The color scale was seen only in a LibreOffice PDF export.

@@ -313,3 +313,10 @@
 - How to Find Unbilled Hours by Client Before Year End in Excel and Google Sheets - `2026-11-28-team-03-unbilled-hours-and-amount-by-client-blank-invoice-number-sumifs-sumproduct-excel-google-sheets`
 - How to Set an Order Processing Time You Can Keep in Excel and Google Sheets - `2026-11-28-team-04-set-order-processing-time-from-90th-percentile-business-days-networkdays-percentile-excel-google-sheets`
 - How to Find Recurring Charges and Subscriptions in a Bank Export in Excel and Google Sheets - `2026-11-28-team-05-find-recurring-charges-and-subscriptions-in-bank-export-distinct-months-countifs-sumif-excel-google-sheets`
+
+## 2026-11-29 리서처 추가 5개 (검색 데이터 없음 - tasks/search-stats.md 없음, 3-gate 기준만 적용, 핵심 수식은 LibreOffice 24.2.7.2 프로브로만 확인 - Excel/Sheets 는 미확인, 상세는 tasks/team-topics-2026-11-29.md)
+- How to Compare Each Customer's Sales to Last Year (New, Lost, Up and Down) in Excel and Google Sheets - `2026-11-29-team-01-customer-sales-vs-last-year-new-lost-up-down-customers-bridge-sumifs-excel-google-sheets`
+- How to Turn Barcode Scans Into Inventory Counts in Excel and Google Sheets - `2026-11-29-team-02-tally-barcode-scans-into-inventory-counts-lost-leading-zeros-sumproduct-countif-excel-google-sheets`
+- How to Split Items Into Boxes Under a Weight Limit in Excel and Google Sheets - `2026-11-29-team-03-pack-items-into-boxes-under-weight-limit-running-weight-starts-new-box-excel-google-sheets`
+- How to Sort Products Into Four Groups by Sales and Margin in Excel and Google Sheets - `2026-11-29-team-04-product-mix-quadrant-units-sold-vs-profit-margin-median-split-countif-sumif-excel-google-sheets`
+- How to Split a Date and Time Into Separate Columns (and Total Sales by Day) in Excel and Google Sheets - `2026-11-29-team-05-split-date-and-time-into-separate-columns-daily-totals-from-timestamps-int-mod-sumifs-excel-google-sheets`

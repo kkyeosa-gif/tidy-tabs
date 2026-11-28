@@ -1245,7 +1245,47 @@ def heroes_2026_11_28_05():
          render(compact_copy(src, "Recurring", 18, "rc", hide_rows=[1, 2, 3, 4, 5]), "Recurring", hide_cols="C", name="rc"))
 
 
+T_1129 = "templates/"
+D_1129 = "images/2026-11-29-team-0%d-%s/"
+
+
+def heroes_2026_11_29_01():
+    src = T_1129 + "tidy-tabs-customer-sales-vs-last-year.xlsx"
+    save(D_1129 % (1, "customer-sales-vs-last-year-new-lost-up-down-customers-bridge-sumifs-excel-google-sheets") + "customer-sales-vs-last-year-bridge-template.png",
+         render(compact_copy(src, "Customers", 17, "csly", hide_rows=[2, 3, 4, 5, 6, 7], clear=["C1"]), "Customers", name="csly"))
+
+
+def heroes_2026_11_29_02():
+    src = T_1129 + "tidy-tabs-barcode-scan-tally.xlsx"
+    save(D_1129 % (2, "tally-barcode-scans-into-inventory-counts-lost-leading-zeros-sumproduct-countif-excel-google-sheets") + "barcode-scan-tally-template.png",
+         render(compact_copy(src, "Items", 13, "bst", hide_rows=[1, 2, 3]), "Items", hide_cols="HI", name="bst", widths={"G": 13}))
+
+
+def heroes_2026_11_29_03():
+    src = T_1129 + "tidy-tabs-pack-boxes-by-weight.xlsx"
+    save(D_1129 % (3, "pack-items-into-boxes-under-weight-limit-running-weight-starts-new-box-excel-google-sheets") + "pack-boxes-by-weight-template.png",
+         render(compact_copy(src, "Boxes", 10, "pbw", hide_rows=[1, 2, 3]), "Boxes", name="pbw"))
+
+
+def heroes_2026_11_29_04():
+    src = T_1129 + "tidy-tabs-product-mix-quadrant.xlsx"
+    save(D_1129 % (4, "product-mix-quadrant-units-sold-vs-profit-margin-median-split-countif-sumif-excel-google-sheets") + "product-mix-quadrant-template.png",
+         render(compact_copy(src, "Products", 15, "pmq", hide_rows=[4], clear=["E2", "E3"]), "Products", hide_cols="HIJKL", name="pmq"))
+
+
+def heroes_2026_11_29_05():
+    src = T_1129 + "tidy-tabs-split-date-and-time.xlsx"
+    save(D_1129 % (5, "split-date-and-time-into-separate-columns-daily-totals-from-timestamps-int-mod-sumifs-excel-google-sheets") + "split-date-and-time-daily-totals-template.png",
+         render(compact_copy(src, "Export", 12, "sdte", hide_rows=[1, 2, 3]), "Export", hide_cols="EFHIJ", name="sdte"),
+         render(compact_copy(src, "By day", 6, "sdt", hide_rows=[1, 2, 3]), "By day", hide_cols="GHI", name="sdt"))
+
+
 def main():
+    if "--only-2026-11-29" in sys.argv:
+        for n in "12345":
+            if not any(a.startswith("--only-2026-11-29-0") for a in sys.argv) or f"--only-2026-11-29-0{n}" in sys.argv:
+                globals()[f"heroes_2026_11_29_0{n}"]()
+        return
     if "--only-2026-11-28" in sys.argv:
         for n in "12345":
             if not any(a.startswith("--only-2026-11-28-0") for a in sys.argv) or f"--only-2026-11-28-0{n}" in sys.argv:

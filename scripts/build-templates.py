@@ -23846,6 +23846,902 @@ def recurring_charges_finder():
     wb.save(OUT / "tidy-tabs-recurring-charges-finder.xlsx")
 
 
+CSL_LOG_LAST = 2004
+CSL_CUST_FIRST = 10
+CSL_CUST_LAST = 109
+
+
+def _csl_sample_orders():
+    """Fictional wholesale orders of a candle maker, 01/01/2025 to 11/29/2026: (date or date-time, customer, amount)."""
+    tx = [
+        (date(2025, 2, 10), "Birch & Bloom", 420.00), (date(2025, 6, 3), "Birch & Bloom", 380.00),
+        (date(2026, 1, 15), "Birch & Bloom", 95.00), (date(2026, 3, 12), "Birch & Bloom", 515.50),
+        (date(2026, 9, 30), "Birch & Bloom", 610.00),
+        (date(2025, 4, 4), "Cedar Lane Cafe", 960.00), (date(2025, 10, 20), "Cedar Lane Cafe", 540.00),
+        (date(2026, 5, 8), "Cedar Lane Cafe", 725.25), (datetime(2026, 11, 28, 15, 30), "Cedar Lane Cafe", 64.00),
+        (date(2025, 3, 15), "Harbor Gifts", 310.00), (date(2025, 11, 28), "Harbor Gifts", 120.00),
+        (date(2025, 11, 29), "Harbor Gifts", 80.00), (date(2026, 4, 2), "Harbor Gifts", 310.00),
+        (date(2026, 2, 20), "Juniper Co.", 450.00), (date(2026, 11, 27), "Juniper Co.", 199.99),
+        (date(2025, 8, 8), "Maple Street Bakery", 275.00), (date(2025, 12, 10), "Maple Street Bakery", 640.00),
+        (date(2026, 7, 14), "Maple Street Bakery", 330.75),
+        (date(2026, 6, 6), "North Pine Studio", 880.00), (date(2026, 11, 29), "North Pine Studio", 150.00),
+        (date(2025, 5, 5), "Oak Hollow Farm", 1200.00), (date(2025, 9, 9), "Oak Hollow Farm", 345.60),
+        (date(2025, 12, 1), "Willow Market", 500.00),
+    ]
+    tx.sort(key=lambda t: (t[0] if isinstance(t[0], datetime) else datetime(t[0].year, t[0].month, t[0].day)))
+    return tx
+
+
+def customer_sales_vs_last_year():
+    wb = Workbook()
+    cu = wb.active
+    cu.title = "Customers"
+    od = wb.create_sheet("Orders")
+    ll, c0, cl_ = CSL_LOG_LAST, CSL_CUST_FIRST, CSL_CUST_LAST
+    oa, ob, oc, odd = (f"Orders!${c}$5:${c}${ll}" for c in "ABCD")
+    names = f"Customers!$A${c0}:$A${cl_}"
+    ok = "$I$21"
+
+    # Orders tab
+    od["A1"] = (f"Paste your orders (yellow A:C, rows 5 to {ll}): date (a time of day is fine), customer exactly as on "
+                "the Customers tab, and amount. Any order. Fictional customers.")
+    od["A2"] = ("Status says which period each order counts in. The 11/28/2026 Cedar Lane Cafe order was placed at "
+                "3:30 PM and still counts, because each period ends before the next day starts.")
+    od["A1"].font = od["A2"].font = Font(italic=True)
+    _head_row(od, 4, ["Date", "Customer", "Amount", "Status"], [20, 24, 11, 40], height=32)
+    for r in range(5, ll + 1):
+        for col in "ABC":
+            od[f"{col}{r}"].fill = INPUT_FILL
+        od[f"A{r}"].number_format = US_DATETIME
+        od[f"C{r}"].number_format = USD
+        od[f"D{r}"] = (f'=IF(AND(A{r}="",TRIM(B{r})="",C{r}=""),"",'
+                       f'IF(Customers!{ok}<>"OK","Check: Customers settings",'
+                       f'IF(NOT(ISNUMBER(A{r})),"Check: date blank or text",'
+                       f'IF(TRIM(B{r})="","Check: no customer",'
+                       f'IF(NOT(ISNUMBER(C{r})),"Check: amount blank or text",'
+                       f'IF(AND(OR(A{r}<Customers!$B$4,A{r}>=Customers!$B$5+1),'
+                       f'OR(A{r}<Customers!$B$6,A{r}>=Customers!$B$7+1)),"Outside both periods (not counted)",'
+                       f'IF(SUMPRODUCT(--({names}=B{r}))=0,"Check: customer not on the Customers tab",'
+                       f'IF(A{r}<Customers!$B$5+1,"Last year","This year"))))))))')
+        _fill_cells(od, "D", [r], FORMULA_FILL, align_right=False)
+    for i, (dd, c, a) in enumerate(_csl_sample_orders()):
+        od[f"A{5 + i}"], od[f"B{5 + i}"], od[f"C{5 + i}"] = dd, c, a
+    od.column_dimensions["E"].width = 3
+    od.column_dimensions["F"].width = 30
+    od.column_dimensions["G"].width = 12
+    _summary_block(od, "F", "G", [
+        (4, "Last year rows", f'=COUNTIF(D5:D{ll},"Last year")', "0"),
+        (5, "This year rows", f'=COUNTIF(D5:D{ll},"This year")', "0"),
+        (6, "Outside both periods", f'=COUNTIF(D5:D{ll},"Outside*")', "0"),
+        (7, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(D5:D{ll},5)="Check"))', "0"),
+        (8, f"Typed below row {ll} (not read)", f"=COUNTA(A{ll + 1}:C6000)", "0"),
+        (9, "Last year rows, total", f'=ROUND(SUMIFS(C5:C{ll},D5:D{ll},"Last year"),2)', USD),
+        (10, "This year rows, total", f'=ROUND(SUMIFS(C5:C{ll},D5:D{ll},"This year"),2)', USD),
+        (11, "CHECK", '=IF(AND(G7=0,G8=0),"OK","Check")', "General"),
+    ])
+    od.conditional_formatting.add(f"D5:D{ll}", FormulaRule(formula=['LEFT($D5,5)="Check"'], fill=ALERT_FILL))
+    od.conditional_formatting.add(f"D5:D{ll}", FormulaRule(formula=['LEFT($D5,7)="Outside"'], fill=CHECK_ORANGE))
+    od.conditional_formatting.add("G11", FormulaRule(formula=['$G$11<>"OK"'], fill=ALERT_FILL))
+    od.freeze_panes = "A5"
+
+    # Customers tab: settings
+    _settings_rows(cu, [
+        (1, "As of", date(2026, 11, 28), US_DATE, "The last day to count this year (yellow; no TODAY)."),
+        (2, "Compare", "Same period", "General",
+         "Same period: 01/01 to the same date in both years. Full years: all of last year."),
+        (3, "Last year through (optional)", None, US_DATE, "Blank = worked out in B5. Type a date in last year to use it."),
+    ])
+    calc = [
+        (4, "Last year from", f'=IF({ok}<>"OK","",DATE(YEAR(B1)-1,1,1))', "01/01 of last year."),
+        (5, "Last year through",
+         f'=IF({ok}<>"OK","",IF(B3<>"",B3,IF(B2="Full years",DATE(YEAR(B1)-1,12,31),'
+         f'DATE(YEAR(B1)-1,MONTH(B1),DAY(B1)))))',
+         f'=IF({ok}<>"OK","",IF(B3<>"","Typed in B3.",IF(B2="Full years","12/31 of last year.",'
+         f'IF(MONTH(B5)<>MONTH(B1),"02/29 has no match last year, so this is 03/01. Type 02/28 in B3 if you prefer.",'
+         f'"Same month and day as B1, one year back."))))'),
+        (6, "This year from", f'=IF({ok}<>"OK","",DATE(YEAR(B1),1,1))', "01/01 of this year."),
+        (7, "This year through", f'=IF({ok}<>"OK","",B1)', "The as-of date. Orders later than this are not counted."),
+    ]
+    for r, label, f, note in calc:
+        cu[f"A{r}"], cu[f"B{r}"], cu[f"C{r}"] = label, f, note
+        cu[f"A{r}"].font = Font(bold=True)
+        cu[f"B{r}"].number_format = US_DATE
+        cu[f"C{r}"].font = Font(italic=True)
+        _fill_cells(cu, "B", [r], FORMULA_FILL)
+    dv = DataValidation(type="list", formula1='"Same period,Full years"', allow_blank=False)
+    cu.add_data_validation(dv)
+    dv.add("B2")
+
+    # Customers tab: one row per customer
+    _head_row(cu, 9, ["Customer", "Last year", "This year", "Change", "% change", "Status"],
+              [30, 13, 13, 12, 10, 34], height=32)
+    for r in range(c0, cl_ + 1):
+        cu[f"A{r}"].fill = INPUT_FILL
+        cu[f"B{r}"] = (f'=IF(OR(TRIM(A{r})="",{ok}<>"OK"),"",'
+                       f'ROUND(SUMIFS({oc},{ob},A{r},{oa},">="&$B$4,{oa},"<"&$B$5+1),2))')
+        cu[f"C{r}"] = (f'=IF(OR(TRIM(A{r})="",{ok}<>"OK"),"",'
+                       f'ROUND(SUMIFS({oc},{ob},A{r},{oa},">="&$B$6,{oa},"<"&$B$7+1),2))')
+        cu[f"D{r}"] = f'=IF(OR(B{r}="",C{r}=""),"",ROUND(C{r}-B{r},2))'
+        cu[f"E{r}"] = f'=IF(OR(D{r}="",N(B{r})<=0),"",D{r}/B{r})'
+        cu[f"F{r}"] = (f'=IF(TRIM(A{r})="","",IF({ok}<>"OK","Check: settings (B1:B3)",'
+                       f'IF(A{r}&""<>TRIM(A{r}),"Check: extra spaces in the name",'
+                       f'IF(OR(ISNUMBER(FIND("*",A{r})),ISNUMBER(FIND("?",A{r})),ISNUMBER(FIND("~",A{r})),'
+                       f'LEFT(A{r},1)="=",LEFT(A{r},1)="<",LEFT(A{r},1)=">"),"Check: * ? ~ = < or > in the name",'
+                       f'IF(SUMPRODUCT(--($A${c0}:$A${cl_}=A{r}))>1,"Check: customer listed twice",'
+                       f'IF(AND(B{r}<=0,C{r}<=0),"No sales",IF(B{r}<=0,"New",IF(C{r}<=0,"Lost",'
+                       f'IF(C{r}>B{r},"Up",IF(C{r}<B{r},"Down","Same"))))))))))')
+        for col in "BCD":
+            cu[f"{col}{r}"].number_format = USD
+        cu[f"E{r}"].number_format = "0.0%"
+        _fill_cells(cu, "BCDE", [r], FORMULA_FILL)
+        _fill_cells(cu, "F", [r], FORMULA_FILL, align_right=False)
+    for i, c in enumerate(["Birch & Bloom", "Cedar Lane Cafe", "Harbor Gifts", "Juniper Co.", "Maple Street Bakery",
+                           "North Pine Studio", "Oak Hollow Farm", "Willow Market"]):
+        cu[f"A{c0 + i}"] = c
+
+    # Customers tab: bridge and checks
+    cu.column_dimensions["G"].width = 3
+    cu.column_dimensions["H"].width = 36
+    cu.column_dimensions["I"].width = 13
+    cu.column_dimensions["J"].width = 10
+    for c_, t_ in (("H9", "Last year to this year"), ("I9", "Amount"), ("J9", "Customers")):
+        cu[c_] = t_
+        cu[c_].fill, cu[c_].font = HEADER_FILL, HEADER_FONT
+        cu[c_].alignment = Alignment(vertical="center", wrap_text=True)
+    st, dd_ = f"$F${c0}:$F${cl_}", f"$D${c0}:$D${cl_}"
+    win = lambda a, b: f'ROUND(SUMIFS({oc},{oa},">="&{a},{oa},"<"&{b}+1),2)'
+    _summary_block(cu, "H", "I", [
+        (10, "Last year total", f"=SUM(B{c0}:B{cl_})", USD),
+        (11, "+ New customers", f'=SUMIF({st},"New",{dd_})', USD),
+        (12, "+ Up", f'=SUMIF({st},"Up",{dd_})', USD),
+        (13, "- Down", f'=SUMIF({st},"Down",{dd_})', USD),
+        (14, "- Lost customers", f'=SUMIF({st},"Lost",{dd_})', USD),
+        (15, "Same", f'=SUMIF({st},"Same",{dd_})', USD),
+        (16, "No sales (refunds only)", f'=SUMIF({st},"No sales",{dd_})', USD),
+        (17, "This year, by the bridge", "=ROUND(I10+SUM(I11:I16),2)", USD),
+        (18, "This year, sum of customers", f"=SUM(C{c0}:C{cl_})", USD),
+        (19, "Last year, whole order log", f'=IF({ok}<>"OK","",{win("B4", "B5")})', USD),
+        (20, "This year, whole order log", f'=IF({ok}<>"OK","",{win("B6", "B7")})', USD),
+        (21, "Settings (B1:B3)",
+         '=IF(NOT(ISNUMBER(B1)),"Check",IF(OR(B1<>INT(B1),B1<367,AND(B2<>"Same period",B2<>"Full years")),"Check",'
+         'IF(B3="","OK",IF(NOT(ISNUMBER(B3)),"Check",IF(AND(B3=INT(B3),YEAR(B3)=YEAR(B1)-1),"OK","Check")))))',
+         "General"),
+        (22, "Customer rows showing Check", f'=SUMPRODUCT(--(LEFT({st},5)="Check"))', "0"),
+        (23, "Orders CHECK", "=Orders!G11", "General"),
+        (24, "CHECK",
+         f'=IF({ok}<>"OK","Check",IF(AND(I22=0,I23="OK",ROUND(I17-I18,2)=0,ROUND(I18-I20,2)=0,'
+         f'ROUND(I10-I19,2)=0),"OK","Check"))', "General"),
+    ])
+    for r, lbl in ((10, f'=SUMPRODUCT(--(TRIM($A${c0}:$A${cl_})<>""))'), (11, "New"), (12, "Up"), (13, "Down"),
+                   (14, "Lost"), (15, "Same"), (16, "No sales")):
+        cu[f"J{r}"] = lbl if r == 10 else f'=COUNTIF({st},"{lbl}")'
+        cu[f"J{r}"].number_format = "0"
+        _fill_cells(cu, "J", [r], FORMULA_FILL)
+    cu["H25"] = "CHECK is OK when the bridge, the customer list and the whole log agree to the cent."
+    cu["H25"].font = Font(italic=True)
+    cu.conditional_formatting.add(f"F{c0}:F{cl_}", FormulaRule(formula=[f'LEFT($F{c0},5)="Check"'], fill=ALERT_FILL))
+    cu.conditional_formatting.add(f"F{c0}:F{cl_}", FormulaRule(formula=[f'OR($F{c0}="New",$F{c0}="Up")'],
+                                                               fill=DONE_FILL))
+    cu.conditional_formatting.add(f"F{c0}:F{cl_}", FormulaRule(formula=[f'OR($F{c0}="Lost",$F{c0}="Down")'],
+                                                               fill=CHECK_ORANGE))
+    cu.conditional_formatting.add("I17", FormulaRule(formula=['TRUE'], fill=DONE_FILL))
+    for c_ in ("I21", "I23", "I24"):
+        cu.conditional_formatting.add(c_, FormulaRule(formula=[f'$I${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    cu.conditional_formatting.add("I22", FormulaRule(formula=['$I$22>0'], fill=ALERT_FILL))
+    cu.freeze_panes = f"B{c0}"
+
+    n_ = cl_ - c0 + 1
+    notes_sheet(wb, [
+        "Tidy Tabs: Each Customer's Sales This Year vs Last Year (New, Lost, Up, Down)",
+        "",
+        f"1. Orders tab, A5:C{ll} (yellow): paste the date, customer and amount of every order from 01/01 of last year on, in any order. A date with a time of day is fine. The sample is a fictional candle maker's wholesale log, 02/10/2025 to 11/29/2026.",
+        f"2. Customers tab, A{c0}:A{cl_} (yellow): one row per customer, spelled as in the order log (up to {n_}). Capital letters do not matter; spaces, * and ? do. The sample lists 8 shops.",
+        "3. B1: the as-of date (type it; the sheet does not use TODAY). B2: Same period compares 01/01 through the same month and day in both years; Full years compares all of last year with this year through B1. B3 (optional): type a last-year end date to use instead.",
+        f"4. Last year, B{c0}: =ROUND(SUMIFS(Orders!$C$5:$C${ll},Orders!$B$5:$B${ll},A{c0},Orders!$A$5:$A${ll},\">=\"&$B$4,Orders!$A$5:$A${ll},\"<\"&$B$5+1),2). This year, C{c0}, is the same with B6 and B7. Each period ends with \"<\" the next day, so an order with a time of day on the last day still counts; \"<=\"&B7 would leave it out.",
+        f"5. Status, F{c0}: No sales (nothing in either period), New (nothing last year), Lost (nothing this year), Up, Down or Same. Zero or less counts as nothing, so a customer whose refunds cancel the orders is No sales, New or Lost.",
+        "6. The bridge, H10:J17: last year's total, plus the change from New customers, Up and Same, minus Down and Lost (shown as negative amounts), lands on this year's total. Each line is =SUMIF of Change (D) by Status, and J counts the customers.",
+        "7. CHECK, I24: OK when the bridge, the sum of the customer rows and the whole log for each period agree to the cent. A customer missing from the list, spelled differently or listed twice shows Check.",
+        "8. Same period vs Full years changes the labels. In the sample, Willow Market bought only on 12/01/2025, so it is No sales through 11/28 but Lost with Full years. 02/29 has no match last year, so B5 shows 03/01; type 02/28 in B3 if you prefer.",
+        "9. Orders Status: Last year, This year, Outside both periods (not counted), Check: date blank or text, Check: no customer, Check: amount blank or text, Check: customer not on the Customers tab, Check: Customers settings. Customer Status checks: extra spaces in the name, * ? ~ = < or > in the name (SUMIFS reads those as wildcards or comparisons; leave them out of names), customer listed twice.",
+        "10. The labels describe sales only. They do not say why a customer bought less or what to do next, and nothing here is a forecast.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    cu.print_title_rows = "9:9"
+    od.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-customer-sales-vs-last-year.xlsx")
+
+
+BST_SCANS_LAST = 2004
+BST_ITEMS_LAST = 504
+BST_SAMPLE_ITEMS = [
+    ("012345678905", "Cedar candle 8 oz", 14),
+    ("071234500017", "Lavender soap bar", 22),
+    ("008800123455", "Holiday card 6 pack", 30),
+    ("400012000010", "Wool dryer balls", 9),
+    ("400012000027", "Gift wrap roll", 5),
+]
+BST_SAMPLE_SCANS = [
+    ("012345678905", None), (12345678905, None), ("012345678905", None), ("012345678905", 6),
+    ("071234500017", None), ("071234500017", 12), ("071234500017", None), (71234500017, None),
+    ("008800123455", 24), ("008800123455", None), ("008800123455", None), ("008800123455", None),
+    ("400012000010", None), ("400012000010", None), ("400012000010 ", None),
+    ("999999999999", None), (8800123455, 2),
+]
+
+
+def _bst_digits_value(c):
+    """Formula: the code's number value when the cell is text made of digits only (15 or fewer), else ""."""
+    t = f"TRIM({c})"
+    return (f'IF(ISTEXT({c}),IF(LEN({t})>15,"",IFERROR(IF(TEXT(VALUE({t}),REPT("0",LEN({t})))={t},'
+            f'VALUE({t}),""),"")),"")')
+
+
+def barcode_scan_tally():
+    wb = Workbook()
+    sc = wb.active
+    sc.title = "Scans"
+    it = wb.create_sheet("Items")
+    sl, il = BST_SCANS_LAST, BST_ITEMS_LAST
+    keys, units, stat = (f"Scans!${c}$5:${c}${sl}" for c in "CDE")
+    codes, nums = f"Items!$A$5:$A${il}", f"Items!$H$5:$H${il}"
+    sc["A1"] = (f"Scan or paste one code per row (yellow A, rows 5 to {sl}). Type a Qty only for a full case or a "
+                "count you did by hand; a blank Qty counts as 1. Fictional codes.")
+    sc["A2"] = ("Format column A as Plain text before scanning. A code that became a number (leading zero lost) "
+                "is matched back to its item by its number value and flagged in column F.")
+    sc["A1"].font = sc["A2"].font = Font(italic=True)
+    _head_row(sc, 4, ["Scan", "Qty", "Key (clean code)", "Units", "Status", "Note"],
+              [18, 7, 18, 7, 34, 26], height=46)
+    for r in range(5, sl + 1):
+        sc[f"A{r}"].fill = sc[f"B{r}"].fill = INPUT_FILL
+        sc[f"A{r}"].number_format = "@"
+        sc[f"B{r}"].number_format = "0"
+        sc[f"C{r}"] = (f'=IF(A{r}="","",IF(ISNUMBER(A{r}),IFERROR(INDEX({codes},MATCH(A{r},{nums},0)),'
+                       f'TEXT(A{r},"0")),TRIM(CLEAN(A{r}))))')
+        sc[f"D{r}"] = f'=IF(OR(E{r}="",LEFT(E{r},5)="Check"),"",IF(B{r}="",1,B{r}))'
+        sc[f"E{r}"] = (f'=IF(AND(C{r}="",B{r}=""),"",'
+                       f'IF(C{r}="","Check: Qty with no scan",'
+                       f'IF(AND(ISNUMBER(A{r}),ABS(N(A{r}))>=1E+15),"Check: over 15 digits (format A as text)",'
+                       f'IF(AND(ISNUMBER(A{r}),N(A{r})<>INT(N(A{r}))),"Check: scan is a decimal number",'
+                       f'IF(AND(B{r}<>"",NOT(ISNUMBER(B{r}))),"Check: Qty is text",'
+                       f'IF(AND(B{r}<>"",N(B{r})<1),"Check: Qty below 1",'
+                       f'IF(N(B{r})<>INT(N(B{r})),"Check: Qty not a whole number",'
+                       f'IF(ISNUMBER(MATCH(C{r},{codes},0)),"OK","Not on list"))))))))')
+        sc[f"F{r}"] = (f'=IF(E{r}<>"OK","",IF(ISNUMBER(A{r}),IF(LEN(C{r})>LEN(TEXT(A{r},"0")),'
+                       f'"Lost leading zero (fixed)",""),IF(LEN(C{r})<>LEN(A{r}),"Spaces or Tab removed","")))')
+        sc[f"D{r}"].number_format = "0"
+        _fill_cells(sc, "CDEF", [r], FORMULA_FILL)
+        for col in "CEF":
+            sc[f"{col}{r}"].alignment = Alignment(horizontal="left")
+    for i, (v, q) in enumerate(BST_SAMPLE_SCANS):
+        sc[f"A{5 + i}"] = v
+        if q is not None:
+            sc[f"B{5 + i}"] = q
+    sc.column_dimensions["G"].width = 3
+    sc.column_dimensions["H"].width = 40
+    sc.column_dimensions["I"].width = 11
+    _summary_block(sc, "H", "I", [
+        (4, "Scans counted (OK or Not on list)", f'=COUNTIF(E5:E{sl},"OK")+COUNTIF(E5:E{sl},"Not on list")', "#,##0"),
+        (5, "Units scanned", f"=SUM(D5:D{sl})", "#,##0"),
+        (6, "Units matched to items (Items tab)", f"=SUM(Items!D5:D{il})", "#,##0"),
+        (7, "Scans Not on list", f'=COUNTIF(E5:E{sl},"Not on list")', "0"),
+        (8, "Units on Not on list scans", f'=SUMIF(E5:E{sl},"Not on list",D5:D{sl})', "#,##0"),
+        (9, "Lost leading zero (fixed)", f'=COUNTIF(F5:F{sl},"Lost*")', "0"),
+        (10, "Spaces or Tab removed", f'=COUNTIF(F5:F{sl},"Spaces*")', "0"),
+        (11, "Scan rows showing Check", f'=SUMPRODUCT(--(LEFT(E5:E{sl},5)="Check"))', "0"),
+        (12, f"Typed below row {sl} (not read)", f"=COUNTA(A{sl + 1}:B6000)", "0"),
+        (13, "Item rows showing Check (Items tab)", f'=SUMPRODUCT(--(LEFT(Items!G5:G{il},5)="Check"))', "0"),
+        (14, "CHECK", '=IF(AND(I11=0,I12=0,I13=0,I5=I6+I8),"OK","Check")', "General"),
+    ])
+    sc.conditional_formatting.add(f"E5:E{sl}", FormulaRule(formula=['LEFT($E5,5)="Check"'], fill=ALERT_FILL))
+    sc.conditional_formatting.add(f"E5:E{sl}", FormulaRule(formula=['$E5="Not on list"'], fill=CHECK_ORANGE))
+    sc.conditional_formatting.add(f"F5:F{sl}", FormulaRule(formula=['$F5<>""'], fill=CHECK_ORANGE))
+    sc.conditional_formatting.add("I5", FormulaRule(formula=['TRUE'], fill=DONE_FILL))
+    sc.conditional_formatting.add("I7", FormulaRule(formula=['$I$7>0'], fill=CHECK_ORANGE))
+    sc.conditional_formatting.add("I14", FormulaRule(formula=['$I$14<>"OK"'], fill=ALERT_FILL))
+    sc.freeze_panes = "A5"
+
+    it["A1"] = (f"Your item list (yellow A:C, rows 5 to {il}): the barcode exactly as printed, the item name, and "
+                "the expected count if you have one. Format column A as Plain text first. Fictional items.")
+    it["A2"] = ("Counted adds the Units of every Scans row whose key equals the code. Difference is Counted minus "
+                "Expected. Not scanned means no scan matched the code.")
+    it["A1"].font = it["A2"].font = Font(italic=True)
+    _head_row(it, 4, ["Code", "Item", "Expected", "Counted", "Scans", "Difference", "Status",
+                      "Code as number"], [16, 24, 9, 9, 7, 10, 34, 14], height=46)
+    for r in range(5, il + 1):
+        for col in "ABC":
+            it[f"{col}{r}"].fill = INPUT_FILL
+        it[f"A{r}"].number_format = "@"
+        it[f"C{r}"].number_format = "0"
+        it[f"D{r}"] = f'=IF(A{r}="","",SUMPRODUCT(--({keys}=A{r}),{units}))'
+        it[f"E{r}"] = f'=IF(A{r}="","",SUMPRODUCT(({keys}=A{r})*({stat}="OK")))'
+        it[f"F{r}"] = f'=IF(OR(A{r}="",C{r}="",NOT(ISNUMBER(C{r}))),"",D{r}-C{r})'
+        it[f"G{r}"] = (f'=IF(AND(A{r}="",B{r}="",C{r}=""),"",'
+                       f'IF(ISNUMBER(A{r}),"Check: code stored as a number",'
+                       f'IF(TRIM(A{r})="","Check: no code",'
+                       f'IF(LEN(TRIM(CLEAN(A{r})))<>LEN(A{r}),"Check: spaces in the code",'
+                       f'IF(SUMPRODUCT(--($A$5:$A${il}=A{r}))>1,"Check: code listed twice",'
+                       f'IF(AND(H{r}<>"",SUMPRODUCT(--($H$5:$H${il}=H{r}))>1),"Check: same number as another code",'
+                       f'IF(AND(C{r}<>"",NOT(ISNUMBER(C{r}))),"Check: Expected is text",'
+                       f'IF(N(C{r})<0,"Check: Expected below 0",'
+                       f'IF(E{r}=0,"Not scanned",IF(C{r}="","Counted",'
+                       f'IF(D{r}=C{r},"Matches expected",IF(D{r}<C{r},"Short","Over"))))))))))))')
+        it[f"H{r}"] = "=" + _bst_digits_value(f"A{r}")
+        for col in "DEF":
+            it[f"{col}{r}"].number_format = "0"
+        it[f"F{r}"].number_format = "+0;-0;0"
+        it[f"H{r}"].number_format = "0"
+        _fill_cells(it, "DEFGH", [r], FORMULA_FILL)
+        it[f"G{r}"].alignment = Alignment(horizontal="left")
+    for i, (c, n, e) in enumerate(BST_SAMPLE_ITEMS):
+        it[f"A{5 + i}"], it[f"B{5 + i}"], it[f"C{5 + i}"] = c, n, e
+    it.column_dimensions["I"].width = 3
+    it.column_dimensions["J"].width = 34
+    it.column_dimensions["K"].width = 11
+    _summary_block(it, "J", "K", [
+        (4, "Items listed", f'=SUMPRODUCT(--(LEN(A5:A{il})>0))', "0"),
+        (5, "Units counted on items", f"=SUM(D5:D{il})", "#,##0"),
+        (6, "Units expected", f"=SUM(C5:C{il})", "#,##0"),
+        (7, "Difference (counted minus expected)", "=K5-K6", "+#,##0;-#,##0;0"),
+        (8, "Items not scanned", f'=COUNTIF(G5:G{il},"Not scanned")', "0"),
+        (9, "Items short", f'=COUNTIF(G5:G{il},"Short")', "0"),
+        (10, "Items over", f'=COUNTIF(G5:G{il},"Over")', "0"),
+        (11, "Scans Not on list (Scans tab)", "=Scans!I7", "0"),
+        (12, "Item rows showing Check", f'=SUMPRODUCT(--(LEFT(G5:G{il},5)="Check"))', "0"),
+        (13, "CHECK (both tabs)", "=Scans!I14", "General"),
+    ])
+    it.conditional_formatting.add(f"G5:G{il}", FormulaRule(formula=['LEFT($G5,5)="Check"'], fill=ALERT_FILL))
+    it.conditional_formatting.add(f"G5:G{il}", FormulaRule(formula=['OR($G5="Not scanned",$G5="Short",$G5="Over")'],
+                                                           fill=CHECK_ORANGE))
+    it.conditional_formatting.add(f"G5:G{il}", FormulaRule(formula=['$G5="Matches expected"'], fill=DONE_FILL))
+    it.conditional_formatting.add("K5", FormulaRule(formula=['TRUE'], fill=DONE_FILL))
+    it.conditional_formatting.add("K13", FormulaRule(formula=['$K$13<>"OK"'], fill=ALERT_FILL))
+    it.freeze_panes = "B5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Count Barcode Scans Into Inventory Counts",
+        "",
+        f"1. Items tab, A5:C{il} (yellow): each barcode exactly as printed on the label, the item name, and the expected count if you have one (leave Expected blank if not). Format column A as Plain text before you type or paste codes, so 012345678905 keeps its leading zero. The sample items and codes are fictional.",
+        f"2. Scans tab, A5:A{sl} (yellow): click A5 and scan. A USB scanner usually types the code like a keyboard and presses Enter, so each beep fills the next row. Format column A as Plain text first. Type a number in Qty (column B) only for a full case or items you counted by hand; a blank Qty counts as 1. Blank rows between scans are fine.",
+        f"3. Key, C5: =IF(A5=\"\",\"\",IF(ISNUMBER(A5),IFERROR(INDEX(Items!$A$5:$A${il},MATCH(A5,Items!$H$5:$H${il},0)),TEXT(A5,\"0\")),TRIM(CLEAN(A5)))). A scan stored as text is cleaned with TRIM (spaces) and CLEAN (Tab, Enter and other control characters). A scan that turned into a number, such as 12345678905, is matched to the item code with the same number value (Code as number, Items column H), so it gets its leading zero back whatever the code's length (12-digit UPC, 13-digit EAN or 8-digit codes in one list).",
+        "4. Units, D5: the Qty, or 1 when Qty is blank. Status, E5: OK when the key is on the Items list, Not on list when it is not (a misread, a new item, or a code missing from the list), or Check (Qty text, below 1 or not whole; a Qty with no scan; a number with more than 15 digits, whose last digits are already lost, so format column A as text and scan again). Check rows add no units.",
+        f"5. Counted, Items D5: =SUMPRODUCT(--(Scans!$C$5:$C${sl}=A5),Scans!$D$5:$D${sl}) adds the units of every scan whose key equals the code. Scans, E5, is the number of scan rows. A plain COUNTIF of the scan column counts rows, not units, so a case typed as Qty 24 would count once.",
+        "6. Note (Scans F): Lost leading zero (fixed) when the scan was a number and its item code starts with 0; Spaces or Tab removed when TRIM and CLEAN changed it. Both rows are counted. Format column A as Plain text to stop new ones.",
+        "7. Items Status: Not scanned, Short, Over, Matches expected or Counted (no Expected). Check flags a code stored as a number, spaces in a code, a code listed twice, two codes with the same number value (for example 012345678905 and 0012345678905), and a text or negative Expected.",
+        "8. CHECK (Scans I14, also Items K13) is OK when no row shows Check, nothing is typed below the last row, and units scanned equal the units matched to items plus the units on Not on list scans.",
+        "9. This sheet counts units only. Inventory value for your books or taxes is not part of it. Difference is a count gap, not a loss amount.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets. No scanner was tested.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    sc.print_title_rows = "4:4"
+    it.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-barcode-scan-tally.xlsx")
+
+
+PBW_ITEMS_LAST = 505
+PBW_BOXES_LAST = 204
+
+
+def pack_boxes_by_weight():
+    wb = Workbook()
+    pk = wb.active
+    pk.title = "Packing"
+    bx = wb.create_sheet("Boxes")
+    il, bl = PBW_ITEMS_LAST, PBW_BOXES_LAST
+    pa, pb, pc, pe = (f"Packing!${c}$6:${c}${il}" for c in "ABCE")
+    _settings_rows(pk, [
+        (1, "Limit per box (lb)", 20, "0.00", "The most one packed box may weigh, your own choice (yellow)."),
+        (2, "Box and packing weight (lb)", 1.5, "0.00", "The empty box plus tape and fill, added to every box."),
+        (3, "Usable weight for items (lb)", '=IF(AND(ISNUMBER(B1),ISNUMBER(B2)),ROUND(B1-B2,4),"")', "0.00",
+         "B1 minus B2: the items in one box may weigh up to this much."),
+    ])
+    pk["B3"].fill = FORMULA_FILL
+    pk["A4"] = (f"One item per row (yellow A:B, rows 6 to {il}), in the order you will pack them. "
+                "Weights in pounds as decimals. Fictional sample order.")
+    pk["A4"].font = Font(italic=True)
+    _head_row(pk, 5, ["Item", "Weight (lb)", "Box", "Weight in box so far (lb)", "Status"],
+              [26, 10, 7, 12, 38], height=46)
+    packed = 'LEFT(E{r},6)="Packed"'
+    for r in range(6, il + 1):
+        pk[f"A{r}"].fill = pk[f"B{r}"].fill = INPUT_FILL
+        pk[f"B{r}"].number_format = "0.00"
+        p = packed.format(r=r)
+        if r == 6:
+            pk[f"C{r}"] = 1
+            pk[f"D{r}"] = f"=IF({p},B{r},0)"
+        else:
+            pk[f"C{r}"] = f"=IF({p},IF(AND(D{r - 1}>0,ROUND(D{r - 1}+B{r},4)>$B$3),C{r - 1}+1,C{r - 1}),C{r - 1})"
+            pk[f"D{r}"] = f"=IF({p},IF(C{r}=C{r - 1},ROUND(D{r - 1}+B{r},4),B{r}),D{r - 1})"
+        below = ('""' if r == il else
+                 f'IF(SUMPRODUCT((TRIM(A{r + 1}:A{il})<>"")+(B{r + 1}:B{il}<>""))=0,"",'
+                 f'"Check: blank row inside the list (skipped)")')
+        pk[f"E{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}=""),{below},'
+                       f'IF($H$5<>"OK","Check: settings (B1:B2)",'
+                       f'IF(TRIM(A{r})="","Check: no item name",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: weight blank or text",'
+                       f'IF(B{r}<=0,"Check: weight 0 or below",'
+                       f'IF(ROUND(B{r}-$B$3,4)>0,"Packed alone: too heavy for one box","Packed"))))))')
+        pk[f"C{r}"].number_format = "0"
+        pk[f"D{r}"].number_format = "0.00"
+        _fill_cells(pk, "CDE", [r], FORMULA_FILL)
+        pk[f"E{r}"].alignment = Alignment(horizontal="left", indent=1)
+    items = [("Mug set (4)", 6.4), ("Cast iron trivet", 9.8), ("Candle 3 pack", 2.3), ("Soap crate (12 bars)", 7.4),
+             ("Wool throw", 3.2), ("Ceramic vase", 5.9), ("Jam gift box", 4.4), ("Cast iron doorstop", 19.0),
+             ("Card bundle (25)", 1.1), ("Tea tin set", 2.6)]
+    for i, (name, w) in enumerate(items):
+        pk[f"A{6 + i}"], pk[f"B{6 + i}"] = name, w
+    pk.column_dimensions["F"].width = 3
+    pk.column_dimensions["G"].width = 30
+    pk.column_dimensions["H"].width = 11
+    _summary_block(pk, "G", "H", [
+        (5, "Settings (B1:B2)",
+         '=IF(AND(ISNUMBER(B1),ISNUMBER(B2)),IF(AND(B1>0,B2>=0,B2<B1),"OK","Check"),"Check")', "General"),
+        (6, "Items packed", f'=COUNTIF(E6:E{il},"Packed*")', "0"),
+        (7, "Total item weight (lb)", f'=ROUND(SUMIFS(B6:B{il},E6:E{il},"Packed*"),4)', "0.00"),
+        (8, "Boxes", f"=IF(H6=0,0,MAX(C6:C{il}))", "0"),
+        (9, "Items too heavy for one box", f'=COUNTIF(E6:E{il},"Packed alone*")', "0"),
+        (10, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(E6:E{il},5)="Check"))', "0"),
+        (11, f"Typed below row {il} (not read)", f"=COUNTA(A{il + 1}:B3000)", "0"),
+        (12, "CHECK", '=IF(AND(H5="OK",H10=0,H11=0),"OK","Check")', "General"),
+    ])
+    pk.conditional_formatting.add(f"E6:E{il}", FormulaRule(formula=['LEFT($E6,5)="Check"'], fill=ALERT_FILL))
+    pk.conditional_formatting.add(f"E6:E{il}", FormulaRule(formula=['LEFT($E6,12)="Packed alone"'], fill=CHECK_ORANGE))
+    pk.conditional_formatting.add(f"C6:D{il}", FormulaRule(formula=['LEFT($E6,6)<>"Packed"'],
+                                                           font=Font(color="EDEDED")))
+    pk.conditional_formatting.add("H9", FormulaRule(formula=['$H$9>0'], fill=CHECK_ORANGE))
+    for c_ in ("H5", "H12"):
+        pk.conditional_formatting.add(c_, FormulaRule(formula=[f'$H${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    pk.freeze_panes = "A6"
+
+    bx["A1"] = ("One row per box, in packing order. Packed weight = the items plus the box and packing weight "
+                "(Packing B2).")
+    bx["A2"] = ("Items stay in the order of the Packing tab; this is not the fewest possible boxes. "
+                "Listing the heaviest items first often needs fewer.")
+    bx["A1"].font = bx["A2"].font = Font(italic=True)
+    _head_row(bx, 4, ["Box", "Items", "Item weight (lb)", "Packed weight (lb)", "Room left (lb)", "Status",
+                      "First item", "Last item"], [6, 7, 10, 10, 9, 36, 24, 24], height=46)
+    for r in range(5, bl + 1):
+        n = r - 4
+        rows_ = f"({pc}=A{r})*(LEFT({pe},6)=\"Packed\")*ROW({pc})"
+        bx[f"A{r}"] = f'=IF({n}>$K$4,"",{n})'
+        bx[f"B{r}"] = f'=IF(A{r}="","",COUNTIFS({pc},A{r},{pe},"Packed*"))'
+        bx[f"C{r}"] = f'=IF(A{r}="","",ROUND(SUMIFS({pb},{pc},A{r},{pe},"Packed*"),4))'
+        bx[f"D{r}"] = f'=IF(A{r}="","",ROUND(C{r}+Packing!$B$2,2))'
+        bx[f"E{r}"] = f'=IF(A{r}="","",MAX(0,ROUND(Packing!$B$3-C{r},2)))'
+        bx[f"F{r}"] = (f'=IF(A{r}="","",IF(ROUND(C{r}-Packing!$B$3,4)>0,"Over the limit: one item too heavy",'
+                       f'IF(ROUND(C{r}-Packing!$B$3,4)=0,"At the limit","OK")))')
+        bx[f"G{r}"] = f'=IF(A{r}="","",INDEX(Packing!$A$1:$A${il},SUMPRODUCT(LARGE({rows_},B{r}))))'
+        bx[f"H{r}"] = f'=IF(A{r}="","",INDEX(Packing!$A$1:$A${il},SUMPRODUCT(MAX({rows_}))))'
+        bx[f"A{r}"].number_format = bx[f"B{r}"].number_format = "0"
+        for col in "CDE":
+            bx[f"{col}{r}"].number_format = "0.00"
+        _fill_cells(bx, "ABCDEFGH", [r], FORMULA_FILL)
+        for col in "FGH":
+            bx[f"{col}{r}"].alignment = Alignment(horizontal="left", indent=1)
+    bx.column_dimensions["I"].width = 3
+    bx.column_dimensions["J"].width = 46
+    bx.column_dimensions["K"].width = 11
+    _summary_block(bx, "J", "K", [
+        (4, "Boxes (packed in list order)", "=Packing!H8", "0"),
+        (5, "Items packed", "=Packing!H6", "0"),
+        (6, "Total item weight (lb)", "=Packing!H7", "0.00"),
+        (7, "Total packed weight, all boxes (lb)", f"=SUM(D5:D{bl})", "0.00"),
+        (8, "Weight-only minimum (if items could be split)",
+         '=IF(OR(Packing!H5<>"OK",K6=0),0,ROUNDUP(K6/Packing!B3,0))', "0"),
+        (9, "Boxes over the limit (one item too heavy)", f'=COUNTIF(F5:F{bl},"Over*")', "0"),
+        (10, "Boxes exactly at the limit", f'=COUNTIF(F5:F{bl},"At*")', "0"),
+        (11, f"Boxes not listed (more than {bl - 4})", f"=MAX(0,K4-{bl - 4})", "0"),
+        (12, "Packing CHECK", "=Packing!H12", "General"),
+        (13, "CHECK", f'=IF(AND(K11=0,K12="OK",ROUND(SUM(C5:C{bl})-K6,4)=0,SUM(B5:B{bl})=K5),"OK","Check")',
+         "General"),
+    ])
+    bx.conditional_formatting.add(f"F5:F{bl}", FormulaRule(formula=['LEFT($F5,4)="Over"'], fill=ALERT_FILL))
+    bx.conditional_formatting.add(f"F5:F{bl}", FormulaRule(formula=['$F5="At the limit"'], fill=DONE_FILL))
+    bx.conditional_formatting.add("K4", FormulaRule(formula=['TRUE'], fill=DONE_FILL))
+    bx.conditional_formatting.add("K9", FormulaRule(formula=['$K$9>0'], fill=CHECK_ORANGE))
+    bx.conditional_formatting.add("K11", FormulaRule(formula=['$K$11>0'], fill=ALERT_FILL))
+    for c_ in ("K12", "K13"):
+        bx.conditional_formatting.add(c_, FormulaRule(formula=[f'$K${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    bx.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Split Items Into Boxes Under a Weight Limit",
+        "",
+        "1. Packing tab, B1 and B2 (yellow): the most one packed box may weigh, and the weight of the empty box plus tape and fill. B3 is the weight left for items, =ROUND(B1-B2,4). The limit is your own choice; this sheet has no carrier limits, rates or size rules.",
+        f"2. Packing tab, A6:B{il} (yellow): one item per row in the order you will pack, with its weight in pounds as a decimal (8 oz = 0.5 lb). The sample is a fictional December wholesale order of 10 pieces.",
+        "3. Box, C7: =IF(LEFT(E7,6)=\"Packed\",IF(AND(D6>0,ROUND(D6+B7,4)>$B$3),C6+1,C6),C6). If the box so far plus this item would weigh more than B3, the item starts the next box; otherwise it joins the current one. A box that comes out at exactly B3 keeps the item. The first item, C6, is box 1.",
+        "4. Weight in box so far, D7: =IF(LEFT(E7,6)=\"Packed\",IF(C7=C6,ROUND(D6+B7,4),B7),D6). It adds the item to the running weight when the box stays the same, and starts over at the item's weight in a new box. ROUND(...,4) rounds the running weight to 4 decimals, so 6.4 + 9.8 + 2.3 is compared as 18.5.",
+        "5. Status: Packed, or Packed alone: too heavy for one box when an item weighs more than B3 (it gets a box of its own, and that box is over the limit). Check: blank row inside the list (skipped), Check: no item name, Check: weight blank or text, Check: weight 0 or below, Check: settings. Rows that show Check are not packed; their Box and running weight cells repeat the row above in light gray.",
+        "6. Boxes tab: Items =COUNTIFS of the box number, Item weight =SUMIFS of the weights, Packed weight =ROUND(item weight + Packing!B2,2), Room left, Status (OK, At the limit, Over the limit), and the first and last item in each box. Up to 200 boxes are listed; more shows Check.",
+        "7. Weight-only minimum is the total item weight divided by B3, rounded up. It is the count you would get if items could be split, so the real packing list can need more boxes.",
+        "8. The boxes follow the order of your list (next-fit). This is not the fewest possible boxes. Sorting the item rows by Weight, largest first, often needs fewer; the sample order needs 5 boxes in list order and 4 sorted heaviest first.",
+        "9. Fragile items, box sizes and dimensional weight are not part of this sheet.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    pk.print_title_rows = "5:5"
+    bx.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-pack-boxes-by-weight.xlsx")
+
+
+PMQ_LAST = 205
+PMQ_GROUPS = ["High units, high margin", "High units, low margin", "Low units, high margin", "Low units, low margin"]
+PMQ_GROUP_FILLS = ["D9EAD3", "DDEBF7", "FCE4D6", "E4DFEC"]
+
+
+def _pmq_sample_products():
+    return [
+        ("Cedar candle 8 oz", 412, 9876.00, 3460.80),
+        ("Lavender soap bar", 655, 5240.00, 1572.00),
+        ("Holiday card 6 pack", 380, 6840.00, 1520.00),
+        ("Wool dryer balls", 95, 2185.00, 617.50),
+        ("Beeswax wraps", 140, 2520.00, 1260.00),
+        ("Ceramic mug", 210, 6300.00, 3570.00),
+        ("Linen tea towel", 88, 1584.00, 968.00),
+        ("Lip balm", 820, 3280.00, 1640.00),
+        ("Gift box set", 120, 5400.00, 2160.00),
+        ("Wax melts", 300, 2400.00, 1500.00),
+    ]
+
+
+def product_mix_quadrant():
+    from openpyxl.chart import Reference, ScatterChart, Series
+    wb = Workbook()
+    pr = wb.active
+    pr.title = "Products"
+    sm = wb.create_sheet("Summary")
+    pl = PMQ_LAST
+    pb, pc, pd, pe, pf, pg, ph, pi = (f"Products!${c}$6:${c}${pl}" for c in "BCDEFGHI")
+
+    _head_row(pr, 1, ["", "Line used", "Median (OK rows)", "Your own line (optional)"], [24, 11, 11, 12], height=46)
+    pr["A1"].fill = PatternFill(fill_type=None)
+    for r_, label, own_fmt, note in (
+            (2, "Units sold line", "#,##0", "Units sold at or above this line count as High units."),
+            (3, "Margin line", "0.00%", "A margin at or above this line counts as high margin. Type 50% for 50.00%.")):
+        pr[f"A{r_}"] = label
+        pr[f"A{r_}"].font = Font(bold=True)
+        pr[f"B{r_}"] = f'=IF(D{r_}="",C{r_},D{r_})'
+        pr[f"C{r_}"] = (f'=IF(COUNT($I$6:$I${pl})=0,"",MEDIAN($I$6:$I${pl}))' if r_ == 2 else
+                        f'=IF(COUNT($E$6:$E${pl})=0,"",MEDIAN($E$6:$E${pl}))')
+        for col in "BCD":
+            pr[f"{col}{r_}"].number_format = "General" if (r_ == 2 and col != "D") else own_fmt
+            pr[f"{col}{r_}"].alignment = Alignment(horizontal="right")
+        pr[f"B{r_}"].fill = pr[f"C{r_}"].fill = FORMULA_FILL
+        pr[f"D{r_}"].fill = INPUT_FILL
+        pr[f"E{r_}"] = note
+        pr[f"E{r_}"].font = Font(italic=True)
+    pr["A4"] = (f"One row per product (yellow A:D, rows 6 to {pl}): name, units sold, revenue and your total cost "
+                "for those units. Leave D2 and D3 empty to split at the medians. Fictional products.")
+    pr["A4"].font = Font(italic=True)
+    _head_row(pr, 5, ["Product", "Units sold", "Revenue", "Cost", "Margin", "Profit", "Group", "Status",
+                      "Units (OK rows)"], [24, 11, 11, 12, 9, 11, 24, 32, 9], height=46)
+    for r in range(6, pl + 1):
+        for col in "ABCD":
+            pr[f"{col}{r}"].fill = INPUT_FILL
+        pr[f"B{r}"].number_format = "#,##0"
+        pr[f"C{r}"].number_format = pr[f"D{r}"].number_format = USD
+        pr[f"E{r}"] = f'=IF(H{r}<>"OK","",ROUND((C{r}-D{r})/C{r},4))'
+        pr[f"F{r}"] = f'=IF(H{r}<>"OK","",ROUND(C{r}-D{r},2))'
+        pr[f"G{r}"] = (f'=IF(OR(H{r}<>"OK",$L$10<>"OK"),"",IF(B{r}>=$B$2,'
+                       f'IF(E{r}>=$B$3,"{PMQ_GROUPS[0]}","{PMQ_GROUPS[1]}"),'
+                       f'IF(E{r}>=$B$3,"{PMQ_GROUPS[2]}","{PMQ_GROUPS[3]}")))')
+        pr[f"H{r}"] = (f'=IF(AND(TRIM(A{r})="",B{r}="",C{r}="",D{r}=""),"",'
+                       f'IF(TRIM(A{r})="","Check: no product name",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: units blank or text",'
+                       f'IF(B{r}<0,"Check: units below 0",'
+                       f'IF(NOT(ISNUMBER(C{r})),"Check: revenue blank or text",'
+                       f'IF(C{r}<=0,"Check: revenue 0 or less (no margin)",'
+                       f'IF(NOT(ISNUMBER(D{r})),"Check: cost blank or text",'
+                       f'IF(D{r}<0,"Check: cost below 0","OK"))))))))')
+        pr[f"I{r}"] = f'=IF(H{r}="OK",B{r},"")'
+        pr[f"E{r}"].number_format = "0.00%"
+        pr[f"F{r}"].number_format = USD
+        pr[f"I{r}"].number_format = "#,##0"
+        _fill_cells(pr, "EFGHI", [r], FORMULA_FILL)
+        for col in "GH":
+            pr[f"{col}{r}"].alignment = Alignment(horizontal="left")
+    for i, (n, u, rv, cst) in enumerate(_pmq_sample_products()):
+        r = 6 + i
+        pr[f"A{r}"], pr[f"B{r}"], pr[f"C{r}"], pr[f"D{r}"] = n, u, rv, cst
+    pr.column_dimensions["E"].width = 9
+    pr.column_dimensions["J"].width = 3
+    pr.column_dimensions["K"].width = 40
+    pr.column_dimensions["L"].width = 12
+    _summary_block(pr, "K", "L", [
+        (5, "Rows OK", f'=COUNTIF(H6:H{pl},"OK")', "0"),
+        (6, "Rows showing Check", f'=SUMPRODUCT(--(LEFT(H6:H{pl},5)="Check"))', "0"),
+        (7, "On the units line (counted High units)", f'=COUNTIFS(H6:H{pl},"OK",B6:B{pl},$B$2)', "0"),
+        (8, "On the margin line (counted high margin)", f'=COUNTIFS(H6:H{pl},"OK",E6:E{pl},$B$3)', "0"),
+        (9, f"Typed below row {pl} (not read)", f"=COUNTA(A{pl + 1}:D3000)", "0"),
+        (10, "Lines (D2:D3 empty or a number)",
+         '=IF(AND(OR(D2="",ISNUMBER(D2)),OR(D3="",ISNUMBER(D3))),"OK","Check")', "General"),
+        (11, "CHECK", '=IF(AND(L6=0,L9=0,L10="OK"),"OK","Check")', "General"),
+    ])
+    pr.conditional_formatting.add(f"H6:H{pl}", FormulaRule(formula=['LEFT($H6,5)="Check"'], fill=ALERT_FILL))
+    for g, fc in zip(PMQ_GROUPS, PMQ_GROUP_FILLS):
+        pr.conditional_formatting.add(f"G6:G{pl}", FormulaRule(formula=[f'$G6="{g}"'],
+                                                               fill=PatternFill("solid", fgColor=fc)))
+    for c_ in ("L10", "L11"):
+        pr.conditional_formatting.add(c_, FormulaRule(formula=[f'$L${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    pr.conditional_formatting.add("L7:L8", FormulaRule(formula=['L7>0'], fill=CHECK_ORANGE))
+    pr.freeze_panes = "B6"
+
+    for r_, label, f, fmt in (
+            (1, "Units sold line", "=Products!B2", "General"),
+            (2, "Margin line", "=Products!B3", "0.00%")):
+        sm[f"A{r_}"], sm[f"B{r_}"] = label, f
+        sm[f"A{r_}"].font = Font(bold=True)
+        sm[f"B{r_}"].fill = FORMULA_FILL
+        sm[f"B{r_}"].number_format = fmt
+        sm[f"B{r_}"].alignment = Alignment(horizontal="right")
+        sm[f"C{r_}"] = (f'=IF(Products!D{r_ + 1}="","Median of the OK rows on the Products tab",'
+                        f'"Your own line (Products D{r_ + 1})")')
+        sm[f"C{r_}"].font = Font(italic=True)
+    _head_row(sm, 4, ["Group", "Products", "Units sold", "Revenue", "Cost", "Profit", "Share of profit",
+                      "Group margin"], [26, 10, 11, 13, 13, 13, 10, 10], height=46)
+    for i, g in enumerate(PMQ_GROUPS):
+        r = 5 + i
+        sm[f"A{r}"] = g
+        sm[f"A{r}"].fill = PatternFill("solid", fgColor=PMQ_GROUP_FILLS[i])
+        sm[f"B{r}"] = f"=COUNTIF({pg},A{r})"
+        sm[f"C{r}"] = f"=SUMIF({pg},A{r},{pb})"
+        sm[f"D{r}"] = f"=ROUND(SUMIF({pg},A{r},{pc}),2)"
+        sm[f"E{r}"] = f"=ROUND(SUMIF({pg},A{r},{pd}),2)"
+        sm[f"F{r}"] = f"=ROUND(SUMIF({pg},A{r},{pf}),2)"
+    sm["A9"] = "Total"
+    sm["A9"].font = Font(bold=True)
+    for col in "BCDEF":
+        sm[f"{col}9"] = f"=SUM({col}5:{col}8)" if col in "BC" else f"=ROUND(SUM({col}5:{col}8),2)"
+        sm[f"{col}9"].font = Font(bold=True)
+    for r in range(5, 10):
+        sm[f"G{r}"] = f'=IF($F$9<=0,"",F{r}/$F$9)' if r < 9 else '=IF($F$9<=0,"",SUM(G5:G8))'
+        sm[f"H{r}"] = f'=IF(D{r}<=0,"",F{r}/D{r})'
+        sm[f"B{r}"].number_format = "0"
+        sm[f"C{r}"].number_format = "#,##0"
+        for col in "DEF":
+            sm[f"{col}{r}"].number_format = USD
+        sm[f"G{r}"].number_format = sm[f"H{r}"].number_format = "0.00%"
+        _fill_cells(sm, "BCDEFGH", [r], FORMULA_FILL)
+    sm.column_dimensions["I"].width = 3
+    sm.column_dimensions["J"].width = 34
+    sm.column_dimensions["K"].width = 12
+    sm.column_dimensions["L"].width = 12
+    _summary_block(sm, "J", "K", [
+        (4, "Products counted (Products L5)", "=Products!L5", "0"),
+        (5, "Profit on OK rows (Products F)", f"=ROUND(SUM({pf}),2)", USD),
+        (6, "Groups add up", '=IF(AND(B9=K4,ROUND(F9-K5,2)=0),"OK","Check")', "General"),
+        (7, "Products CHECK", "=Products!L11", "General"),
+        (8, "CHECK", '=IF(AND(K6="OK",K7="OK"),"OK","Check")', "General"),
+    ])
+    for c_ in ("K6", "K8"):
+        sm.conditional_formatting.add(c_, FormulaRule(formula=[f'$K${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    sm["J11"] = "Chart line ends (used only by the chart)"
+    sm["J11"].font = Font(bold=True)
+    for col, t in zip("JKL", ["Line", "Units sold", "Margin"]):
+        sm[f"{col}12"] = t
+        sm[f"{col}12"].font = Font(bold=True)
+    mn_u, mx_u = (f'=IF(COUNT({pi})=0,"",{fn}({pi}))' for fn in ("MIN", "MAX"))
+    mn_m, mx_m = (f'=IF(COUNT({pe})=0,"",{fn}({pe}))' for fn in ("MIN", "MAX"))
+    for r, label, x, y in ((13, "Units sold line, bottom", "=Products!$B$2", mn_m),
+                           (14, "Units sold line, top", "=Products!$B$2", mx_m),
+                           (15, "Margin line, left", mn_u, "=Products!$B$3"),
+                           (16, "Margin line, right", mx_u, "=Products!$B$3")):
+        sm[f"J{r}"], sm[f"K{r}"], sm[f"L{r}"] = label, x, y
+        sm[f"K{r}"].number_format = "General" if r < 15 else "#,##0"
+        sm[f"L{r}"].number_format = "0.00%"
+        _fill_cells(sm, "KL", [r], FORMULA_FILL)
+
+    ch = ScatterChart()
+    ch.title = "Units sold vs margin (fictional products)"
+    ch.style = 13
+    ch.scatterStyle = "lineMarker"
+    ch.x_axis.title = "Units sold"
+    ch.y_axis.title = "Margin"
+    ch.x_axis.number_format = "#,##0"
+    ch.y_axis.number_format = "0%"
+    ch.x_axis.delete = False
+    ch.y_axis.delete = False
+    ch.legend.position = "b"
+    pts = Series(Reference(pr, min_col=5, min_row=6, max_row=pl), Reference(pr, min_col=9, min_row=6, max_row=pl),
+                 title="Products")
+    pts.marker.symbol = "circle"
+    pts.marker.size = 8
+    pts.marker.graphicalProperties.solidFill = "2E5E4E"
+    pts.marker.graphicalProperties.line.solidFill = "2E5E4E"
+    pts.graphicalProperties.line.noFill = True
+    ch.series.append(pts)
+    for r0, title, color in ((13, "Units sold line", "C0392B"), (15, "Margin line", "1F4E79")):
+        s = Series(Reference(sm, min_col=12, min_row=r0, max_row=r0 + 1),
+                   Reference(sm, min_col=11, min_row=r0, max_row=r0 + 1), title=title)
+        s.marker.symbol = "none"
+        s.graphicalProperties.line.solidFill = color
+        s.graphicalProperties.line.width = 22225
+        s.graphicalProperties.line.dashStyle = "dash"
+        s.smooth = False
+        ch.series.append(s)
+    ch.width, ch.height = 21, 11
+    sm.add_chart(ch, "A11")
+    sm.print_area = "A1:L33"
+
+    notes_sheet(wb, [
+        "Tidy Tabs: Sort Products Into Four Groups by Units Sold and Margin",
+        "",
+        f"1. Products tab, A6:D{pl} (yellow): one row per product with its name, units sold, revenue and your own total cost for those units, for the same period (for example 01/01/2026 to 12/31/2026). The sample is 10 fictional products from a candle and soap maker.",
+        "2. Margin, E6: =IF(H6<>\"OK\",\"\",ROUND((C6-D6)/C6,4)), the share of revenue left after cost. Profit, F6: =IF(H6<>\"OK\",\"\",ROUND(C6-D6,2)). Cost above revenue gives a negative margin and a negative profit; the row still counts.",
+        f"3. The lines. C2: =IF(COUNT($I$6:$I${pl})=0,\"\",MEDIAN($I$6:$I${pl})), the median units sold of the OK rows (column I holds units only for OK rows). C3: =IF(COUNT($E$6:$E${pl})=0,\"\",MEDIAN($E$6:$E${pl})), the median margin. With an even number of products the median is the average of the two middle values, so with 10 products the units line can sit between two products.",
+        "4. Your own lines: type a number in D2 (units) or D3 (margin, such as 50%) and B2 or B3 uses it instead of the median: B2 =IF(D2=\"\",C2,D2). Clear D2 or D3 to go back to the median. Medians always put about half of the products on each side of each line, so a fixed line of your own may suit you better.",
+        "5. Group, G6: =IF(OR(H6<>\"OK\",$L$10<>\"OK\"),\"\",IF(B6>=$B$2,IF(E6>=$B$3,\"High units, high margin\",\"High units, low margin\"),IF(E6>=$B$3,\"Low units, high margin\",\"Low units, low margin\"))). The >= means a product exactly on a line goes in the high group; L7 and L8 count those products.",
+        "6. Status, H6: Check: no product name, Check: units blank or text, Check: units below 0, Check: revenue blank or text, Check: revenue 0 or less (no margin), Check: cost blank or text, Check: cost below 0, or OK. Rows that are not OK get no margin, no group and are left out of both medians and every total. A product with no sales has no margin; delete its row or it shows Check.",
+        f"7. Summary tab: per group, Products =COUNTIF(Products!$G$6:$G${pl},A5), and Units sold, Revenue, Cost and Profit with SUMIF on the same group column, for example =ROUND(SUMIF(Products!$G$6:$G${pl},A5,Products!$F$6:$F${pl}),2). Share of profit is the group's profit over the total profit (blank when the total is $0.00 or less). Group margin is the group's profit over its revenue.",
+        "8. The chart plots each OK product (units sold across, margin up) with dashed lines at B2 and B3. The line ends are in Summary J13:L16 (the smallest and largest values on the Products tab).",
+        "9. CHECK on the Summary tab confirms that the four groups hold every OK row and add up to the profit on the Products tab, and that the Products tab has no Check rows.",
+        "10. The group names describe sales and margin only. They do not say which products to keep, drop or reprice. Cost is the number you type; this sheet does no inventory or tax accounting.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    pr.print_title_rows = "5:5"
+    sm.print_title_rows = None
+    sm.page_setup.fitToHeight = 1
+    wb.save(OUT / "tidy-tabs-product-mix-quadrant.xlsx")
+
+
+SDT_EXPORT_LAST = 2004
+SDT_DAYS_LAST = 66
+SDT_TIME_FMT = "h:mm AM/PM"
+
+
+def _sdt_sample_export():
+    """Fictional holiday weekend export: (date-time or text, amount)."""
+    return [
+        (datetime(2026, 11, 27, 9, 15), 42.00),
+        (datetime(2026, 11, 27, 14, 30), 18.50),
+        (datetime(2026, 11, 27, 23, 59, 59), 25.00),
+        (datetime(2026, 11, 28, 0, 0), 60.00),
+        (datetime(2026, 11, 28, 10, 5), 33.25),
+        (datetime(2026, 11, 28, 14, 30), 12.00),
+        ("11/28/2026 4:45 PM", 20.00),
+        (date(2026, 11, 28), 9.75),
+    ]
+
+
+def split_date_and_time():
+    wb = Workbook()
+    ex = wb.active
+    ex.title = "Export"
+    bd = wb.create_sheet("By day")
+    el, dl = SDT_EXPORT_LAST, SDT_DAYS_LAST
+    ea, eb, ec, ef, eg = (f"Export!${c}$5:${c}${el}" for c in "ABCFG")
+    ex["A1"] = (f"Paste the date-time and amount columns of your export (yellow A:B, rows 5 to {el}), one sale per row. "
+                "Fictional sales.")
+    ex["A2"] = ("Date = INT of the date-time, Time = MOD(date-time,1) rounded to the second. A date-time pasted as text shows Check and is "
+                "not counted. Times are taken as typed (no time zone change).")
+    ex["A1"].font = ex["A2"].font = Font(italic=True)
+    _head_row(ex, 4, ["Date and time", "Amount", "Date", "Time (to the second)", "Hour", "Minutes after midnight", "Status"],
+              [21, 11, 12, 11, 7, 10, 30], height=46)
+    nn = 'AND(ISNUMBER(A{r}),N(A{r})>=0)'
+    for r in range(5, el + 1):
+        ex[f"A{r}"].fill = ex[f"B{r}"].fill = INPUT_FILL
+        ex[f"A{r}"].number_format = US_DATETIME
+        ex[f"B{r}"].number_format = USD
+        ok = nn.format(r=r)
+        ex[f"C{r}"] = f'=IF(AND(A{r}="",B{r}=""),"",IF({ok},INT(A{r}),"Check"))'
+        ex[f"D{r}"] = f'=IF(AND(A{r}="",B{r}=""),"",IF({ok},ROUND(MOD(A{r},1)*86400,0)/86400,"Check"))'
+        ex[f"E{r}"] = f'=IF(ISNUMBER(D{r}),HOUR(A{r}),"")'
+        ex[f"F{r}"] = f'=IF(ISNUMBER(D{r}),INT(ROUND(D{r}*86400,0)/60),"")'
+        ex[f"G{r}"] = (f'=IF(AND(A{r}="",B{r}=""),"",IF(A{r}="","Check: no date-time",'
+                       f'IF(ISTEXT(A{r}),"Check: text, not a date-time",'
+                       f'IF(NOT(ISNUMBER(A{r})),"Check: not a date-time",'
+                       f'IF(A{r}<0,"Check: date-time below 0",'
+                       f'IF(NOT(ISNUMBER(B{r})),"Check: amount blank or text","OK"))))))')
+        ex[f"C{r}"].number_format = US_DATE
+        ex[f"D{r}"].number_format = SDT_TIME_FMT
+        ex[f"E{r}"].number_format = ex[f"F{r}"].number_format = "0"
+        _fill_cells(ex, "CDEFG", [r], FORMULA_FILL)
+        ex[f"G{r}"].alignment = Alignment(horizontal="left")
+    for i, (a, b) in enumerate(_sdt_sample_export()):
+        ex[f"A{5 + i}"], ex[f"B{5 + i}"] = a, b
+    ex["A11"].alignment = Alignment(horizontal="right")
+    ex.column_dimensions["H"].width = 3
+    ex.column_dimensions["I"].width = 30
+    ex.column_dimensions["J"].width = 12
+    _summary_block(ex, "I", "J", [
+        (4, "Rows OK", f'=COUNTIF(G5:G{el},"OK")', "#,##0"),
+        (5, "Total of OK rows", f'=SUMIFS(B5:B{el},G5:G{el},"OK")', USD),
+        (6, "Rows showing Check", f'=COUNTIF(G5:G{el},"Check*")', "0"),
+        (7, "Of those, date-times that are text", f'=COUNTIF(G5:G{el},"Check: text*")', "0"),
+        (8, "Earliest date", f'=IF(COUNT(C5:C{el})=0,"",MIN(C5:C{el}))', US_DATE),
+        (9, "Latest date", f'=IF(COUNT(C5:C{el})=0,"",MAX(C5:C{el}))', US_DATE),
+        (10, "Days from earliest to latest", '=IF(J8="","",J9-J8+1)', "0"),
+        (11, f"Typed below row {el} (not read)", f"=COUNTA(A{el + 1}:B6000)", "0"),
+        (12, "CHECK", '=IF(AND(J6=0,J11=0),"OK","Check")', "General"),
+    ])
+    ex.conditional_formatting.add(f"G5:G{el}", FormulaRule(formula=['LEFT($G5,5)="Check"'], fill=ALERT_FILL))
+    ex.conditional_formatting.add(f"C5:D{el}", FormulaRule(formula=['C5="Check"'], fill=ALERT_FILL))
+    ex.conditional_formatting.add("J6:J7", FormulaRule(formula=['J6>0'], fill=CHECK_ORANGE))
+    ex.conditional_formatting.add("J12", FormulaRule(formula=['$J$12<>"OK"'], fill=ALERT_FILL))
+    ex.freeze_panes = "A5"
+
+    _settings_rows(bd, [
+        (1, "First day", date(2026, 11, 27), US_DATE, "The first day to total (yellow). Earliest date in the export: Export J8."),
+        (2, "Days to show", 2, "0", f"1 to {dl - 4}. One row per day from the first day."),
+        (3, "Time to look up (optional)", time(14, 30), SDT_TIME_FMT, "Counts the sales at this minute (I13:I15)."),
+    ])
+    bd.column_dimensions["A"].width = 26
+    _head_row(bd, 4, ["Date", "Sales (date-time window)", "Sales (Date column)", "Orders",
+                      "Matching the date alone (wrong)", "Window = Date column?"], [26, 13, 13, 8, 15, 12], height=46)
+    for c_ in ("A1", "A2", "A3"):
+        bd[c_].alignment = Alignment(wrap_text=True, vertical="center")
+    for r in range(5, dl + 1):
+        bd[f"A{r}"] = '=IF($I$4<>"OK","",$B$1)' if r == 5 else \
+            f'=IF(A{r - 1}="","",IF({r - 4}>$B$2,"",A{r - 1}+1))'
+        bd[f"B{r}"] = f'=IF(A{r}="","",SUMIFS({eb},{ea},">="&A{r},{ea},"<"&A{r}+1))'
+        bd[f"C{r}"] = f'=IF(A{r}="","",SUMIFS({eb},{ec},A{r}))'
+        bd[f"D{r}"] = f'=IF(A{r}="","",COUNTIFS({ea},">="&A{r},{ea},"<"&A{r}+1))'
+        bd[f"E{r}"] = f'=IF(A{r}="","",SUMIFS({eb},{ea},A{r}))'
+        bd[f"F{r}"] = f'=IF(A{r}="","",IF(ROUND(B{r}-C{r},2)=0,"OK","Check"))'
+        bd[f"A{r}"].number_format = "ddd mm/dd/yyyy"
+        for col in "BCE":
+            bd[f"{col}{r}"].number_format = USD
+        bd[f"D{r}"].number_format = "0"
+        _fill_cells(bd, "ABCDEF", [r], FORMULA_FILL)
+        bd[f"A{r}"].alignment = Alignment(horizontal="left")
+    bd.column_dimensions["G"].width = 3
+    bd.column_dimensions["H"].width = 40
+    bd.column_dimensions["I"].width = 12
+    _summary_block(bd, "H", "I", [
+        (4, "Settings (B1:B3)",
+         f'=IF(AND(ISNUMBER(B1),ISNUMBER(B2),OR(B3="",ISNUMBER(B3))),IF(AND(B1>=1,B1=INT(B1),B2>=1,B2<={dl - 4},'
+         'B2=INT(B2),N(B3)>=0,N(B3)<1),"OK","Check"),"Check")', "General"),
+        (5, "Export total (OK rows)", "=Export!J5", USD),
+        (6, "Total of the days shown", f"=SUM(B5:B{dl})", USD),
+        (7, "OK sales outside the days shown",
+         f'=IF(I4<>"OK","",SUMIFS({eb},{eg},"OK",{ea},"<"&B1)+SUMIFS({eb},{eg},"OK",{ea},">="&B1+B2))', USD),
+        (8, "Days shown add up to the export", '=IF(AND(I4="OK",ROUND(I6-I5,2)=0,N(I7)=0),"OK","Check")', "General"),
+        (9, "Export rows showing Check (not counted)", "=Export!J6", "0"),
+        (10, "Amount on those rows", f'=SUMIFS({eb},{eg},"Check*")', USD),
+        (11, "CHECK", '=IF(AND(I8="OK",I9=0,Export!J12="OK"),"OK","Check")', "General"),
+        (13, "B3 in minutes after midnight", '=IF(NOT(ISNUMBER(B3)),"",INT(ROUND(MOD(B3,1)*86400,0)/60))', "0"),
+        (14, "Sales at that minute (compare minutes)", f'=IF(I13="","",COUNTIF({ef},I13))', "0"),
+        (15, "Amount at that minute", f'=IF(I13="","",SUMIFS({eb},{ef},I13))', USD),
+    ])
+    bd.conditional_formatting.add(f"F5:F{dl}", FormulaRule(formula=['$F5="Check"'], fill=ALERT_FILL))
+    bd.conditional_formatting.add(f"E5:E{dl}", FormulaRule(formula=['AND($A5<>"",ROUND($E5-$B5,2)<>0)'],
+                                                           fill=CHECK_ORANGE))
+    bd.conditional_formatting.add("I6", FormulaRule(formula=['TRUE'], fill=DONE_FILL))
+    for c_ in ("I4", "I8", "I11"):
+        bd.conditional_formatting.add(c_, FormulaRule(formula=[f'$I${c_[1:]}<>"OK"'], fill=ALERT_FILL))
+    bd.conditional_formatting.add("I9:I10", FormulaRule(formula=['$I$9>0'], fill=CHECK_ORANGE))
+    bd.freeze_panes = "A5"
+    notes_sheet(wb, [
+        "Tidy Tabs: Split a Date and Time Into Separate Columns and Total Sales by Day",
+        "",
+        f"1. Export tab, A5:B{el} (yellow): paste the date-time column and the amount column of your shop or point-of-sale export, one sale per row, in any order. The sample is a fictional holiday weekend, 11/27 and 11/28/2026.",
+        "2. Date, C5: =IF(AND(A5=\"\",B5=\"\"),\"\",IF(AND(ISNUMBER(A5),N(A5)>=0),INT(A5),\"Check\")). A date-time is one number: the whole part is the day and the fraction is the time of day, so INT keeps the date. Format the column as MM/DD/YYYY.",
+        "3. Time, D5: the same with ROUND(MOD(A5,1)*86400,0)/86400. MOD(A5,1) is the fraction left after the whole days, the time of day; format the column as h:mm AM/PM (12:00 AM is 0, the start of the day). Hour, E5: =HOUR(A5).",
+        "4. Why the rounding: the time inside a date-time can be a hair off the time it shows. In LibreOffice Calc, a plain =MOD(A6,1) formatted as h:mm AM/PM showed 2:29 PM for the 2:30 PM sale, and =MOD(A6,1)=TIME(14,30,0) was FALSE. Rounding to the nearest second (86,400 seconds in a day) fixes both.",
+        "5. Minutes after midnight, F5: =INT(ROUND(D5*86400,0)/60). 2:30 PM is 870. To find sales at a set time, compare whole minutes: =F5=870. By day B3 and I13:I15 count the sales at one minute (2 sales, $30.50, at 2:30 PM in the sample).",
+        "6. By day tab: B1 the first day, B2 how many days to show. Sales, B5: =SUMIFS(Export!$B$5:$B$2004,Export!$A$5:$A$2004,\">=\"&A5,Export!$A$5:$A$2004,\"<\"&A5+1), every sale from 12:00 AM up to, not including, 12:00 AM the next day. A sale at 12:00 AM belongs to that day; 11:59:59 PM to the day it is on.",
+        "7. Sales (Date column), C5: =SUMIFS(Export!$B$5:$B$2004,Export!$C$5:$C$2004,A5) totals on the split Date column and must give the same answer (F says OK). Orders, D5: COUNTIFS with the same two date-time conditions.",
+        "8. The wrong way, E5: =SUMIFS(Export!$B$5:$B$2004,Export!$A$5:$A$2004,A5) matches only sales at exactly 12:00 AM, because 11/28/2026 is the number for 11/28/2026 12:00 AM. In the sample it gives $0.00 and $69.75 instead of $85.50 and $115.00 (checked in LibreOffice Calc).",
+        "9. A date-time pasted as text, such as 11/28/2026 4:45 PM in row 11, shows Check and is left out of every total (By day I9:I10). Convert it to a real date-time first; a text date-time in another order (day first) needs fixing before it converts.",
+        "10. CHECK (By day I11) is OK when the days shown add up to the export total, no OK sale falls outside the days shown and no Export row shows Check. The sample shows Check because of the text row.",
+        "11. Times are taken as typed: the sheet does not change time zones or handle a daylight saving change. A refund (negative amount) lowers that day's total.",
+        "",
+        "Checked in LibreOffice Calc only; not opened in Excel or Google Sheets.",
+        "Google Sheets: File > Import > Upload this .xlsx.",
+    ])
+    finish_letter(wb, landscape=True)
+    ex.print_title_rows = "4:4"
+    bd.print_title_rows = "4:4"
+    wb.save(OUT / "tidy-tabs-split-date-and-time.xlsx")
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     inventory()
@@ -24108,4 +25004,9 @@ if __name__ == "__main__":
     unbilled_hours_by_client()
     processing_time_percentile()
     recurring_charges_finder()
+    customer_sales_vs_last_year()
+    barcode_scan_tally()
+    pack_boxes_by_weight()
+    product_mix_quadrant()
+    split_date_and_time()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))
